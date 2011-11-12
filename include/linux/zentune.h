@@ -12,8 +12,8 @@
 #define sched_nr_latency_custom 10
 
 /* MM Related */
-#define vm_dirty_ratio_custom 1;
-#define dirty_background_ratio_custom 10;
+#define vm_dirty_ratio_custom 50;
+#define dirty_background_ratio_custom 20;
 
 /* CPUFREQ Related */
 #define DEF_SAMPLING_DOWN_FACTOR_CUSTOM 10
