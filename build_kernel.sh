@@ -20,7 +20,7 @@ fi
 export ARCH=arm
 
 cd $KERNELDIR/
-nice -n 10 make -j4 modules || exit 1
+nice -n 10 make -j4 || exit 1
 
 #remove previous ramfs files
 rm -rf $RAMFS_TMP
@@ -38,7 +38,7 @@ rm -rf $RAMFS_TMP/.hg
 #copy modules into ramfs
 mkdir -p $INITRAMFS/lib/modules
 find -name '*.ko' -exec cp -av {} $RAMFS_TMP/lib/modules/ \;
-${CROSS_COMPILE}strip --strip-unneeded $INITRAMFS_TMP/lib/modules/*
+${CROSS_COMPILE}strip --strip-unneeded $RAMFS_TMP/lib/modules/*
 
 cd $RAMFS_TMP
 find | fakeroot cpio -H newc -o > $RAMFS_TMP.cpio 2>/dev/null
