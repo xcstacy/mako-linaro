@@ -73,6 +73,9 @@ extern int mali_voltage_lock_init(void);
 extern int mali_voltage_lock_push(int lock_vol);
 extern int mali_voltage_lock_pop(void);
 #define CONFIG_TC_VOLTAGE /* Temperature compensated voltage */
+#else
+#define mali_voltage_lock_push(msg...) 0
+#define mali_voltage_lock_pop(msg...) 0
 #endif
 
 static unsigned int get_curr_temp(struct s5p_tmu_info *info)
