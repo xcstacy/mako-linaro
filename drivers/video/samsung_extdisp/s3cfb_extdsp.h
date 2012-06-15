@@ -133,7 +133,7 @@ struct s3cfb_extdsp_user_window {
 #define S3CFB_EXTDSP_SET_TZ_MODE		_IOW ('F', 326, unsigned int)
 
 extern struct fb_ops			s3cfb_extdsp_ops;
-extern struct s3cfb_extdsp_global	*get_extdsp_global(int id);
+extern inline struct s3cfb_extdsp_global	*get_extdsp_global(int id);
 
 /* S3CFB_EXTDSP */
 extern int s3cfb_extdsp_enable_window(struct s3cfb_extdsp_global *fbdev, int id);
@@ -158,7 +158,7 @@ extern int s3cfb_extdsp_release(struct fb_info *fb, int user);
 extern int s3cfb_extdsp_pan_display(struct fb_var_screeninfo *var,
 				struct fb_info *fb);
 extern int s3cfb_extdsp_blank(int blank_mode, struct fb_info *fb);
-extern unsigned int __chan_to_field(unsigned int chan,
+extern inline unsigned int __chan_to_field(unsigned int chan,
 					struct fb_bitfield bf);
 extern int s3cfb_extdsp_setcolreg(unsigned int regno, unsigned int red,
 			unsigned int green, unsigned int blue,
