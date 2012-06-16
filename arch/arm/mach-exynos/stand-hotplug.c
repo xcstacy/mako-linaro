@@ -526,6 +526,7 @@ static int __init exynos4_pm_hotplug_init(void)
 
 	queue_delayed_work_on(0, hotplug_wq, &hotplug_work, BOOT_DELAY * HZ);
 #ifdef CONFIG_CPU_FREQ
+/*
 	table = cpufreq_frequency_get_table(0);
 
 	for (i = 0; table[i].frequency != CPUFREQ_TABLE_END; i++) {
@@ -536,8 +537,10 @@ static int __init exynos4_pm_hotplug_init(void)
 		else if (freq != CPUFREQ_ENTRY_INVALID && freq_min > freq)
 			freq_min = freq;
 	}
-	/*get max frequence*/
-	max_performance = freq_max * NUM_CPUS;
+*/
+	/*get max frequency*/
+	max_performance = 1400000 * NUM_CPUS;
+	freq_min = 200000;
 #else
 	max_performance = clk_get_rate(clk_get(NULL, "armclk")) / 1000 * NUM_CPUS;
 	freq_min = clk_get_rate(clk_get(NULL, "armclk")) / 1000;
