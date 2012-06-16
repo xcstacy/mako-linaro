@@ -3,7 +3,9 @@ export KERNELDIR=`readlink -f .`
 export RAMFS_SOURCE=`readlink -f $KERNELDIR/../ramfs-sgs3`
 export PARENT_DIR=`readlink -f ..`
 export USE_SEC_FIPS_MODE=true
+if [ "a$CROSS_COMPILE" == "a" ];then
 CROSS_COMPILE=$PARENT_DIR/android_prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-
+fi
 
 if [ "${1}" != "" ];then
   export KERNELDIR=`readlink -f ${1}`
