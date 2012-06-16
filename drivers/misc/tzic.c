@@ -42,6 +42,9 @@ u32 exynos_smc1(u32 cmd, u32 arg1, u32 arg2, u32 arg3)
 	register u32 reg3 __asm__("r3") = arg3;
 
 	__asm__ volatile (
+#if __GNUC_MINOR__ > 4
+		".arch_extension sec\n"
+#endif
 		"smc	0\n"
 		: "+r"(reg0), "+r"(reg1), "+r"(reg2), "+r"(reg3)
 	);
