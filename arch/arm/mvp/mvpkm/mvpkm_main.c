@@ -2108,6 +2108,9 @@ SetupMonitor(MvpkmVM *vm)
       register uint32 r4 asm("r4") = hsctlr;
 
       asm volatile (
+#if __GNUC_MINOR__ > 4
+         ".arch_extension sec\n"
+#endif
          "smc 0"
          :
          : "r" (r0), "r" (r1), "r" (r2), "r" (r3), "r" (r4)
