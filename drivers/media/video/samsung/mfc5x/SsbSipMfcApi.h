@@ -42,8 +42,10 @@
 
 #if defined(CONFIG_CPU_EXYNOS4212) || defined(CONFIG_CPU_EXYNOS4412)
 #define SUPPORT_SLICE_ENCODING        1
+#define _SUPPORT_SLICE_ENCODING SAMSUNGROM
 #else
 #define SUPPORT_SLICE_ENCODING        0
+#define _SUPPORT_SLICE_ENCODING if(0)
 #endif
 
 /*--------------------------------------------------------------------------------*/
