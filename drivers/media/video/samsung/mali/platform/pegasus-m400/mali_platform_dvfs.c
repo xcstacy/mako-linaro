@@ -190,6 +190,8 @@ static DECLARE_WORK(mali_dvfs_work, mali_dvfs_work_handler);
 
 atomic_t mali_cpufreq_lock;
 
+int cpufreq_lock_gpu = 500; //1200
+
 int cpufreq_lock_by_mali(unsigned int freq)
 {
 #ifdef CONFIG_EXYNOS4_CPUFREQ
@@ -292,7 +294,7 @@ static mali_bool set_mali_dvfs_status(u32 step,mali_bool boostup)
 
 	/* lock/unlock CPU freq by Mali */
 	if (mali_dvfs[step].clock == 440)
-		err = cpufreq_lock_by_mali(1200);
+		err = cpufreq_lock_by_mali(cpufreq_lock_gpu);
 	else
 		cpufreq_unlock_by_mali();
 
@@ -657,7 +659,7 @@ int change_dvfs_tableset(int change_clk, int change_step)
 
 		/* lock/unlock CPU freq by Mali */
 		if (mali_dvfs[change_step].clock == 440)
-			err = cpufreq_lock_by_mali(1200);
+			err = cpufreq_lock_by_mali(cpufreq_lock_gpu);
 		else
 			cpufreq_unlock_by_mali();
 	}
