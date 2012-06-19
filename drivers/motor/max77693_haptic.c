@@ -24,8 +24,8 @@
 #include <linux/mfd/max77693.h>
 #include <linux/mfd/max77693-private.h>
 
-static unsigned long pwm_val = 50; /* duty in percent */
-static int pwm_duty = 27787; /* duty value, 37050=100%, 27787=50%, 18525=0% */
+unsigned long pwm_val = 50; /* duty in percent */
+int pwm_duty = 27787; /* duty value, 37050=100%, 27787=50%, 18525=0% */
 
 struct max77693_haptic_data {
 	struct max77693_dev *max77693;
@@ -234,7 +234,15 @@ void vibtonz_pwm(int nForce)
 		pr_err("[VIB] %s: the motor is not ready!!!", __func__);
 		return ;
 	}
+SAMSUNGROM{
+	pwm_period = g_hap_data->pdata->period;
+	pwm_duty = pwm_period / 2 + ((pwm_period / 2 - 2) * nForce) / 127;
 
+	if (pwm_duty > g_hap_data->pdata->duty)
+		pwm_duty = g_hap_data->pdata->duty;
+	else if (pwm_period - pwm_duty > g_hap_data->pdata->duty)
+		pwm_duty = pwm_period - g_hap_data->pdata->duty;
+}
 	/* add to avoid the glitch issue */
 	if (prev_duty != pwm_duty) {
 		prev_duty = pwm_duty;
