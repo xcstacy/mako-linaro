@@ -193,78 +193,6 @@ static int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
 	}
 }
 
-//original implementation by Supercurio
-//https://github.com/project-voodoo/linux_samsung
-//this is just a selective cherry-picking from his implementation
-int voodoo_enable = 0;
-int voodoo_hpvol[2] = { 52, 52 };
-unsigned int dac_direct = 0;
-
-bool is_path_media_or_fm_no_call_no_record(struct wm8994_priv *wm8994)
-{
-
-	if (!wm8994->mic_detecting
-//	     && (wm8994->codec_state & PLAYBACK_ACTIVE)
-//	     && (wm8994->stream_state & PCM_STREAM_PLAYBACK)
-//	     && !(wm8994->codec_state & CALL_ACTIVE)
-//	     && (wm8994->rec_path == MIC_OFF)
-//	    ) || is_path(RADIO_HEADPHONES)
-	)
-		return true;
-
-	return false;
-}
-
-unsigned short dac_direct_get_value(struct wm8994_priv *wm8994,
-							unsigned short val, bool can_reverse)
-{
-	if (is_path_media_or_fm_no_call_no_record(wm8994)) {
-
-		if (dac_direct) {
-			if (val == WM8994_DAC1L_TO_MIXOUTL)
-				return WM8994_DAC1L_TO_HPOUT1L;
-		} else {
-			if (val == WM8994_DAC1L_TO_HPOUT1L && can_reverse)
-				return WM8994_DAC1L_TO_MIXOUTL;
-		}
-	}
-
-	return val;
-}
-
-unsigned int voodoo_hook_wm8994_write(struct snd_soc_codec *codec,
-				      unsigned int reg, unsigned int value)
-{
-	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
-
-	// global kill switch
-	if (!voodoo_enable)
-		return value;
-
-	if (!wm8994->mic_detecting
-	   // && !(wm8994->codec_state & CALL_ACTIVE)
-		)
-	{
-		if (reg == WM8994_LEFT_OUTPUT_VOLUME)
-			value =
-			    (WM8994_HPOUT1_VU |
-			     WM8994_HPOUT1L_MUTE_N |
-			     voodoo_hpvol[0]);
-		if (reg == WM8994_RIGHT_OUTPUT_VOLUME)
-			value =
-			    (WM8994_HPOUT1_VU |
-			     WM8994_HPOUT1R_MUTE_N |
-			     voodoo_hpvol[1]);
-	}
-
-	// DAC direct tuning virtual hook
-	if (reg == WM8994_OUTPUT_MIXER_1
-	    || reg == WM8994_OUTPUT_MIXER_2)
-		value = dac_direct_get_value(wm8994, value, false);
-
-	return value;
-}
-
 static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
 {
@@ -272,7 +200,6 @@ static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
 
 	BUG_ON(reg > WM8994_MAX_REGISTER);
 
-	value = voodoo_hook_wm8994_write(codec, reg, value);
 	if (!wm8994_volatile(codec, reg)) {
 		ret = snd_soc_cache_write(codec, reg, value);
 		if (ret != 0)
