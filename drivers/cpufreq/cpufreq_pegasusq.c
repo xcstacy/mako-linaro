@@ -168,12 +168,12 @@ static unsigned int get_nr_run_avg(void)
 
 #ifdef CONFIG_MACH_MIDAS
 static int hotplug_rq[4][2] = {
-	{0, 150}, {150, 300}, {300, 400}, {400, 0}
+	{0, 100}, {100, 300}, {300, 400}, {400, 0}
 };
 
 static int hotplug_freq[4][2] = {
 	{0, 500000},
-	{200000, 500000},
+	{400000, 500000},
 	{400000, 800000},
 	{500000, 0}
 };
@@ -960,7 +960,7 @@ static int check_down(void)
 		&& online > dbs_tuners_ins.max_cpu_lock)
 		return 1;
 
-	if (num_hist == 0 || num_hist % down_rate)
+	if (num_hist % down_rate)
 		return 0;
     if(num_hist == 0) num_hist = MAX_HOTPLUG_RATE; //make it circular -gm
 
