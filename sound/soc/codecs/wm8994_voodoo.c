@@ -479,7 +479,7 @@ bool is_path(int unified_path)
 	// speaker
 	case SPEAKER:
 #ifdef GALAXY_S3
-		return (wm8994->mic_detecting);
+		return !is_path(HEADPHONES);
 #else
 #ifdef GALAXY_TAB
 		return (wm8994->cur_path == SPK
@@ -499,7 +499,7 @@ bool is_path(int unified_path)
 	// headphones
 	case HEADPHONES:
 #ifdef GALAXY_S3
-		return !(wm8994->mic_detecting);
+		return snd_soc_read(codec, WM1811_JACKDET_CTRL) & WM1811_JACKDET_CTRL;
 #else
 #ifdef NEXUS_S
 		return (wm8994->cur_path == HP
@@ -570,7 +570,7 @@ bool is_path(int unified_path)
 	// for M110S Gingerbread: added check non call
 	case MAIN_MICROPHONE:
 #ifdef GALAXY_S3 //todo
-		return (wm8994->mic_detecting);
+		return !(wm8994->jack_mic);
 #else
 		return (wm8994->codec_state & CAPTURE_ACTIVE)
 		    && (wm8994->rec_path == MAIN)
@@ -791,7 +791,9 @@ unsigned short digital_gain_get_value(unsigned short val)
 	int aif_gain = 0xC0;
 	int i;
 	int step = -375;
-
+#ifdef GALAXY_S3
+	return val;
+#endif
 	if (is_path_media_or_fm_no_call_no_record()) {
 
 		if (digital_gain <= 0) {
@@ -950,7 +952,7 @@ void apply_saturation_prevention_drc()
 	int i;
 	int step = 750;
 
-#ifndef GALAXY_S3 //todo
+#ifdef GALAXY_S3 //todo
 	return;
 #endif
 	// don't apply the limiter if not playing media
@@ -1151,6 +1153,7 @@ static ssize_t digital_gain_store(struct device *dev,
 				      const char *buf, size_t size)
 {
 	int new_digital_gain;
+return size;
 	if (sscanf(buf, "%d", &new_digital_gain) == 1) {
 		if (new_digital_gain <= 36000 && new_digital_gain >= -71625) {
 			if (new_digital_gain > digital_gain) {
