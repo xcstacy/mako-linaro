@@ -38,9 +38,6 @@
 #include <linux/i2c/fm34_we395.h>
 
 #include "wm8994.h"
-#ifdef CONFIG_SND_VOODOO
-#include "wm8994_voodoo.c"
-#endif
 #include "wm_hubs.h"
 
 #define WM1811_JACKDET_MODE_NONE  0x0000
@@ -195,6 +192,10 @@ static int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
 		return 0;
 	}
 }
+
+#ifdef CONFIG_SND_VOODOO
+#include "wm8994_voodoo.c"
+#endif
 
 static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
