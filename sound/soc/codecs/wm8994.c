@@ -3609,7 +3609,8 @@ static irqreturn_t wm1811_jackdet_irq(int irq, void *data)
 	dev_dbg(codec->dev, "JACKDET %x\n", reg);
 
 	present = reg & WM1811_JACKDET_LVL;
-
+	wm8994->jack_present = present;
+	apply_saturation_prevention_drc();
 	if (present) {
 		dev_dbg(codec->dev, "Jack detected\n");
 
