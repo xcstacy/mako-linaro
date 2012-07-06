@@ -30,6 +30,12 @@ typedef struct mali_dvfs_thresholdTag{
 	unsigned int downthreshold;
 	unsigned int upthreshold;
 }mali_dvfs_threshold_table;
+typedef struct mali_runtime_resumeTag{
+	int clk;
+	int vol;
+}mali_runtime_resume_table;
+extern mali_runtime_resume_table mali_runtime_resume;
+
 extern mali_dvfs_table mali_dvfs[4];
 extern mali_dvfs_threshold_table mali_dvfs_threshold[4];
 
@@ -61,6 +67,7 @@ static ssize_t gpu_voltage_store(struct device *dev, struct device_attribute *at
     	}
 		mali_dvfs[i].vol=gv[i];
     }
+	mali_runtime_resume.vol = mali_dvfs[1].vol;
 	return count;	
 }
 
