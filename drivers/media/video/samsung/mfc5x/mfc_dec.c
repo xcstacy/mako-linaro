@@ -1733,7 +1733,7 @@ static void mfc_set_stream_info(
 	write_shm(ctx, ofs, START_BYTE_NUM);
 }
 
-int mfc_init_decoding(struct mfc_inst_ctx *ctx, union mfc_args *args)
+int mfc_init_decoding(struct mfc_inst_ctx *ctx, void *args)
 {
 	struct mfc_dec_init_arg *init_arg = (struct mfc_dec_init_arg *)args;
 	struct mfc_dec_ctx *dec_ctx = NULL;
@@ -2334,7 +2334,7 @@ static int mfc_decoding_frame(struct mfc_inst_ctx *ctx, struct mfc_dec_exe_arg *
 	return MFC_OK;
 }
 
-int mfc_exec_decoding(struct mfc_inst_ctx *ctx, union mfc_args *args)
+int mfc_exec_decoding(struct mfc_inst_ctx *ctx, void *args)
 {
 	struct mfc_dec_exe_arg *exe_arg;
 	int ret;

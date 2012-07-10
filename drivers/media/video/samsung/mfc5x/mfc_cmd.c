@@ -141,6 +141,7 @@ mfc_wait_sys(struct mfc_dev *dev, enum mfc_r2h_ret ret, long timeout)
 		return false;
 	}
 
+#if SUPPORT_SLICE_ENCODING
 _SUPPORT_SLICE_ENCODING
 {
 	if ((ret == FRAME_DONE_RET) && (r2h_cmd == EDFU_INIT_RET)
@@ -157,8 +158,10 @@ _SUPPORT_SLICE_ENCODING
 			wake_up(&dev->wait_slice);
 	}
 }
+#endif
 
 	if (r2h_cmd != ret) {
+#if SUPPORT_SLICE_ENCODING
 _SUPPORT_SLICE_ENCODING
 {
 		/* exceptional case: FRAME_START -> EDFU_INIT_RET */
@@ -169,6 +172,7 @@ _SUPPORT_SLICE_ENCODING
 		if ((ret == CLOSE_CH_RET) && (r2h_cmd == ABORT_RET))
 			return true;
 }
+#endif
 		mfc_err("F/W return (%d) waiting for (%d)\n",
 			r2h_cmd, ret);
 
@@ -353,6 +357,7 @@ int mfc_cmd_inst_close(struct mfc_inst_ctx *ctx)
 		mfc_err("failed to close instance\n");
 		return MFC_CLOSE_FAIL;
 	}
+#if SUPPORT_SLICE_ENCODING
 _SUPPORT_SLICE_ENCODING
 {
 	/* retry instance close */
@@ -367,6 +372,7 @@ _SUPPORT_SLICE_ENCODING
 		}
 	}
 }
+#endif
 
 	return MFC_OK;
 }
