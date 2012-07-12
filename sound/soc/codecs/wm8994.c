@@ -130,7 +130,7 @@ static void wm8958_micd_set_rate(struct snd_soc_codec *codec)
 			    WM8958_MICD_RATE_MASK, val);
 }
 
-static int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg)
+int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg)
 {
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 	struct wm8994 *control = codec->control_data;
@@ -171,7 +171,7 @@ static int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg)
 	return wm8994_access_masks[reg].readable != 0;
 }
 
-static int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
+int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
 {
 	if (reg >= WM8994_CACHE_SIZE)
 		return 1;
@@ -194,7 +194,7 @@ static int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
 }
 
 #ifdef CONFIG_SND_VOODOO
-#include "wm8994_voodoo.c"
+#include "wm8994_voodoo.h"
 #endif
 
 static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
@@ -3610,8 +3610,8 @@ static irqreturn_t wm1811_jackdet_irq(int irq, void *data)
 
 	present = reg & WM1811_JACKDET_LVL;
 	wm8994->jack_present = present;
-	apply_saturation_prevention_drc();
 	if (present) {
+		apply_soundboost();
 		dev_dbg(codec->dev, "Jack detected\n");
 
 		wm8958_micd_set_rate(codec);
