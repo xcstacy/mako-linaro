@@ -15,6 +15,13 @@
 #include <linux/miscdevice.h>
 #include <linux/version.h>
 #include "wm8994_voodoo.h"
+#include <linux/mfd/wm8994/core.h>
+#include <linux/mfd/wm8994/registers.h>
+#include <linux/mfd/wm8994/pdata.h>
+#include <linux/mfd/wm8994/gpio.h>
+
+static int (*old_wm8994_write)(struct snd_soc_codec *codec, unsigned int reg,
+	unsigned int value);
 
 #if defined(GALAXY_S3)
 static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
@@ -22,6 +29,45 @@ static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
 static unsigned int wm8994_read(struct snd_soc_codec *codec,
 				unsigned int reg);
 #define CONFIG_SND_VOODOO_DEVELOPMENT
+int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg);
+int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg);
+static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
+	unsigned int value)
+{
+	int ret;
+
+	BUG_ON(reg > WM8994_MAX_REGISTER);
+
+	if (!wm8994_volatile(codec, reg)) {
+		ret = snd_soc_cache_write(codec, reg, value);
+		if (ret != 0)
+			dev_err(codec->dev, "Cache write to %x failed: %d\n",
+				reg, ret);
+	}
+
+	return wm8994_reg_write(codec->control_data, reg, value);
+}
+
+static unsigned int wm8994_read(struct snd_soc_codec *codec,
+				unsigned int reg)
+{
+	unsigned int val;
+	int ret;
+
+	BUG_ON(reg > WM8994_MAX_REGISTER);
+
+	if (!wm8994_volatile(codec, reg) && wm8994_readable(codec, reg) &&
+	    reg < codec->driver->reg_cache_size) {
+		ret = snd_soc_cache_read(codec, reg, &val);
+		if (ret >= 0)
+			return val;
+		else
+			dev_err(codec->dev, "Cache read from %x failed: %d\n",
+				reg, ret);
+	}
+
+	return wm8994_reg_read(codec->control_data, reg);
+}
 #endif
 #ifndef MODULE
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35) && !defined(GALAXY_TAB) && !defined(GALAXY_S3)
@@ -943,6 +989,16 @@ void load_current_eq_values()
 		}
 }
 
+void apply_soundboost(void)
+{
+	update_digital_gain(false);
+	update_hpvol(false);
+	update_fll_tuning(false);
+	update_dac_direct(false);
+	update_headphone_eq(true);
+	update_stereo_expansion(false);
+}
+
 void apply_saturation_prevention_drc()
 {
 	unsigned short val;
@@ -1741,7 +1797,7 @@ unsigned int voodoo_hook_wm8994_write(struct snd_soc_codec *codec_,
 	// be sure our pointer to codec is up to date
 	codec = codec_;
 
-	if (!bypass_write_hook) {
+	if (1) { //!bypass_write_hook) {
 
 #ifdef CONFIG_SND_VOODOO_HP_LEVEL_CONTROL
 		if (is_path(HEADPHONES)
