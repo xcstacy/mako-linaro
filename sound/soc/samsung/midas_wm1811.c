@@ -229,7 +229,7 @@ static int set_aif2_mode(struct snd_kcontrol *kcontrol,
 {
 	if (aif2_mode == ucontrol->value.integer.value[0])
 		return 0;
-
+	pr_info("%s ++\n", __func__);
 	aif2_mode = ucontrol->value.integer.value[0];
 
 	pr_info("set aif2 mode : %s\n", aif2_mode_text[aif2_mode]);
@@ -287,7 +287,7 @@ static int midas_ext_micbias(struct snd_soc_dapm_widget *w,
 			     struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = w->codec;
-
+	pr_info("%s ++\n", __func__);
 	dev_dbg(codec->dev, "%s event is %02X", w->name, event);
 
 #ifdef CONFIG_SND_SOC_USE_EXTERNAL_MIC_BIAS
@@ -309,6 +309,7 @@ static int midas_ext_submicbias(struct snd_soc_dapm_widget *w,
 {
 	struct snd_soc_codec *codec = w->codec;
 
+	pr_info("%s ++\n", __func__);
 	dev_dbg(codec->dev, "%s event is %02X", w->name, event);
 
 #ifdef CONFIG_SND_USE_SUB_MIC
@@ -345,6 +346,9 @@ static int midas_ext_thirdmicbias(struct snd_soc_dapm_widget *w,
 	return 0;
 }
 
+void clamp_notification_sound(void);
+void apply_soundboost(void);
+
 /*
  * midas_ext_spkmode :
  * For phone device have 1 external speaker
@@ -356,6 +360,12 @@ static int midas_ext_spkmode(struct snd_soc_dapm_widget *w,
 	int ret = 0;
 #ifndef CONFIG_SND_USE_STEREO_SPEAKER
 	struct snd_soc_codec *codec = w->codec;
+
+	pr_info("%s %d++\n", __func__, event);
+	if( event == 2 )
+	{
+		clamp_notification_sound();
+	} else apply_soundboost();
 
 	ret = snd_soc_update_bits(codec, WM8994_SPKOUT_MIXERS,
 				  WM8994_SPKMIXR_TO_SPKOUTL_MASK,

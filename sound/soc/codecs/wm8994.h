@@ -32,6 +32,15 @@
 #define WM8994_FLL_SRC_LRCLK  3
 #define WM8994_FLL_SRC_BCLK   4
 
+#define DEACTIVE		0x00
+#define PLAYBACK_ACTIVE		0x01
+#define CAPTURE_ACTIVE		0x02
+#define CALL_ACTIVE		0x04
+
+#define PCM_STREAM_DEACTIVE	0x00
+#define PCM_STREAM_PLAYBACK	0x01
+#define PCM_STREAM_CAPTURE	0x02
+
 enum wm8994_vmid_mode {
 	WM8994_VMID_NORMAL,
 	WM8994_VMID_FORCE,
@@ -161,7 +170,8 @@ struct wm8994_priv {
 	const struct firmware *mbc;
 	const struct firmware *mbc_vss;
 	const struct firmware *enh_eq;
-	bool jack_present;
+	unsigned int codec_state;
+	unsigned int  stream_state;
 };
 
 #endif
