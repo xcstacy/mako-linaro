@@ -15,64 +15,7 @@
 #include <linux/miscdevice.h>
 #include <linux/version.h>
 #include "wm8994_voodoo.h"
-#include <linux/mfd/wm8994/core.h>
-#include <linux/mfd/wm8994/registers.h>
-#include <linux/mfd/wm8994/pdata.h>
-#include <linux/mfd/wm8994/gpio.h>
 
-static int (*old_wm8994_write)(struct snd_soc_codec *codec, unsigned int reg,
-	unsigned int value);
-
-#if defined(GALAXY_S3)
-#include <sound/jack.h>
-static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
-	unsigned int value);
-static unsigned int wm8994_read(struct snd_soc_codec *codec,
-				unsigned int reg);
-#define CONFIG_SND_VOODOO_DEVELOPMENT
-int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg);
-int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg);
-static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
-	unsigned int value)
-{
-	int ret;
-
-	BUG_ON(reg > WM8994_MAX_REGISTER);
-
-	if (!wm8994_volatile(codec, reg)) {
-		ret = snd_soc_cache_write(codec, reg, value);
-		if (ret != 0)
-			dev_err(codec->dev, "Cache write to %x failed: %d\n",
-				reg, ret);
-	}
-
-	if (debug_log(LOG_VERBOSE))
-		printk("Voodoo sound: direct: wm8994_write 0x%03X 0x%04X "
-				"\n", reg, value);
-	return wm8994_reg_write(codec->control_data, reg, value);
-}
-
-static unsigned int wm8994_read(struct snd_soc_codec *codec,
-				unsigned int reg)
-{
-	unsigned int val;
-	int ret;
-
-	BUG_ON(reg > WM8994_MAX_REGISTER);
-
-	if (!wm8994_volatile(codec, reg) && wm8994_readable(codec, reg) &&
-	    reg < codec->driver->reg_cache_size) {
-		ret = snd_soc_cache_read(codec, reg, &val);
-		if (ret >= 0)
-			return val;
-		else
-			dev_err(codec->dev, "Cache read from %x failed: %d\n",
-				reg, ret);
-	}
-
-	return wm8994_reg_read(codec->control_data, reg);
-}
-#endif
 #ifndef MODULE
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35) && !defined(GALAXY_TAB) && !defined(GALAXY_S3)
 #include "wm8994_samsung.h"
@@ -128,7 +71,7 @@ unsigned short origin_recgain;
 unsigned short origin_recgain_mixer;
 #endif
 
-#ifdef NEXUS_S
+#if defined(NEXUS_S) || defined(GALAXY_S3)
 bool speaker_tuning = false;
 #endif
 
@@ -140,7 +83,7 @@ bool adc_osr128 = true;
 #ifndef GALAXY_TAB_TEGRA
 bool fll_tuning = true;
 #endif
-bool dac_direct = false;
+bool dac_direct = true;
 bool mono_downmix = false;
 
 // equalizer
@@ -167,6 +110,235 @@ short unsigned int stereo_expansion_gain = 16;
 
 // keep here a pointer to the codec structure
 static struct snd_soc_codec *codec;
+
+#if defined(GALAXY_S3)
+#include <linux/mfd/wm8994/core.h>
+#include <linux/mfd/wm8994/registers.h>
+#include <sound/jack.h>
+#define DEACTIVE		0x00
+#define PLAYBACK_ACTIVE		0x01
+#define CAPTURE_ACTIVE		0x02
+#define CALL_ACTIVE		0x04
+
+#define PCM_STREAM_DEACTIVE	0x00
+#define PCM_STREAM_PLAYBACK	0x01
+#define PCM_STREAM_CAPTURE	0x02
+
+static int codec_state = 0;
+static short speaker_offset = 0;
+
+static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
+	unsigned int value);
+static unsigned int wm8994_read(struct snd_soc_codec *codec,
+				unsigned int reg);
+
+static int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg)
+{
+	struct wm8994 *control = codec->control_data;
+
+	switch (reg) {
+	case WM8994_GPIO_1:
+	case WM8994_GPIO_2:
+	case WM8994_GPIO_3:
+	case WM8994_GPIO_4:
+	case WM8994_GPIO_5:
+	case WM8994_GPIO_6:
+	case WM8994_GPIO_7:
+	case WM8994_GPIO_8:
+	case WM8994_GPIO_9:
+	case WM8994_GPIO_10:
+	case WM8994_GPIO_11:
+	case WM8994_INTERRUPT_STATUS_1:
+	case WM8994_INTERRUPT_STATUS_2:
+	case WM8994_INTERRUPT_STATUS_1_MASK:
+	case WM8994_INTERRUPT_STATUS_2_MASK:
+	case WM8994_INTERRUPT_RAW_STATUS_2:
+		return 1;
+
+	case WM8958_DSP2_PROGRAM:
+	case WM8958_DSP2_CONFIG:
+	case WM8958_DSP2_EXECCONTROL:
+		if (control->type == WM8958)
+			return 1;
+		else
+			return 0;
+
+	default:
+		break;
+	}
+
+	if (reg >= WM8994_CACHE_SIZE)
+		return 0;
+	return wm8994_access_masks[reg].readable != 0;
+}
+
+static int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
+{
+	if (reg >= WM8994_CACHE_SIZE)
+		return 1;
+
+	switch (reg) {
+	case WM8994_SOFTWARE_RESET:
+	case WM8994_CHIP_REVISION:
+	case WM8994_DC_SERVO_1:
+	case WM8994_DC_SERVO_READBACK:
+	case WM8994_RATE_STATUS:
+	case WM8994_LDO_1:
+	case WM8994_LDO_2:
+	case WM8958_DSP2_EXECCONTROL:
+	case WM8958_MIC_DETECT_3:
+	case WM8994_DC_SERVO_4E:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
+	unsigned int value)
+{
+	int ret;
+
+	BUG_ON(reg > WM8994_MAX_REGISTER);
+
+	if (!wm8994_volatile(codec, reg)) {
+		ret = snd_soc_cache_write(codec, reg, value);
+		if (ret != 0)
+			dev_err(codec->dev, "Cache write to %x failed: %d\n",
+				reg, ret);
+	}
+
+	if (debug_log(LOG_VERBOSE))
+		printk("Voodoo sound: direct: wm8994_write 0x%03X 0x%04X "
+				"\n", reg, value);
+	ret = wm8994_reg_write(codec->control_data, reg, value);
+	udelay(1000);
+	return ret;
+}
+
+static unsigned int wm8994_read(struct snd_soc_codec *codec,
+				unsigned int reg)
+{
+	unsigned int val;
+	int ret;
+
+	BUG_ON(reg > WM8994_MAX_REGISTER);
+
+	if (!wm8994_volatile(codec, reg) && wm8994_readable(codec, reg) &&
+	    reg < codec->driver->reg_cache_size) {
+		ret = snd_soc_cache_read(codec, reg, &val);
+		if (ret >= 0)
+			return val;
+		else
+			dev_err(codec->dev, "Cache read from %x failed: %d\n",
+				reg, ret);
+	}
+
+	return wm8994_reg_read(codec->control_data, reg);
+}
+
+bool is_mic_active(void)
+{
+	int count = 0;
+	struct snd_soc_dapm_widget *w;
+
+	list_for_each_entry(w, &codec->card->widgets, list) {
+		if (w->dapm != &codec->dapm)
+			continue;
+		switch (w->id) {
+		case snd_soc_dapm_mic:
+		if (w->name)
+			count += w->power ? 1 : 0;
+		break;
+		case snd_soc_dapm_hp:
+		case snd_soc_dapm_spk:
+		case snd_soc_dapm_line:
+		case snd_soc_dapm_micbias:
+		case snd_soc_dapm_dac:
+		case snd_soc_dapm_adc:
+		case snd_soc_dapm_pga:
+		case snd_soc_dapm_out_drv:
+		case snd_soc_dapm_mixer:
+		case snd_soc_dapm_mixer_named_ctl:
+		case snd_soc_dapm_supply:
+		break;
+		default:
+		break;
+		}
+	}
+	pr_info("Active mic count = %d\n", count);
+	return count > 0;
+}
+
+bool is_fm_active(void)
+{
+	struct snd_soc_dapm_widget *w;
+
+	list_for_each_entry(w, &codec->card->widgets, list) {
+		if (w->dapm != &codec->dapm)
+			continue;
+		switch (w->id) {
+		case snd_soc_dapm_line:
+		if (w->name)
+		{
+			pr_info("FM Testing: %s\n", w->name);
+			if(!strncmp(w->name,"FM In",5))
+			{
+				pr_info("FM In= Status:%d\n", w->power);
+				return w->power;
+			}
+		}
+		break;
+		case snd_soc_dapm_mic:
+		case snd_soc_dapm_hp:
+		case snd_soc_dapm_spk:
+		case snd_soc_dapm_micbias:
+		case snd_soc_dapm_dac:
+		case snd_soc_dapm_adc:
+		case snd_soc_dapm_pga:
+		case snd_soc_dapm_out_drv:
+		case snd_soc_dapm_mixer:
+		case snd_soc_dapm_mixer_named_ctl:
+		case snd_soc_dapm_supply:
+		break;
+		default:
+		break;
+		}
+	}
+	pr_info("FM Not Active\n");
+	return 0;
+}
+
+void write_speakervol(unsigned short vol)
+{
+	unsigned short val;
+
+	vol = vol & WM8994_SPKOUTL_VOL_MASK;
+	if( vol <  0 ) vol =  0;
+	if( vol > 63 ) vol = 63;
+	val = (WM8994_SPKOUT_VU | WM8994_SPKOUTL_MUTE_N | vol);
+	wm8994_write(codec, WM8994_SPEAKER_VOLUME_LEFT, val);
+	val = (WM8994_SPKOUT_VU | WM8994_SPKOUTR_MUTE_N | vol);
+	wm8994_write(codec, WM8994_SPEAKER_VOLUME_RIGHT, val);
+}
+
+unsigned short get_speakervol(unsigned short val)
+{
+	short vol;
+	vol = val & WM8994_SPKOUTL_VOL_MASK;
+	vol += speaker_offset;
+	if( vol <  0 ) vol =  0;
+	if( vol > 63 ) vol = 63;
+	return (val & ~WM8994_SPKOUTL_VOL_MASK) |
+		(vol & WM8994_SPKOUTL_VOL_MASK); 
+}
+
+void update_speaker_offset(void)
+{
+	write_speakervol(57 + speaker_offset);
+}
+
+#endif
 
 #define DECLARE_BOOL_SHOW(name) 					       \
 static ssize_t name##_show(struct device *dev,				       \
@@ -252,6 +424,7 @@ int hpvol(int channel)
 void write_hpvol(unsigned short l, unsigned short r)
 {
 	unsigned short val;
+	if(bypass_write_hook_clamp) return;
 
 	// we don't need the Volume Update flag when sending the first volume
 	val = (WM8994_HPOUT1L_MUTE_N | l);
@@ -274,15 +447,10 @@ void update_hpvol(bool with_fade)
 	unsigned short hp_level_registers[2] = { WM8994_LEFT_OUTPUT_VOLUME,
 						 WM8994_RIGHT_OUTPUT_VOLUME };
 
-	DECLARE_WM8994(codec);
-
 	// don't affect headphone amplifier volume
 	// when not on heapdhones or if call is active
 	if (!is_path(HEADPHONES)
-#if !defined(GALAXY_S3)
-	    || (wm8994->codec_state & CALL_ACTIVE)
-#endif
-		)
+	    || (codec_state & CALL_ACTIVE))
 		return;
 
 
@@ -303,9 +471,6 @@ void update_hpvol(bool with_fade)
 
 		if (hp_level_old[i] < 0)
 			hp_level_old[i] = 0;
-
-		if (hp_level_old[i] > 63)
-			hp_level_old[i] = 63;
 
 		if (debug_log(LOG_INFOS))
 			printk("Voodoo sound: previous hp_level[%hu]: %d\n",
@@ -335,8 +500,10 @@ void update_hpvol(bool with_fade)
 		write_hpvol(hpvol(0) - steps, hpvol(1) - steps);
 		bypass_write_hook = false;
 
+#ifndef GALAXY_S3
 		if (steps != 0)
 			udelay(1000);
+#endif
 	}
 
 }
@@ -598,8 +765,8 @@ bool is_path(int unified_path)
 
 	// FM Radio on headphones
 	case RADIO_HEADPHONES:
-#ifdef GALAXY_S3 //todo
-		return false;
+#ifdef GALAXY_S3 //TODO
+		return is_fm_active() && !bypass_write_hook_clamp;
 #else
 #ifdef NEXUS_S
 		return false;
@@ -635,68 +802,28 @@ bool is_path(int unified_path)
 	return false;
 }
 
-bool is_mic_active()
-{
-	int count = 0;
-	struct snd_soc_dapm_widget *w;
-
-	list_for_each_entry(w, &codec->card->widgets, list) {
-		if (w->dapm != &codec->dapm)
-			continue;
-		switch (w->id) {
-		case snd_soc_dapm_mic:
-		if (w->name)
-			count += w->power ? 1 : 0;
-		break;
-		case snd_soc_dapm_hp:
-		case snd_soc_dapm_spk:
-		case snd_soc_dapm_line:
-		case snd_soc_dapm_micbias:
-		case snd_soc_dapm_dac:
-		case snd_soc_dapm_adc:
-		case snd_soc_dapm_pga:
-		case snd_soc_dapm_out_drv:
-		case snd_soc_dapm_mixer:
-		case snd_soc_dapm_mixer_named_ctl:
-		case snd_soc_dapm_supply:
-		break;
-		default:
-		break;
-		}
-	}
-	pr_info("Active mic count = %d\n", count);
-	return count > 0;
-}
-
 bool is_path_media_or_fm_no_call_no_record()
 {
-
-	DECLARE_WM8994(codec);
-
-	if (
-		is_path(HEADPHONES)
-//TODO:
-//	     && (wm8994->codec_state & PLAYBACK_ACTIVE)
-	     && (wm8994->stream_state & PCM_STREAM_PLAYBACK)
-	     && !(wm8994->codec_state & CALL_ACTIVE)
+	if ((is_path(HEADPHONES)
 #ifndef GALAXY_S3
+	     && (wm8994->codec_state & PLAYBACK_ACTIVE)
+	     && (wm8994->stream_state & PCM_STREAM_PLAYBACK)
 	     && (wm8994->rec_path == MIC_OFF)
-	    ) || is_path(RADIO_HEADPHONES)
 #else
-		&& !(is_mic_active())
+		 && !is_mic_active()
 #endif
-		)
+	     && !(codec_state & CALL_ACTIVE)
+	    ) || is_path(RADIO_HEADPHONES))
 		return true;
 
 	return false;
 }
 
-#ifdef NEXUS_S
+#if defined(NEXUS_S) || defined(GALAXY_S3)
+unsigned short speaker_tuning_level = 44;
 void update_speaker_tuning(bool with_mute)
 {
-	DECLARE_WM8994(codec);
-
-	if (!(is_path(SPEAKER) || (wm8994->codec_state & CALL_ACTIVE)))
+	if (!(is_path(SPEAKER) || (codec_state & CALL_ACTIVE)))
 		return;
 
 	if (speaker_tuning) {
@@ -727,8 +854,35 @@ void update_speaker_tuning(bool with_mute)
 		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_5_PG, 0x323C);
 
 		// Speaker Boost tuning
-		wm8994_write(codec, WM8994_CLASSD,                 0x0170);
+		wm8994_write(codec, WM8994_CLASSD,
+			(WM8994_SPKOUT_VU | WM8994_SPKOUTL_MUTE_N | speaker_tuning_level));
 	} else {
+#ifdef GALAXY_S3
+		//defaults are different for S3
+		wm8994_write(codec, WM8994_AIF1_DRC1_3, 0xE8);
+		wm8994_write(codec, WM8994_AIF1_DRC1_4, 0x0210);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_GAINS_1,   0x6318);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_GAINS_2,   0x6300);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_1_A,  0x0FBB);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_1_B,  0x0407);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_1_PG, 0x0114);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_2_A,  0x1F8C);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_2_B,  0xF073);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_2_C,  0x01C8);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_2_PG, 0x01C8);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_3_A,  0x1C58);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_3_B,  0xF373);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_3_C,  0x0A54);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_3_PG, 0x0558);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_4_A,  0x168E);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_4_B,  0xF829);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_4_C,  0x7AD);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_4_PG, 0x1103);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_5_A,  0x564);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_5_B,  0x559);
+		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_BAND_5_PG, 0x4000);
+		wm8994_write(codec, WM8994_CLASSD,                 0x0164);
+#else
 		// DRC settings
 		wm8994_write(codec, WM8994_AIF1_DRC1_3, 0x0028);
 		wm8994_write(codec, WM8994_AIF1_DRC1_4, 0x0186);
@@ -751,6 +905,7 @@ void update_speaker_tuning(bool with_mute)
 
 		// Speaker Boost tuning
 		wm8994_write(codec, WM8994_CLASSD,                 0x0168);
+#endif
 	}
 }
 #endif
@@ -805,14 +960,8 @@ void update_fll_tuning(bool with_mute)
 
 unsigned short mono_downmix_get_value(unsigned short val, bool can_reverse)
 {
-	DECLARE_WM8994(codec);
-
 	// Takes care not switching to Stereo on speaker or during a call
-	if (!is_path(SPEAKER)
-#ifndef GALAXY_S3
-		&& !(wm8994->codec_state & CALL_ACTIVE)
-#endif
-		) {
+	if (!is_path(SPEAKER) && !(codec_state & CALL_ACTIVE)) {
 		if (mono_downmix) {
 			val |= WM8994_AIF1DAC1_MONO;
 		} else {
@@ -844,13 +993,11 @@ void update_mono_downmix(bool with_mute)
 	bypass_write_hook = false;
 }
 
-unsigned short dac_direct_get_value(unsigned int reg, unsigned short val, bool can_reverse)
+unsigned short dac_direct_get_value(unsigned short val, bool can_reverse)
 {
 #ifdef GALAXY_S3
-	if( reg == WM8994_OUTPUT_MIXER_1 && val & WM8994_IN2RN_TO_MIXOUTL)
-		return WM8994_IN2RN_TO_MIXOUTL | WM8994_DAC1L_TO_MIXOUTL;
-	if( reg == WM8994_OUTPUT_MIXER_2 && val & WM8994_IN2RP_TO_MIXOUTR)
-		return WM8994_IN2RP_TO_MIXOUTR | WM8994_DAC1R_TO_MIXOUTR;
+	if(is_fm_active())
+		return val & (~WM8994_DAC1L_TO_HPOUT1L | WM8994_DAC1R_TO_MIXOUTR);
 #endif
 	if (is_path_media_or_fm_no_call_no_record()) {
 
@@ -869,9 +1016,9 @@ unsigned short dac_direct_get_value(unsigned int reg, unsigned short val, bool c
 void update_dac_direct(bool with_mute)
 {
 	unsigned short val1, val2;
-	val1 = dac_direct_get_value(WM8994_OUTPUT_MIXER_1, wm8994_read(codec,
+	val1 = dac_direct_get_value(wm8994_read(codec,
 						WM8994_OUTPUT_MIXER_1), true);
-	val2 = dac_direct_get_value(WM8994_OUTPUT_MIXER_2, wm8994_read(codec,
+	val2 = dac_direct_get_value(wm8994_read(codec,
 						WM8994_OUTPUT_MIXER_2), true);
 
 	bypass_write_hook = true;
@@ -932,9 +1079,6 @@ void update_headphone_eq(bool update_bands)
 
 	if (!is_path_media_or_fm_no_call_no_record()) {
 		// don't apply the EQ
-		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_GAINS_1,
-			wm8994_read(codec, WM8994_AIF1_DAC1_EQ_GAINS_1) & ~WM8994_AIF1DAC1_EQ_ENA_MASK
-		);
 		return;
 	}
 
@@ -973,9 +1117,6 @@ void update_headphone_eq_bands()
 
 	if (!is_path_media_or_fm_no_call_no_record()) {
 		// don't apply the EQ
-		wm8994_write(codec, WM8994_AIF1_DAC1_EQ_GAINS_1,
-			wm8994_read(codec, WM8994_AIF1_DAC1_EQ_GAINS_1) & ~WM8994_AIF1DAC1_EQ_ENA_MASK
-		);
 		return;
 	}
 	for (i = 0; i < ARRAY_SIZE(eq_band_values); i++) {
@@ -1048,28 +1189,6 @@ void load_current_eq_values()
 		}
 }
 
-void clamp_notification_sound(void)
-{
-	pr_info("%s++\n", __func__);
-	if (is_path_media_or_fm_no_call_no_record()) {	
-		bypass_write_hook_clamp = true;
-	}
-}
-
-void apply_soundboost(void)
-{
-	pr_info("%s++\n", __func__);
-	bypass_write_hook_clamp = false;
-	if(!enable) return;
-	update_digital_gain(false);
-	update_hpvol(false);
-	update_fll_tuning(false);
-	update_dac_direct(false);
-	update_headphone_eq(true);
-	update_stereo_expansion(false);
-	apply_saturation_prevention_drc();
-}
-
 void apply_saturation_prevention_drc()
 {
 	unsigned short val;
@@ -1093,6 +1212,7 @@ return;
 	      || headphone_eq
 	      || digital_gain >= 0))
 		return;
+
 	if (debug_log(LOG_INFOS))
 		printk("Voodoo sound: apply saturation prevention DRC\n");
 
@@ -1193,13 +1313,58 @@ static ssize_t headphone_amplifier_level_store(struct device *dev,
 		hp_level[0] = hp_level[1] = vol;
 
 		update_digital_gain(false);
-		update_hpvol(true);
+		update_hpvol(false);
 	}
 	return size;
 }
 #endif
 
-#ifdef NEXUS_S
+#ifdef GALAXY_S3
+static ssize_t speaker_tuning_level_show(struct device *dev,
+					      struct device_attribute *attr,
+					      char *buf)
+{
+	return sprintf(buf, "%u\n", speaker_tuning_level);
+}
+
+static ssize_t speaker_tuning_level_store(struct device *dev,
+					       struct device_attribute *attr,
+					       const char *buf, size_t size)
+{
+	unsigned short vol;
+	if (sscanf(buf, "%hu", &vol) == 1) {
+
+		if (vol > 63)
+			vol = 63;
+
+		speaker_tuning_level = vol;
+
+		update_speaker_tuning(false);
+	}
+	return size;
+}
+static ssize_t speaker_offset_show(struct device *dev,
+					      struct device_attribute *attr,
+					      char *buf)
+{
+	return sprintf(buf, "%d\n", speaker_offset);
+}
+
+static ssize_t speaker_offset_store(struct device *dev,
+					       struct device_attribute *attr,
+					       const char *buf, size_t size)
+{
+	short offset;
+	if (sscanf(buf, "%hd", &offset) == 1) {
+
+		speaker_offset = offset;
+
+		update_speaker_offset();
+	}
+	return size;
+}
+#endif
+#if defined(NEXUS_S) || defined(GALAXY_S3)
 DECLARE_BOOL_SHOW(speaker_tuning);
 DECLARE_BOOL_STORE_UPDATE_WITH_MUTE(speaker_tuning,
 				    update_speaker_tuning,
@@ -1598,7 +1763,15 @@ static DEVICE_ATTR(headphone_amplifier_level, S_IRUGO | S_IWUGO,
 		   headphone_amplifier_level_store);
 #endif
 
-#ifdef NEXUS_S
+#ifdef GALAXY_S3
+static DEVICE_ATTR(speaker_tuning_level, S_IRUGO | S_IWUGO,
+		   speaker_tuning_level_show,
+		   speaker_tuning_level_store);
+static DEVICE_ATTR(speaker_offset, S_IRUGO | S_IWUGO,
+		   speaker_offset_show,
+		   speaker_offset_store);
+#endif
+#if defined(NEXUS_S) || defined(GALAXY_S3)
 static DEVICE_ATTR(speaker_tuning, S_IRUGO | S_IWUGO,
 		   speaker_tuning_show,
 		   speaker_tuning_store);
@@ -1717,8 +1890,12 @@ static struct attribute *voodoo_sound_attributes[] = {
 #ifdef CONFIG_SND_VOODOO_HP_LEVEL_CONTROL
 	&dev_attr_headphone_amplifier_level.attr,
 #endif
-#ifdef NEXUS_S
+#if defined(NEXUS_S) || defined(GALAXY_S3)
 	&dev_attr_speaker_tuning.attr,
+#endif
+#ifdef GALAXY_S3
+	&dev_attr_speaker_tuning_level.attr,
+	&dev_attr_speaker_offset.attr,
 #endif
 #ifdef CONFIG_SND_VOODOO_FM
 	&dev_attr_fm_radio_headset_restore_bass.attr,
@@ -1775,13 +1952,21 @@ static struct attribute_group voodoo_sound_control_group = {
 
 static struct miscdevice voodoo_sound_device = {
 	.minor = MISC_DYNAMIC_MINOR,
+#ifdef GALAXY_S3
 	.name = "scoobydoo_sound",
+#else
+	.name = "voodoo_sound",
+#endif
 };
 
 #ifndef MODULE
 static struct miscdevice voodoo_sound_control_device = {
 	.minor = MISC_DYNAMIC_MINOR,
+#ifdef GALAXY_S3
 	.name = "scoobydoo_sound_control",
+#else
+	.name = "voodoo_sound_control",
+#endif
 };
 #endif
 
@@ -1853,7 +2038,7 @@ void voodoo_hook_record_main_mic()
 }
 #endif
 
-#ifdef NEXUS_S
+#if defined(NEXUS_S) || defined(GALAXY_S3)
 void voodoo_hook_playback_speaker()
 {
 	// global kill switch
@@ -1869,8 +2054,6 @@ void voodoo_hook_playback_speaker()
 unsigned int voodoo_hook_wm8994_write(struct snd_soc_codec *codec_,
 				      unsigned int reg, unsigned int value)
 {
-	DECLARE_WM8994(codec_);
-
 	// global kill switch
 	if (!enable)
 		return value;
@@ -1878,14 +2061,30 @@ unsigned int voodoo_hook_wm8994_write(struct snd_soc_codec *codec_,
 	// modify some registers before those being written to the codec
 	// be sure our pointer to codec is up to date
 	codec = codec_;
-
+#ifdef GALAXY_S3
+	//in-call detection
+	if( reg == WM8994_AIF2_CONTROL_2 )
+	{
+		if(value & WM8994_AIF2DACR_SRC_MASK)
+			codec_state &= ~CALL_ACTIVE;
+		else
+			codec_state |= CALL_ACTIVE;
+	}
+	//notification clamping
+	if( reg == WM8994_POWER_MANAGEMENT_1 )
+	{
+		if( value & (WM8994_SPKOUTR_ENA|WM8994_SPKOUTL_ENA))
+			bypass_write_hook_clamp = true;
+		else
+			bypass_write_hook_clamp = false;
+	}
+#endif
 	if (1) { //!bypass_write_hook) {
 
 #ifdef CONFIG_SND_VOODOO_HP_LEVEL_CONTROL
 		if (is_path(HEADPHONES)
-#ifndef GALAXY_S3
-		    && !(wm8994->codec_state & CALL_ACTIVE)
-#else
+		    && !(codec_state & CALL_ACTIVE)
+#ifdef GALAXY_S3
 			&& !bypass_write_hook_clamp
 #endif
 			) {
@@ -1902,6 +2101,18 @@ unsigned int voodoo_hook_wm8994_write(struct snd_soc_codec *codec_,
 				     WM8994_HPOUT1R_MUTE_N |
 				     hpvol(1));
 		}
+#endif
+
+#ifdef GALAXY_S3
+		if (reg == WM8994_SPEAKER_VOLUME_LEFT)
+			value =
+			    (WM8994_SPKOUT_VU |
+			     get_speakervol(value));
+
+		if (reg == WM8994_SPEAKER_VOLUME_RIGHT)
+			value =
+			    (WM8994_SPKOUT_VU |
+			     get_speakervol(value));
 #endif
 
 #ifdef CONFIG_SND_VOODOO_FM
@@ -1941,7 +2152,7 @@ unsigned int voodoo_hook_wm8994_write(struct snd_soc_codec *codec_,
 		// DAC direct tuning virtual hook
 		if (reg == WM8994_OUTPUT_MIXER_1
 		    || reg == WM8994_OUTPUT_MIXER_2)
-			value = dac_direct_get_value(reg, value, false);
+			value = dac_direct_get_value(value, false);
 
 		// Digital Headroom virtual hook
 		if (reg == WM8994_AIF1_DAC1_LEFT_VOLUME
@@ -1951,11 +2162,17 @@ unsigned int voodoo_hook_wm8994_write(struct snd_soc_codec *codec_,
 		// Headphones EQ & 3D virtual hook
 		if (reg == WM8994_AIF1_DAC1_FILTERS_1
 		    || reg == WM8994_AIF1_DAC2_FILTERS_1
-		    //|| reg == WM8994_AIF2_DAC_FILTERS_1
+		    || reg == WM8994_AIF2_DAC_FILTERS_1
+#ifdef GALAXY_S3
+			|| reg == WM8994_POWER_MANAGEMENT_1
+#endif
 			) {
 			bypass_write_hook = true;
 			apply_saturation_prevention_drc();
 			update_headphone_eq(true);
+#ifdef GALAXY_S3
+			voodoo_hook_playback_speaker();
+#endif
 			update_stereo_expansion(false);
 			bypass_write_hook = false;
 		}

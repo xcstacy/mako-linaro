@@ -130,7 +130,7 @@ static void wm8958_micd_set_rate(struct snd_soc_codec *codec)
 			    WM8958_MICD_RATE_MASK, val);
 }
 
-int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg)
+static int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg)
 {
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 	struct wm8994 *control = codec->control_data;
@@ -171,7 +171,7 @@ int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg)
 	return wm8994_access_masks[reg].readable != 0;
 }
 
-int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
+static int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
 {
 	if (reg >= WM8994_CACHE_SIZE)
 		return 1;
@@ -2776,56 +2776,6 @@ static int bclk_divs[] = {
 	640, 880, 960, 1280, 1760, 1920
 };
 
-static int wm8994_startup(struct snd_pcm_substream *substream,
-			  struct snd_soc_dai *codec_dai)
-{
-	struct snd_soc_codec *codec = codec_dai->codec;
-	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
-
-	pr_info("%s %d++\n", __func__, codec_dai->id);
-	if(codec_dai->id == 1)
-	{
-		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-			wm8994->stream_state |=  PCM_STREAM_PLAYBACK;
-		else
-			wm8994->stream_state |= PCM_STREAM_CAPTURE;
-
-		apply_soundboost();
-		printk(KERN_DEBUG "Startup: Stream_state = [0x%X],  Codec State = [0x%X]",
-				wm8994->stream_state, wm8994->codec_state);
-	}
-	return 0;
-}
-
-static void wm8994_shutdown(struct snd_pcm_substream *substream,
-			    struct snd_soc_dai *codec_dai)
-{
-	struct snd_soc_codec *codec = codec_dai->codec;
-	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
-
-	printk(KERN_DEBUG "Stream_state = [0x%X],  Codec State = [0x%X]",
-			wm8994->stream_state, wm8994->codec_state);
-
-	if(codec_dai->id == 1)
-	{
-		if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-			wm8994->stream_state &=  ~(PCM_STREAM_CAPTURE);
-			wm8994->codec_state &= ~(CAPTURE_ACTIVE);
-		} else {
-			wm8994->codec_state &= ~(PLAYBACK_ACTIVE);
-			wm8994->stream_state &= ~(PCM_STREAM_PLAYBACK);
-		}
-
-		printk(KERN_DEBUG "Preserve codec state = [0x%X], Stream State = [0x%X]",
-				wm8994->codec_state, wm8994->stream_state);
-
-		if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-			wm8994->codec_state &= ~(CAPTURE_ACTIVE);
-		}
-		apply_soundboost();
-	}
-}
-
 static int wm8994_hw_params(struct snd_pcm_substream *substream,
 			    struct snd_pcm_hw_params *params,
 			    struct snd_soc_dai *dai)
@@ -3114,8 +3064,6 @@ static int wm8994_aif2_probe(struct snd_soc_dai *dai)
 			SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE)
 
 static struct snd_soc_dai_ops wm8994_aif1_dai_ops = {
-	.startup = wm8994_startup,
-	.shutdown = wm8994_shutdown,
 	.set_sysclk	= wm8994_set_dai_sysclk,
 	.set_fmt	= wm8994_set_dai_fmt,
 	.hw_params	= wm8994_hw_params,
@@ -3125,8 +3073,6 @@ static struct snd_soc_dai_ops wm8994_aif1_dai_ops = {
 };
 
 static struct snd_soc_dai_ops wm8994_aif2_dai_ops = {
-	.startup = wm8994_startup,
-	.shutdown = wm8994_shutdown,
 	.set_sysclk	= wm8994_set_dai_sysclk,
 	.set_fmt	= wm8994_set_dai_fmt,
 	.hw_params	= wm8994_hw_params,
