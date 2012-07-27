@@ -295,16 +295,17 @@ dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifindex, wl_ioctl_t *ioc, void *buf, int le
 #ifdef CUSTOMER_HW_SAMSUNG
 	if (ret < 0) {
 		if (ioc->cmd == WLC_GET_VAR)
-			DHD_ERROR(("%s: WLC_GET_VAR: %s, error = %d\n",
+			DHD_ERROR(("%s: WLC_GET_VAR: %s, ret = %d\n",
 						__FUNCTION__, (char *)ioc->buf, ret));
 		else if (ioc->cmd == WLC_SET_VAR)
-			DHD_ERROR(("%s: WLC_SET_VAR: %s, error = %d\n",
+			DHD_ERROR(("%s: WLC_SET_VAR: %s, ret = %d\n",
 						__FUNCTION__, (char *)ioc->buf, ret));
 		else
-			DHD_ERROR(("%s: WLC_IOCTL: cmd: %d, error = %d\n",
+			DHD_ERROR(("%s: WLC_IOCTL: cmd: %d, ret = %d\n",
 						__FUNCTION__, ioc->cmd, ret));
 	}
 #endif /* CUSTOMER_HW_SAMSUNG */
+
 	return ret;
 }
 
@@ -576,7 +577,9 @@ dhd_prec_enq(dhd_pub_t *dhdp, struct pktq *q, void *pkt, int prec)
 		eprec = prec;
 	else if (pktq_full(q)) {
 		p = pktq_peek_tail(q, &eprec);
-//		ASSERT(p);
+#if defined(BCMASSERT_LOG)
+		ASSERT(p);
+#endif
 		if (eprec > prec || eprec < 0)
 			return FALSE;
 	}
@@ -597,7 +600,9 @@ dhd_prec_enq(dhd_pub_t *dhdp, struct pktq *q, void *pkt, int prec)
 
 	/* Enqueue */
 	p = pktq_penq(q, prec, pkt);
-//	ASSERT(p);
+#if defined(BCMASSERT_LOG)
+	ASSERT(p);
+#endif
 
 	return TRUE;
 }

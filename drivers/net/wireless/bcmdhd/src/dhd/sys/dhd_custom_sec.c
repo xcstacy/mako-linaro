@@ -35,6 +35,7 @@ extern int _dhd_set_mac_address(struct dhd_info *dhd,
 #define CIDINFO "/opt/etc/.cid.info"
 #define PSMINFO "/opt/etc/.psm.info"
 #define MACINFO "/opt/etc/.mac.info"
+#define MACINFO_EFS NULL
 #define	REVINFO "/data/.rev"
 #else
 #define MACINFO "/data/.mac.info"
@@ -73,12 +74,12 @@ start_readmac:
 			oldfs = get_fs();
 			set_fs(get_ds());
 
-		/* Generating the Random Bytes for 3 last octects of the MAC address */
+			/* Generating the Random Bytes for 3 last octects of the MAC address */
 			get_random_bytes(randommac, 3);
 
 			sprintf(macbuffer, "%02X:%02X:%02X:%02X:%02X:%02X\n",
 					0x00, 0x12, 0x34, randommac[0], randommac[1], randommac[2]);
-		DHD_ERROR(("[WIFI]The Random Generated MAC ID: %s\n", macbuffer));
+			DHD_ERROR(("[WIFI]The Random Generated MAC ID: %s\n", macbuffer));
 
 			if (fp->f_mode & FMODE_WRITE) {
 			ret = fp->f_op->write(fp, (const char *)macbuffer, sizeof(macbuffer), &fp->f_pos);
@@ -93,7 +94,7 @@ start_readmac:
 	} else {
 		/* Reading the MAC Address from .mac.info file( the existed file or just created file)*/
 		ret = kernel_read(fp, 0, buf, 18);
-/* to prevent abnormal string display when mac address is displayed on the screen. */
+		/* to prevent abnormal string display when mac address is displayed on the screen. */
 		buf[17] = '\0';
 		DHD_ERROR(("Read MAC : [%s] [%d] \r\n" , buf, strncmp(buf , "00:00:00:00:00:00" , 17)));
 		if (strncmp(buf , "00:00:00:00:00:00" , 17) < 1) {
@@ -585,14 +586,14 @@ int dhd_check_module_cid(dhd_pub_t *dhd)
 	ret = dhd_wl_ioctl_cmd(dhd, WLC_GET_VAR, cis_buf,
 				sizeof(cis_buf), 0, 0);
 	if (ret < 0) {
-		DHD_ERROR(("%s: CIS reading failed, err=%d\n",
+		DHD_TRACE(("%s: CIS reading failed, err=%d\n",
 			__FUNCTION__, ret));
 		return ret;
 	} else {
 #ifdef BCM4334_CHIP
 		unsigned char semco_id[4] = {0x00, 0x00, 0x33, 0x33};
 		unsigned char semco_id_sh[4] = {0x00, 0x00, 0xFB, 0x50};	//for SHARP FEM(new)
-		DHD_ERROR(("%s: CIS reading success, err=%d\n",
+		DHD_ERROR(("%s: CIS reading success, ret=%d\n",
 			__FUNCTION__, ret));
 #ifdef DUMP_CIS
 		dump_cis(cis_buf, 48);
@@ -725,7 +726,7 @@ int dhd_check_module_mac(dhd_pub_t *dhd)
 	ret = dhd_wl_ioctl_cmd(dhd, WLC_GET_VAR, cis_buf,
 		sizeof(cis_buf), 0, 0);
 	if (ret < 0) {
-		DHD_ERROR(("%s: CIS reading failed, err=%d\n", __func__,
+		DHD_TRACE(("%s: CIS reading failed, err=%d\n", __func__,
 			ret));
 		return ret;
 	} else {
@@ -813,6 +814,11 @@ startwrite:
 
 	filp_close(fp_mac, NULL);
 	/* end of /data/.mac.info */
+
+	if (filepath_efs == NULL) {
+		DHD_ERROR(("[WIFI]%s : no efs filepath", __func__));
+		return 0;
+	}
 
 	/* File will be created /efs/wifi/.mac.info. */
 	fp_mac = filp_open(filepath_efs, O_RDWR | O_CREAT, 0666);
