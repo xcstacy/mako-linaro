@@ -237,15 +237,23 @@ static mali_bool mali_dvfs_table_update(void)
 }
 #endif
 
+extern int mali_gpu_clk;
+
 static unsigned int decideNextStatus(unsigned int utilization)
 {
 	static unsigned int level = 0; // 0:stay, 1:up
 	static int mali_dvfs_clk = 0;
+	int i = 0;
 
 	if (mali_runtime_resumed >= 0) {
-		level = mali_runtime_resumed;
+		//level = mali_runtime_resumed;
 		mali_runtime_resumed = -1;
-		return level;
+		//return level;
+		for (i = 0; i < MALI_DVFS_STEPS; i++) {
+			if(mali_gpu_clk <= mali_dvfs_all[maliDvfsStatus.currentStep].clock)
+				break;
+		}
+		maliDvfsStatus.currentStep = max(0, i - 1);
 	}
 
 	if (mali_dvfs_threshold[maliDvfsStatus.currentStep].upthreshold
