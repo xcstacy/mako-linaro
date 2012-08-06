@@ -486,8 +486,9 @@ static _mali_osk_errcode_t enable_mali_clocks(void)
 	else {
 		mali_regulator_set_voltage(mali_runtime_resume.vol, mali_runtime_resume.vol);
 		mali_clk_set_rate(mali_runtime_resume.clk, GPU_MHZ);
+		if (mali_gpu_clk <= mali_runtime_resume.clk)
+			set_mali_dvfs_current_step(5);
 	}
-	if (mali_gpu_clk <= mali_runtime_resume.clk)	
 
 	MALI_SUCCESS;
 }
