@@ -127,7 +127,7 @@ do {									\
 #define WL_SCAN_RETRY_MAX	3
 #define WL_NUM_PMKIDS_MAX	MAXPMKID
 #define WL_SCAN_BUF_MAX		(1024 * 8)
-#define WL_TLV_INFO_MAX		1500 /* customer want to large size IE, so increase ie length */
+#define WL_TLV_INFO_MAX 	1500 /* customer want to large size IE, so increase ie length */
 #define WL_SCAN_IE_LEN_MAX      2048
 #define WL_BSS_INFO_MAX		2048
 #define WL_ASSOC_INFO_MAX	512
@@ -455,6 +455,7 @@ struct wl_priv {
 	void *pub;
 	u32 iface_cnt;
 	u32 channel;		/* current channel */
+	s32 glom;
 #ifdef WL_CFG80211_SYNC_GON_TIME
 	u32 af_sent_channel;	/* channel action frame is sent */
 	/* save the next gon af subtype when it needs to wait more time for next gon af
