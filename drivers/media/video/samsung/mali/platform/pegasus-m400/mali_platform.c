@@ -472,24 +472,47 @@ static mali_bool deinit_mali_clock(void)
 
 	return MALI_TRUE;
 }
-extern int mali_resume_freq_enabled;
+extern int mali_touch_boost_level;
+static int is_gpu_boosted = 0;
+static DEFINE_MUTEX(boostpop_mutex);
+static struct timer_list boostpop_timer;
+static void boostpop(struct work_struct *boostpop_work)
+{
+	mutex_lock(&boostpop_mutex);
+	mali_dvfs_bottom_lock_pop();
+	is_gpu_boosted = 0;
+	mutex_unlock(&boostpop_mutex);
+}
+static DECLARE_WORK(boostpop_work, boostpop);
+
+static void handle_boostpop(unsigned long data)
+{
+	schedule_work(&boostpop_work);
+}
+
+
+void gpu_boost_on_touch(void)
+{
+	if(!mali_touch_boost_level) return;
+	mutex_lock(&boostpop_mutex);
+	if(!is_gpu_boosted)
+	{
+		mali_dvfs_bottom_lock_push(mali_touch_boost_level);
+		is_gpu_boosted = 1;
+	}
+	mutex_unlock(&boostpop_mutex);
+	mod_timer(&boostpop_timer, jiffies + msecs_to_jiffies(1000));
+}
+
 static _mali_osk_errcode_t enable_mali_clocks(void)
 {
 	int err;
 	err = clk_enable(mali_clock);
 	MALI_DEBUG_PRINT(3,("enable_mali_clocks mali_clock %p error %d \n", mali_clock, err));
-	
-	// set clock rate
-	if (get_mali_dvfs_control_status() != 0 || mali_gpu_clk >= mali_runtime_resume.clk
-		|| !mali_resume_freq_enabled)
-		mali_clk_set_rate(mali_gpu_clk, GPU_MHZ);
-	else {
-		mali_regulator_set_voltage(mali_runtime_resume.vol, mali_runtime_resume.vol);
-		mali_clk_set_rate(mali_runtime_resume.clk, GPU_MHZ);
-		if (mali_gpu_clk <= mali_runtime_resume.clk)
-			set_mali_dvfs_current_step(5);
-	}
 
+	// set clock rate
+	mali_clk_set_rate(mali_gpu_clk, GPU_MHZ);
+	
 	MALI_SUCCESS;
 }
 
@@ -574,6 +597,7 @@ _mali_osk_errcode_t mali_platform_init()
 	if(!init_mali_dvfs_status(MALI_DVFS_DEFAULT_STEP))
 		MALI_DEBUG_PRINT(1, ("mali_platform_init failed\n"));
 #endif
+	setup_timer(&boostpop_timer, handle_boostpop, 0);
 
 	MALI_SUCCESS;
 }
@@ -590,6 +614,7 @@ _mali_osk_errcode_t mali_platform_deinit()
 		clk_register_map=0;
 	}
 #endif
+	del_timer(&boostpop_timer);
 
 	MALI_SUCCESS;
 }
@@ -612,8 +637,6 @@ _mali_osk_errcode_t mali_platform_powerdown(u32 cores)
 		MALI_PRINT(("mali_platform_powerdown gpu_power_state == 0 and cores %x \n", cores));
 	}
 
-	//bPoweroff=1; //TODO
-
 	MALI_SUCCESS;
 }
 
@@ -635,8 +658,6 @@ _mali_osk_errcode_t mali_platform_powerup(u32 cores)
 	{
 		gpu_power_state = gpu_power_state | cores;
 	}
-
-	//bPoweroff=0; //TODO
 
 	MALI_SUCCESS;
 }
