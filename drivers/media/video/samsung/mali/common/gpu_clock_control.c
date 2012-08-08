@@ -28,39 +28,42 @@ typedef struct mali_dvfs_thresholdTag{
 	unsigned int downthreshold;
 	unsigned int upthreshold;
 }mali_dvfs_threshold_table;
-extern mali_dvfs_table mali_dvfs[4];
-extern mali_dvfs_threshold_table mali_dvfs_threshold[4];
+extern mali_dvfs_table mali_dvfs[5];
+extern mali_dvfs_threshold_table mali_dvfs_threshold[5];
 
 typedef struct mali_dvfs_staycount{
 	unsigned int staycount;
 }mali_dvfs_staycount_table;
 
-extern mali_dvfs_staycount_table mali_dvfs_staycount[4];
+extern mali_dvfs_staycount_table mali_dvfs_staycount[5];
 		
 static ssize_t gpu_clock_show(struct device *dev, struct device_attribute *attr, char *buf) {
-	return sprintf(buf, "Step0: %d\nStep1: %d\nStep2: %d\nStep3: %d\n"
+	return sprintf(buf, "Step0: %d\nStep1: %d\nStep2: %d\nStep3: %d\nStep4: %d\n"
 						"Threshold0-1/up-down: %d%% %d%%\n"
 						"Threshold1-2/up-down: %d%% %d%%\n"
-						"Threshold2-3/up-down: %d%% %d%%\n",
-		mali_dvfs[0].clock, mali_dvfs[1].clock, mali_dvfs[2].clock, mali_dvfs[3].clock,
+						"Threshold2-3/up-down: %d%% %d%%\n"
+						"Threshold3-4/up-down: %d%% %d%%\n",
+		mali_dvfs[0].clock, mali_dvfs[1].clock, mali_dvfs[2].clock, mali_dvfs[3].clock, mali_dvfs[4].clock,
 		mali_dvfs_threshold[0].upthreshold, 
 		mali_dvfs_threshold[1].downthreshold,
 		mali_dvfs_threshold[1].upthreshold,
 		mali_dvfs_threshold[2].downthreshold,
 		mali_dvfs_threshold[2].upthreshold,
-		mali_dvfs_threshold[3].downthreshold
+		mali_dvfs_threshold[3].downthreshold,
+		mali_dvfs_threshold[3].upthreshold,
+		mali_dvfs_threshold[4].downthreshold
 		);
 }
 
-unsigned int g[6];
+unsigned int g[8];
 
 static ssize_t gpu_clock_store(struct device *dev, struct device_attribute *attr, const char *buf,
 									size_t count) {
 	unsigned int ret = -EINVAL;
 	int i = 0;
 
-	if ( (ret=sscanf(buf, "%d%% %d%% %d%% %d%% %d%% %d%%",
-			&g[0], &g[1], &g[2], &g[3], &g[4], &g[5])) == 6 )
+	if ( (ret=sscanf(buf, "%d%% %d%% %d%% %d%% %d%% %d%% %d%% %d%%",
+			&g[0], &g[1], &g[2], &g[3], &g[4], &g[5], &g[6], &g[7])) == 8 )
 	{
 		if(g[1]<0 || g[0]>100) return -EINVAL;
 		mali_dvfs_threshold[0].upthreshold = g[0];
@@ -69,12 +72,14 @@ static ssize_t gpu_clock_store(struct device *dev, struct device_attribute *attr
 		mali_dvfs_threshold[2].downthreshold = g[3];
 		mali_dvfs_threshold[2].upthreshold = g[4];
 		mali_dvfs_threshold[3].downthreshold = g[5];
+		mali_dvfs_threshold[3].upthreshold = g[6];
+		mali_dvfs_threshold[4].downthreshold = g[7];
 	} 
 	else {
-	  if ( (ret=sscanf(buf, "%d %d %d %d", &g[0], &g[1], &g[2], &g[3]))!=4 )
+	  if ( (ret=sscanf(buf, "%d %d %d %d %d", &g[0], &g[1], &g[2], &g[3], &g[4]))!=5 )
 			return -EINVAL;
 		/* safety floor and ceiling - netarchy */
-		for( i = 0; i < 4; i++ ) {
+		for( i = 0; i < 5; i++ ) {
 			if (g[i] < GPU_MIN_CLOCK) {
 				g[i] = GPU_MIN_CLOCK;
 			}
@@ -88,25 +93,27 @@ static ssize_t gpu_clock_store(struct device *dev, struct device_attribute *attr
 }
 
 static ssize_t gpu_staycount_show(struct device *dev, struct device_attribute *attr, char *buf) {
-	return sprintf(buf, "%d %d %d %d\n", 
+	return sprintf(buf, "%d %d %d %d %d\n", 
 	mali_dvfs_staycount[0].staycount,
 	mali_dvfs_staycount[1].staycount,
 	mali_dvfs_staycount[2].staycount,
-	mali_dvfs_staycount[3].staycount
+	mali_dvfs_staycount[3].staycount,
+	mali_dvfs_staycount[4].staycount
 	);
 }
 
 static ssize_t gpu_staycount_store(struct device *dev, struct device_attribute *attr, const char *buf,
 									size_t count) {
 	unsigned int ret = -EINVAL;
-	int i1, i2, i3, i4;
+	int i1, i2, i3, i4, i5;
 
-    if ( (ret=sscanf(buf, "%d %d %d %d", &i1, &i2, &i3, &i4))!=4 )
+    if ( (ret=sscanf(buf, "%d %d %d %d %d", &i1, &i2, &i3, &i4, &i5))!=5 )
 		return -EINVAL;
 	mali_dvfs_staycount[0].staycount = i1;
 	mali_dvfs_staycount[1].staycount = i2;
 	mali_dvfs_staycount[2].staycount = i3;
 	mali_dvfs_staycount[3].staycount = i4;
+	mali_dvfs_staycount[4].staycount = i5;
 	return count;	
 }
 

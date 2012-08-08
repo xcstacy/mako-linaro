@@ -741,6 +741,8 @@ static void melfas_ta_cb(struct tsp_callbacks *cb, bool ta_status)
 */
 }
 
+extern void gpu_boost_on_touch(void);
+
 static irqreturn_t mms_ts_interrupt(int irq, void *dev_id)
 {
 	struct mms_ts_info *info = dev_id;
@@ -967,6 +969,7 @@ static irqreturn_t mms_ts_interrupt(int irq, void *dev_id)
 	}
 
 #if TOUCH_BOOSTER
+	gpu_boost_on_touch();
 	set_dvfs_lock(info, !!touch_is_pressed);
 #endif
 

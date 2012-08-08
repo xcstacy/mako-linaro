@@ -27,7 +27,7 @@
 #include "mali_device_pause_resume.h"
 #include <linux/workqueue.h>
 
-#define MAX_MALI_DVFS_STEPS 4
+#define MAX_MALI_DVFS_STEPS 5
 #define MALI_DVFS_WATING 10 // msec
 
 #ifdef CONFIG_CPU_FREQ
@@ -69,45 +69,83 @@ typedef struct mali_dvfs_stepTag{
 
 mali_dvfs_staycount_table mali_dvfs_staycount[MALI_DVFS_STEPS]={
 	/*step 0*/{0},
+#if (MALI_DVFS_STEPS > 1)
 	/*step 1*/{0},
+#if (MALI_DVFS_STEPS > 2)
 	/*step 2*/{0},
-	/*step 3*/{0}
+#if (MALI_DVFS_STEPS > 3)
+	/*step 3*/{0},
+#if (MALI_DVFS_STEPS > 4)
+	/*step 4*/{0}
+#endif
+#endif
+#endif
+#endif
 };
 
 /* dvfs information */
-// L0 = 440Mhz, 1.025V
-// L1 = 350Mhz, 0.95V
-// L2 = 266Mhz, 0.90V
-// L3 = 160Mhz, 0.875V
+// L0 = 533Mhz, 1.075V
+// L1 = 440Mhz, 1.025V
+// L2 = 350Mhz, 0.95V
+// L3 = 266Mhz, 0.90V
+// L4 = 160Mhz, 0.875V
 
 mali_dvfs_table mali_dvfs_all[MAX_MALI_DVFS_STEPS]={
 	{160   ,1000000   ,  875000},
 	{266   ,1000000   ,  900000},
 	{350   ,1000000   ,  950000},
-	{440   ,1000000   , 1025000} };
+	{440   ,1000000   , 1025000},
+	{533   ,1000000   , 1075000} };
 
 mali_dvfs_table mali_dvfs[MALI_DVFS_STEPS]={
 	{160   ,1000000   , 875000},
+#if (MALI_DVFS_STEPS > 1)
 	{266   ,1000000   , 900000},
+#if (MALI_DVFS_STEPS > 2)
 	{350   ,1000000   , 950000},
-	{440   ,1000000   ,1025000}
+#if (MALI_DVFS_STEPS > 3)
+	{440   ,1000000   ,1025000},
+#if (MALI_DVFS_STEPS > 4)
+	{533   ,1000000   ,1075000}
+#endif
+#endif
+#endif
+#endif
 };
 
 mali_dvfs_threshold_table mali_dvfs_threshold[MALI_DVFS_STEPS]={
 	{0   , 70},
+#if (MALI_DVFS_STEPS > 1)
 	{62  , 90},
+#if (MALI_DVFS_STEPS > 2)
 	{85  , 90},
-	{90  ,100}
+#if (MALI_DVFS_STEPS > 3)
+	{85  ,90},
+#if (MALI_DVFS_STEPS > 4)
+	{95  ,100}
+#endif
+#endif
+#endif
+#endif
 };
 
 #ifdef EXYNOS4_ASV_ENABLED
 #define ASV_LEVEL     12	/* ASV0, 1, 11 is reserved */
 
 static unsigned int asv_3d_volt_9_table[MALI_DVFS_STEPS][ASV_LEVEL] = {
-	{  950000,  925000,  900000,  900000,  875000,  875000,  875000,  875000,  850000,  850000,  850000,  850000},  /* L3(160Mhz) */
-	{  975000,  950000,  925000,  925000,  925000,  900000,  900000,  875000,  875000,  875000,  875000,  850000},	/* L2(266Mhz) */
-	{ 1050000, 1025000, 1000000, 1000000,  975000,  950000,  950000,  950000,  925000,  925000,  925000,  900000},	/* L1(350Mhz) */
-	{ 1100000, 1075000, 1050000, 1050000, 1050000, 1025000, 1025000, 1000000, 1000000, 1000000,  975000,  950000},	/* L0(440Mhz) */
+	{  950000,  925000,  900000,  900000,  875000,  875000,  875000,  875000,  850000,  850000,  850000,  850000},  /* L4(160Mhz) */
+#if (MALI_DVFS_STEPS > 1)
+	{  975000,  950000,  925000,  925000,  925000,  900000,  900000,  875000,  875000,  875000,  875000,  850000},	/* L3(266Mhz) */
+#if (MALI_DVFS_STEPS > 2)
+	{ 1050000, 1025000, 1000000, 1000000,  975000,  950000,  950000,  950000,  925000,  925000,  925000,  900000},	/* L2(350Mhz) */
+#if (MALI_DVFS_STEPS > 3)
+	{ 1100000, 1075000, 1050000, 1050000, 1050000, 1025000, 1025000, 1000000, 1000000, 1000000,  975000,  950000},	/* L1(440Mhz) */
+#if (MALI_DVFS_STEPS > 4)
+	{ 1150000, 1125000, 1100000, 1100000, 1100000, 1075000, 1075000, 1050000, 1050000, 1050000, 1025000, 1025000},	/* L0(533Mhz) */
+#endif
+#endif
+#endif
+#endif
 };
 #endif
 
