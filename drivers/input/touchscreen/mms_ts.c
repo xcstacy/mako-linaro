@@ -50,8 +50,8 @@
 #include <linux/spinlock.h>
 #include <linux/miscdevice.h>
 
-#define MAX_GESTURES 10
-#define MAX_GESTURE_FINGERS 10
+#define MAX_GESTURES 30
+#define MAX_GESTURE_FINGERS 5
 #define MAX_GESTURE_STEPS 10
 
 // Definitions
