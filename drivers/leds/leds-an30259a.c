@@ -547,7 +547,7 @@ static ssize_t store_an30259a_led_fade(struct device *dev,
 		dev_err(&data->client->dev, "fail to get led_fade value.\n");
 		return count;
 	}
-
+	if(enabled >= 0)
 	led_enable_fade = enabled;
 
 	printk(KERN_DEBUG "led_fade is called\n");
@@ -860,7 +860,7 @@ static int __devinit an30259a_probe(struct i2c_client *client,
 	}
 
 #ifdef SEC_LED_SPECIFIC
-	led_enable_fade = 1;
+	AOSPROM led_enable_fade = 1;
 	
 	led_dev = device_create(sec_class, NULL, 0, data, "led");
 	if (IS_ERR(led_dev)) {
