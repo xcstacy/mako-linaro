@@ -60,6 +60,10 @@ typedef struct mali_runtime_resumeTag{
 
 mali_runtime_resume_table mali_runtime_resume = {266, 900000};
 
+/* lock/unlock CPU freq by Mali */
+extern int cpufreq_lock_by_mali(unsigned int freq);
+extern void cpufreq_unlock_by_mali(void);
+
 static struct clk  *ext_xtal_clock = 0;
 static struct clk  *vpll_src_clock = 0;
 static struct clk  *fout_vpll_clock = 0;
@@ -515,6 +519,9 @@ static _mali_osk_errcode_t enable_mali_clocks(void)
 	// set clock rate
 	mali_clk_set_rate(mali_gpu_clk, GPU_MHZ);
 	
+	/* lock/unlock CPU freq by Mali */
+	if (mali_gpu_clk >= 440)
+		err = cpufreq_lock_by_mali(1200);
 	MALI_SUCCESS;
 }
 
@@ -523,6 +530,8 @@ static _mali_osk_errcode_t disable_mali_clocks(void)
 	clk_disable(mali_clock);
 	MALI_DEBUG_PRINT(3,("disable_mali_clocks mali_clock %p \n", mali_clock));
 
+	/* lock/unlock CPU freq by Mali */
+	cpufreq_unlock_by_mali();
 	MALI_SUCCESS;
 }
 

@@ -158,6 +158,52 @@ int mali_runtime_resumed = -1;
 
 static DECLARE_WORK(mali_dvfs_work, mali_dvfs_work_handler);
 
+/* lock/unlock CPU freq by Mali */
+#include <linux/types.h>
+#include <mach/cpufreq.h>
+
+atomic_t mali_cpufreq_lock;
+
+int cpufreq_lock_by_mali(unsigned int freq)
+{
+#ifdef CONFIG_EXYNOS4_CPUFREQ
+/* #if defined(CONFIG_CPU_FREQ) && defined(CONFIG_ARCH_EXYNOS4) */
+	unsigned int level;
+
+	if (atomic_read(&mali_cpufreq_lock) == 0) {
+		if (exynos_cpufreq_get_level(freq * 1000, &level)) {
+			printk(KERN_ERR
+				"Mali: failed to get cpufreq level for %dMHz",
+				freq);
+			return -EINVAL;
+		}
+
+		if (exynos_cpufreq_lock(DVFS_LOCK_ID_G3D, level)) {
+			printk(KERN_ERR
+				"Mali: failed to cpufreq lock for L%d", level);
+			return -EINVAL;
+		}
+
+		atomic_set(&mali_cpufreq_lock, 1);
+		printk(KERN_DEBUG "Mali: cpufreq locked on <%d>%dMHz\n", level,
+									freq);
+	}
+#endif
+	return 0;
+}
+
+void cpufreq_unlock_by_mali(void)
+{
+#ifdef CONFIG_EXYNOS4_CPUFREQ
+/* #if defined(CONFIG_CPU_FREQ) && defined(CONFIG_ARCH_EXYNOS4) */
+	if (atomic_read(&mali_cpufreq_lock) == 1) {
+		exynos_cpufreq_lock_free(DVFS_LOCK_ID_G3D);
+		atomic_set(&mali_cpufreq_lock, 0);
+		printk(KERN_DEBUG "Mali: cpufreq locked off\n");
+	}
+#endif
+}
+
 static unsigned int get_mali_dvfs_status(void)
 {
 	return maliDvfsStatus.currentStep;
@@ -181,6 +227,7 @@ mali_bool set_mali_dvfs_current_step(unsigned int step)
 static mali_bool set_mali_dvfs_status(u32 step,mali_bool boostup)
 {
 	u32 validatedStep=step;
+	int err;
 
 #ifdef CONFIG_REGULATOR
 	if (mali_regulator_get_usecount() == 0) {
@@ -216,6 +263,12 @@ static mali_bool set_mali_dvfs_status(u32 step,mali_bool boostup)
 	set_mali_dvfs_current_step(validatedStep);
 	/*for future use*/
 	maliDvfsStatus.pCurrentDvfs = &mali_dvfs[validatedStep];
+
+	/* lock/unlock CPU freq by Mali */
+	if (mali_dvfs[step].clock >= 440)
+		err = cpufreq_lock_by_mali(1200);
+	else
+		cpufreq_unlock_by_mali();
 
 	return MALI_TRUE;
 }
@@ -298,6 +351,11 @@ static unsigned int decideNextStatus(unsigned int utilization)
 		if (level < bottom_lock_step)
 			level = bottom_lock_step;
 	}
+	/* lock/unlock CPU freq by Mali */
+	if (mali_dvfs[level].clock >= 440)
+		cpufreq_lock_by_mali(1200);
+	else
+		cpufreq_unlock_by_mali();
 
 	return level;
 }

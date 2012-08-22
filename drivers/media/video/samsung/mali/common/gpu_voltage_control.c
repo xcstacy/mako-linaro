@@ -36,8 +36,8 @@ typedef struct mali_runtime_resumeTag{
 }mali_runtime_resume_table;
 extern mali_runtime_resume_table mali_runtime_resume;
 
-extern mali_dvfs_table mali_dvfs[4];
-extern mali_dvfs_threshold_table mali_dvfs_threshold[4];
+extern mali_dvfs_table mali_dvfs[5];
+extern mali_dvfs_threshold_table mali_dvfs_threshold[5];
 
 unsigned int gv[5];
 
