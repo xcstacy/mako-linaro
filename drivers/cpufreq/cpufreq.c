@@ -616,9 +616,6 @@ return -EINVAL;
 
 return count;
 }
-extern ssize_t show_smooth_level(struct cpufreq_policy *policy, char *buf);
-extern ssize_t store_smooth_level(struct cpufreq_policy *policy,
-									const char *buf, size_t count);
 
 /* sysfs interface for UV control */
 extern ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf);
@@ -661,7 +658,6 @@ cpufreq_freq_attr_rw(vdd_levels);
 /* UV table */
 cpufreq_freq_attr_rw(UV_mV_table);
 cpufreq_freq_attr_rw(UV_uV_table);
-cpufreq_freq_attr_rw(smooth_level);
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -678,7 +674,6 @@ static struct attribute *default_attrs[] = {
 	&vdd_levels.attr,
 	&UV_mV_table.attr,
 	&UV_uV_table.attr,
-	&smooth_level.attr,
 	NULL
 };
 
