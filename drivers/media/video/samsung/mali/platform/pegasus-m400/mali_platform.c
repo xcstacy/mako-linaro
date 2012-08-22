@@ -478,15 +478,14 @@ static mali_bool deinit_mali_clock(void)
 }
 extern int mali_touch_boost_level;
 static int is_gpu_boosted = 0;
-static spinlock_t boostpop_lock;
+static DEFINE_MUTEX(boostpop_mutex);
 static struct timer_list boostpop_timer;
 static void boostpop(struct work_struct *boostpop_work)
 {
-	unsigned long flags;
-	spin_lock_irqsave(&boostpop_lock, flags);
+	mutex_lock(&boostpop_mutex);
 	mali_dvfs_bottom_lock_pop();
 	is_gpu_boosted = 0;
-	spin_unlock_irqrestore(&boostpop_lock, flags);
+	mutex_unlock(&boostpop_mutex);
 }
 static DECLARE_WORK(boostpop_work, boostpop);
 
@@ -498,15 +497,14 @@ static void handle_boostpop(unsigned long data)
 
 void gpu_boost_on_touch(void)
 {
-	unsigned long flags;
 	if(!mali_touch_boost_level) return;
-	spin_lock_irqsave(&boostpop_lock, flags);
+	mutex_lock(&boostpop_mutex);
 	if(!is_gpu_boosted)
 	{
 		mali_dvfs_bottom_lock_push(mali_touch_boost_level);
 		is_gpu_boosted = 1;
 	}
-	spin_unlock_irqrestore(&boostpop_lock, flags);
+	mutex_unlock(&boostpop_mutex);
 	mod_timer(&boostpop_timer, jiffies + msecs_to_jiffies(1000));
 }
 
@@ -609,7 +607,7 @@ _mali_osk_errcode_t mali_platform_init()
 		MALI_DEBUG_PRINT(1, ("mali_platform_init failed\n"));
 #endif
 	setup_timer(&boostpop_timer, handle_boostpop, 0);
-	spin_lock_init(&boostpop_lock);
+
 	MALI_SUCCESS;
 }
 
