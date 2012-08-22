@@ -90,13 +90,6 @@ mali_dvfs_staycount_table mali_dvfs_staycount[MALI_DVFS_STEPS]={
 // L3 = 266Mhz, 0.90V
 // L4 = 160Mhz, 0.875V
 
-mali_dvfs_table mali_dvfs_all[MAX_MALI_DVFS_STEPS]={
-	{160   ,1000000   ,  875000},
-	{266   ,1000000   ,  900000},
-	{350   ,1000000   ,  950000},
-	{440   ,1000000   , 1025000},
-	{533   ,1000000   , 1075000} };
-
 mali_dvfs_table mali_dvfs[MALI_DVFS_STEPS]={
 	{160   ,1000000   , 875000},
 #if (MALI_DVFS_STEPS > 1)
@@ -188,7 +181,6 @@ mali_bool set_mali_dvfs_current_step(unsigned int step)
 static mali_bool set_mali_dvfs_status(u32 step,mali_bool boostup)
 {
 	u32 validatedStep=step;
-	int err;
 
 #ifdef CONFIG_REGULATOR
 	if (mali_regulator_get_usecount() == 0) {
@@ -278,7 +270,6 @@ static mali_bool mali_dvfs_table_update(void)
 static unsigned int decideNextStatus(unsigned int utilization)
 {
 	static unsigned int level = 0; // 0:stay, 1:up
-	static int mali_dvfs_clk = 0;
 
 	if (mali_runtime_resumed >= 0) {
 		level = mali_runtime_resumed;
