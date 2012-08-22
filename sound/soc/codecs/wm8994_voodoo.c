@@ -266,7 +266,7 @@ bool is_mic_active(void)
 		break;
 		}
 	}
-	pr_info("Active mic count = %d\n", count);
+	pr_debug("Active mic count = %d\n", count);
 	return count > 0;
 }
 
@@ -281,10 +281,10 @@ bool is_fm_active(void)
 		case snd_soc_dapm_line:
 		if (w->name)
 		{
-			pr_info("FM Testing: %s\n", w->name);
+			pr_debug("FM Testing: %s\n", w->name);
 			if(!strncmp(w->name,"FM In",5))
 			{
-				pr_info("FM In= Status:%d\n", w->power);
+				pr_debug("FM In= Status:%d\n", w->power);
 				return w->power;
 			}
 		}
@@ -305,7 +305,7 @@ bool is_fm_active(void)
 		break;
 		}
 	}
-	pr_info("FM Not Active\n");
+	pr_debug("FM Not Active\n");
 	return 0;
 }
 
@@ -809,8 +809,6 @@ bool is_path_media_or_fm_no_call_no_record()
 	     && (wm8994->codec_state & PLAYBACK_ACTIVE)
 	     && (wm8994->stream_state & PCM_STREAM_PLAYBACK)
 	     && (wm8994->rec_path == MIC_OFF)
-#else
-		 && !is_mic_active()
 #endif
 	     && !(codec_state & CALL_ACTIVE)
 	    ) || is_path(RADIO_HEADPHONES))
@@ -2172,6 +2170,9 @@ unsigned int voodoo_hook_wm8994_write(struct snd_soc_codec *codec_,
 			update_headphone_eq(true);
 #ifdef GALAXY_S3
 			voodoo_hook_playback_speaker();
+#ifdef CONFIG_SND_VOODOO_HP_LEVEL_CONTROL
+			update_hpvol(false);
+#endif
 #endif
 			update_stereo_expansion(false);
 			bypass_write_hook = false;
