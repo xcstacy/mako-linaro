@@ -713,7 +713,7 @@ AOSPROM {
         // enable lights on keydown
         if (touch_led_disabled == 0) {
             if (touchkey_led_status == TK_CMD_LED_OFF) {
-                pr_info("[Touchkey] %s: keydown - LED ON\n", __func__);
+                pr_debug("[Touchkey] %s: keydown - LED ON\n", __func__);
                 i2c_touchkey_write(tkey_i2c->client, (u8 *) &ledCmd[0], 1);
                 touchkey_led_status = TK_CMD_LED_ON;
             }
@@ -727,7 +727,7 @@ AOSPROM {
         // touch led timeout on keyup
         if (touch_led_disabled == 0) {
             if (timer_pending(&touch_led_timer) == 0) {
-                pr_info("[Touchkey] %s: keyup - add_timer\n", __func__);
+                pr_debug("[Touchkey] %s: keyup - add_timer\n", __func__);
                 touch_led_timer.expires = jiffies + (HZ * touch_led_timeout);
                 add_timer(&touch_led_timer);
             } else {
@@ -747,7 +747,7 @@ AOSPROM {
 		printk(KERN_DEBUG "[TouchKey] keycode:%d pressed:%d\n",
 		   touchkey_keycode[keycode_type], pressed);
 #else
-		printk(KERN_DEBUG "[TouchKey] pressed:%d\n",
+		pr_debug("[TouchKey] pressed:%d\n",
 			pressed);
 #endif
 
@@ -1143,7 +1143,7 @@ else
     if(data == ledCmd[0]) {
         if (touch_led_disabled == 0) {
             if (timer_pending(&touch_led_timer) == 0) {
-                pr_info("[Touchkey] %s: add_timer\n", __func__);
+                pr_debug("[Touchkey] %s: add_timer\n", __func__);
                 touch_led_timer.expires = jiffies + (HZ * touch_led_timeout);
                 add_timer(&touch_led_timer);
             } else {
@@ -1152,7 +1152,7 @@ else
         }
     } else {
         if (timer_pending(&touch_led_timer) == 1) {
-            pr_info("[Touchkey] %s: del_timer\n", __func__);
+            pr_debug("[Touchkey] %s: del_timer\n", __func__);
             del_timer(&touch_led_timer);
         }
     }
@@ -1161,7 +1161,7 @@ else
 	if (ret == -ENODEV)
 		touchled_cmd_reversed = 1;
 
-    pr_info("[TouchKey] %s touchkey_led_status=%d\n", __func__, data);
+    pr_debug("[TouchKey] %s touchkey_led_status=%d\n", __func__, data);
 	touchkey_led_status = data;
 
 	return size;
@@ -1237,7 +1237,6 @@ static DEVICE_ATTR(timeout, S_IRUGO | S_IWUSR | S_IWGRP,
 
 void touch_led_timedout(unsigned long ptr)
 {
-    pr_info("[TouchKey] %s\n", __func__);
     queue_work(tkey_i2c_local->wq, &tkey_i2c_local->work);
 }
 
@@ -1248,7 +1247,7 @@ void touch_led_timedout_work(struct work_struct *work)
 
     if (touch_led_timeout != 0)
     {
-        pr_info("[TouchKey] %s disabling touchled\n", __func__);
+        pr_debug("[TouchKey] %s disabling touchled\n", __func__);
         i2c_touchkey_write(tkey_i2c->client, (u8 *) &ledCmd[1], 1);
         touchkey_led_status = TK_CMD_LED_OFF;
     }
@@ -1261,21 +1260,21 @@ void touchscreen_state_report(int state)
     if (touch_led_disabled == 0) {
         if (state == 1) {
             if(touchkey_led_status == TK_CMD_LED_OFF) {
-                pr_info("[TouchKey] %s enable touchleds\n", __func__);
+                pr_debug("[TouchKey] %s enable touchleds\n", __func__);
                 i2c_touchkey_write(tkey_i2c_local->client, (u8 *) &ledCmd[0], 1);
                 touchkey_led_status = TK_CMD_LED_ON;
             } else {
                 if (timer_pending(&touch_led_timer) == 1) {
-                    pr_info("[TouchKey] %s mod_timer\n", __func__);
+                    pr_debug("[TouchKey] %s mod_timer\n", __func__);
                     mod_timer(&touch_led_timer, jiffies + (HZ * touch_led_timeout));
                 }
             }
         } else if (state == 0) {
             if (timer_pending(&touch_led_timer) == 1) {
-                pr_info("[TouchKey] %s mod_timer\n", __func__);
+                pr_debug("[TouchKey] %s mod_timer\n", __func__);
                 mod_timer(&touch_led_timer, jiffies + (HZ * touch_led_timeout));
             } else if (touchkey_led_status == TK_CMD_LED_ON){
-                pr_info("[TouchKey] %s add_timer\n", __func__);
+                pr_debug("[TouchKey] %s add_timer\n", __func__);
                 touch_led_timer.expires = jiffies + (HZ * touch_led_timeout);
                 add_timer(&touch_led_timer);
             }
