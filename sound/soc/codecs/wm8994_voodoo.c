@@ -23,10 +23,10 @@
 #include "wm8994.h"
 #endif
 #else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35) && !defined(GALAXY_TAB)
-#include "../wm8994_samsung.h"
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35) && !defined(GALAXY_TAB) && !defined(GALAXY_S3)
+#include "wm8994_samsung.h"
 #else
-#include "../wm8994.h"
+#include "wm8994.h"
 #endif
 #endif
 
@@ -52,7 +52,11 @@
 bool bypass_write_hook = false;
 bool bypass_write_hook_clamp = false;
 
+#ifdef DEBUG
+short unsigned int debug_log_level = LOG_VERBOSE;
+#else
 short unsigned int debug_log_level = LOG_OFF;
+#endif
 
 #ifdef CONFIG_SND_VOODOO_HP_LEVEL_CONTROL
 unsigned short hp_level[2] = { CONFIG_SND_VOODOO_HP_LEVEL,
@@ -127,6 +131,7 @@ static struct snd_soc_codec *codec;
 static int codec_state = 0;
 static short speaker_offset = 0;
 
+#ifndef MODULE
 static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value);
 static unsigned int wm8994_read(struct snd_soc_codec *codec,
@@ -236,6 +241,7 @@ static unsigned int wm8994_read(struct snd_soc_codec *codec,
 
 	return wm8994_reg_read(codec->control_data, reg);
 }
+#endif
 
 bool is_mic_active(void)
 {
@@ -266,7 +272,8 @@ bool is_mic_active(void)
 		break;
 		}
 	}
-	pr_debug("Active mic count = %d\n", count);
+	if (debug_log(LOG_VERBOSE))
+		printk("Active mic count = %d\n", count);
 	return count > 0;
 }
 
@@ -281,10 +288,8 @@ bool is_fm_active(void)
 		case snd_soc_dapm_line:
 		if (w->name)
 		{
-			pr_debug("FM Testing: %s\n", w->name);
 			if(!strncmp(w->name,"FM In",5))
 			{
-				pr_debug("FM In= Status:%d\n", w->power);
 				return w->power;
 			}
 		}
@@ -305,7 +310,6 @@ bool is_fm_active(void)
 		break;
 		}
 	}
-	pr_debug("FM Not Active\n");
 	return 0;
 }
 
