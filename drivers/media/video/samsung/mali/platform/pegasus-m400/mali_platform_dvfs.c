@@ -61,12 +61,6 @@ typedef struct mali_dvfs_staycount{
 	unsigned int staycount;
 }mali_dvfs_staycount_table;
 
-typedef struct mali_dvfs_stepTag{
-	int clk;
-	int vol;
-}mali_dvfs_step;
-
-
 mali_dvfs_staycount_table mali_dvfs_staycount[MALI_DVFS_STEPS]={
 	/*step 0*/{0},
 #if (MALI_DVFS_STEPS > 1)
@@ -82,13 +76,6 @@ mali_dvfs_staycount_table mali_dvfs_staycount[MALI_DVFS_STEPS]={
 #endif
 #endif
 };
-
-/* dvfs information */
-// L0 = 533Mhz, 1.075V
-// L1 = 440Mhz, 1.025V
-// L2 = 350Mhz, 0.95V
-// L3 = 266Mhz, 0.90V
-// L4 = 160Mhz, 0.875V
 
 mali_dvfs_table mali_dvfs[MALI_DVFS_STEPS]={
 	{160   ,1000000   , 875000},
