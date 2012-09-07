@@ -38,7 +38,7 @@ rm -rf $RAMFS_TMP/.hg
 #copy modules into ramfs
 mkdir -p $INITRAMFS/lib/modules
 find -name '*.ko' -exec cp -av {} $RAMFS_TMP/lib/modules/ \;
-${CROSS_COMPILE}strip --strip-unneeded $RAMFS_TMP/lib/modules/*
+/opt/toolchains/arm-eabi-4.4.3/bin/arm-eabi-strip --strip-unneeded $RAMFS_TMP/lib/modules/*
 
 cd $RAMFS_TMP
 find | fakeroot cpio -H newc -o > $RAMFS_TMP.cpio 2>/dev/null
