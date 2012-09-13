@@ -132,6 +132,15 @@ static int codec_state = 0;
 static short speaker_offset = 0;
 
 #ifndef MODULE
+#ifdef GALAXY_S3
+static inline int detect_headphone(void)
+{
+	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
+	if( wm8994->micdet[0].jack == NULL ) return 0;
+	return (wm8994->micdet[0].jack->status & SND_JACK_HEADPHONE) ||
+		(wm8994->micdet[0].jack->status & SND_JACK_HEADSET);
+}
+#endif
 static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value);
 static unsigned int wm8994_read(struct snd_soc_codec *codec,
@@ -723,9 +732,7 @@ bool is_path(int unified_path)
 	// headphones
 	case HEADPHONES:
 #ifdef GALAXY_S3
-		if( wm8994->micdet[0].jack == NULL ) return 0;
-		return (wm8994->micdet[0].jack->status & SND_JACK_HEADPHONE) ||
-		(wm8994->micdet[0].jack->status & SND_JACK_HEADSET);
+		return detect_headphone();
 #else
 #ifdef NEXUS_S
 		return (wm8994->cur_path == HP
