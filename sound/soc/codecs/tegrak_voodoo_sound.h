@@ -1,6 +1,8 @@
 #include <linux/kallsyms.h>
 #include <linux/switch.h>
 
+#define DEBUG
+
 //codec_list pointer to the one in soc_core
 struct list_head *codec_list_ptr;
 static char *devicename = NULL;
