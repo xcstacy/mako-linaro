@@ -46,3 +46,4 @@ endif
 ifeq ($(CONFIG_FB_S5P_V2_DEBUG),y)
 EXTRA_CFLAGS += -DDEBUG
 endif
+obj-$(CONFIG_MDNIE_MOD)			+= mdniemod.o
