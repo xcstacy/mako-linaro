@@ -21,7 +21,7 @@
 #ifdef CONFIG_CPU_EXYNOS4210
 #define MALI_DVFS_STEPS 2
 #else
-#define MALI_DVFS_STEPS 5
+#define MALI_DVFS_STEPS 4
 #endif
 
 #if !USING_MALI_PMM
@@ -31,6 +31,8 @@
 
 /* @Enable or Disable Mali GPU Bottom Lock feature */
 #define MALI_GPU_BOTTOM_LOCK 1
+
+#define MALI_VOLTAGE_LOCK 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -150,6 +152,13 @@ int mali_dvfs_bottom_lock_pop(void);
 int mali_dvfs_bottom_lock_push(int lock_step);
 int mali_dvfs_bottom_lock_pop(void);
 #endif
+#endif
+
+#if MALI_VOLTAGE_LOCK
+int mali_voltage_lock_push(int lock_vol);
+int mali_voltage_lock_pop(void);
+int mali_voltage_lock_init(void);
+int mali_vol_get_from_table(int vol);
 #endif
 
 #ifdef __cplusplus
