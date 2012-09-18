@@ -73,3 +73,4 @@ obj-$(CONFIG_MACH_M0_CTC)   += cw_tty.o
 obj-$(CONFIG_MOBICORE_SUPPORT)  += tzic.o
 obj-$(CONFIG_CPU_UNDERVOLTING)	+= cpu_undervolting.o
 obj-$(CONFIG_MALI_CONTROL)	+= mali_control.o
+obj-$(CONFIG_M0_MODS)		+= m0_mods.o
