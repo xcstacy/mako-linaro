@@ -25,7 +25,7 @@
 #define CPU_UV_MV_MAX 1500000
 #define CPU_UV_MV_MIN 60000
 
-#ifdef CONFIG_CPU_UNDERVOLTING_MODULE
+#ifdef MODULE
 static int (*gm_misc_register)(struct miscdevice * misc);
 static int (*gm_misc_deregister)(struct miscdevice *misc);
 #define misc_register (*gm_misc_register)
@@ -34,7 +34,6 @@ static int (*gm_misc_deregister)(struct miscdevice *misc);
 #endif
 static struct exynos_dvfs_info *gm_exynos_info;
 static struct busfreq_table *gm_exynos4_busfreq_table;
-
 
 static unsigned long max_voltages[2] = {CPU_UV_MV_MAX, 1300000};
 static int num_int_freqs = 6;
@@ -434,8 +433,6 @@ static DEVICE_ATTR(int_volt, S_IRUGO | S_IWUGO, customvoltage_intvolt_read, cust
 static DEVICE_ATTR(max_arm_volt, S_IRUGO | S_IWUGO, customvoltage_maxarmvolt_read, customvoltage_maxarmvolt_write);
 static DEVICE_ATTR(max_int_volt, S_IRUGO | S_IWUGO, customvoltage_maxintvolt_read, customvoltage_maxintvolt_write);
 static DEVICE_ATTR(version, S_IRUGO , customvoltage_version, NULL);
-static DEVICE_ATTR(vdd_levels, S_IRUGO | S_IWUGO, vdd_levels_read, vdd_levels_write);
-static DEVICE_ATTR(UV_uV_table, S_IRUGO | S_IWUGO, UV_uV_table_read, UV_uV_table_write	);
 
 static struct attribute *customvoltage_attributes[] = 
     {
@@ -444,8 +441,6 @@ static struct attribute *customvoltage_attributes[] =
 	&dev_attr_max_arm_volt.attr,
 	&dev_attr_max_int_volt.attr,
 	&dev_attr_version.attr,
-	&dev_attr_vdd_levels.attr,
-	&dev_attr_UV_uV_table.attr,
 	NULL
     };
 
@@ -460,12 +455,26 @@ static struct miscdevice customvoltage_device =
 	.name = "customvoltage",
     };
 
+cpufreq_freq_attr_rw(vdd_levels);
+cpufreq_freq_attr_rw(UV_mV_table);
+cpufreq_freq_attr_rw(UV_uV_table);
+
+static void create_standard_UV_interfaces(void)
+{
+	int ret = 0;
+	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+	ret = sysfs_create_file(&policy->kobj, &vdd_levels.attr);
+	ret = sysfs_create_file(&policy->kobj, &UV_mV_table.attr);
+	ret = sysfs_create_file(&policy->kobj, &UV_uV_table.attr);
+	ret = sysfs_create_file(&policy->kobj, &cpufreq_freq_attr_scaling_available_freqs.attr);
+}
+
 static int __init customvoltage_init(void)
 {
     int ret;
 	void **tmp;
 
-#ifdef CONFIG_CPU_UNDERVOLTING_MODULE
+#ifdef MODULE
 	 gm_misc_register = (int (*)(struct miscdevice *))
 			kallsyms_lookup_name("misc_register");
 	 gm_misc_deregister = (int (*)(struct miscdevice *))
@@ -508,7 +517,7 @@ static int __init customvoltage_init(void)
 	    pr_err("%s sysfs_create_group fail\n", __FUNCTION__);
 	    pr_err("Failed to create sysfs group for device (%s)!\n", customvoltage_device.name);
 	}
-
+	create_standard_UV_interfaces();
     return 0;
 }
 
