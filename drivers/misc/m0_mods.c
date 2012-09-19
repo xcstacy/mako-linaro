@@ -232,5 +232,5 @@ module_init( m0mods_init );
 module_exit( m0mods_exit );
 
 MODULE_AUTHOR("Gokhan Moral <gm@alumni.bilkent.edu.tr>");
-MODULE_DESCRIPTION("CPU Undervolting interfaces (3-in-1) module");
+MODULE_DESCRIPTION("European i9300 specific hacks");
 MODULE_LICENSE("GPL");
