@@ -16,6 +16,8 @@
 #include <mach/cpufreq.h>
 #include <mach/busfreq.h>
 #include <linux/kallsyms.h>
+#include <linux/regulator/driver.h>
+#include <linux/regulator/machine.h>
 
 unsigned int max_current_idx = L2;
 unsigned int min_current_idx = L14;
@@ -127,6 +129,29 @@ void hijack_exynos_driver_init(void)
 	gm_exynos_driver->init = gm_exynos_cpufreq_cpu_init;
 }
 
+void adjust_regulator_constraints(void)
+{
+	struct list_head *gm_regulator_list;
+	struct regulator_dev *rdev;
+
+	gm_regulator_list = (struct list_head *)kallsyms_lookup_name("regulator_list");
+	list_for_each_entry(rdev, gm_regulator_list, list) {
+		mutex_lock(&rdev->mutex);
+		if(rdev->constraints && rdev->constraints->name)
+		{
+			if(strcmp(rdev->constraints->name, "vdd_g3d range") == 0)
+			{
+				rdev->constraints->min_uV = 600000;
+			}
+			if(strcmp(rdev->constraints->name, "vdd_arm range") == 0)
+			{
+				rdev->constraints->min_uV = 600000;
+			}
+		}
+		mutex_unlock(&rdev->mutex);
+	}
+}
+
 void release_exynos_driver_init(void)
 {
 	gm_exynos_driver->init = old_exynos_cpufreq_cpu_init;
@@ -139,6 +164,7 @@ static int __init m0mods_init(void)
 		);
 	cpufreq_register_notifier(&m0_exynos_cpufreq_policy_notifier,
 						CPUFREQ_POLICY_NOTIFIER);
+	adjust_regulator_constraints();
 	hijack_exynos_driver_init();
 	enable_overclocked_frequencies();
     return 0;
