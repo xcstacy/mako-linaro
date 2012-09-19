@@ -157,6 +157,58 @@ void release_exynos_driver_init(void)
 	gm_exynos_driver->init = old_exynos_cpufreq_cpu_init;
 }
 
+struct device *gm_sec_touchscreen;
+int * gm_touch_boost_level;
+
+static ssize_t m0mods_touch_boost_level_write(struct device * dev, struct device_attribute * attr, const char * buf, size_t size)
+{
+	int lvl;
+    if (sscanf(buf, "%d", &lvl) == 1)
+	{
+		*gm_touch_boost_level = lvl;
+	}
+    return size;
+}
+
+static ssize_t m0mods_touch_boost_level_read(struct device * dev, struct device_attribute * attr, char * buf)
+{
+    return sprintf(buf, "%d\n", *gm_touch_boost_level);
+}
+
+static DEVICE_ATTR(touch_boost_level, S_IRUGO | S_IWUGO, m0mods_touch_boost_level_read, m0mods_touch_boost_level_write);
+
+static struct attribute *m0mods_attributes[] = 
+    {
+	&dev_attr_touch_boost_level.attr,
+	NULL
+    };
+
+static struct attribute_group m0mods_group = 
+    {
+	.attrs  = m0mods_attributes,
+    };
+
+static struct miscdevice m0mods_device = 
+    {
+	.minor = MISC_DYNAMIC_MINOR,
+	.name = "m0mods",
+    };
+
+void create_m0mods_misc_device(void)
+{
+	int ret;
+	
+	gm_sec_touchscreen = *(
+		(struct device**)kallsyms_lookup_name("sec_touchscreen")
+		);
+	gm_touch_boost_level = (int*)(dev_get_drvdata(gm_sec_touchscreen)) + 71;
+
+    ret = misc_register(&m0mods_device);
+    if (ret) return;
+    if (sysfs_create_group(&m0mods_device.this_device->kobj, &m0mods_group) < 0) 
+		return;
+}
+
 static int __init m0mods_init(void)
 {
 	gm_exynos_info = *(
@@ -167,6 +219,7 @@ static int __init m0mods_init(void)
 	adjust_regulator_constraints();
 	hijack_exynos_driver_init();
 	enable_overclocked_frequencies();
+	create_m0mods_misc_device();
     return 0;
 }
 
