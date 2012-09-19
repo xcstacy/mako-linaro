@@ -22,6 +22,8 @@
 #include <linux/kallsyms.h>
 
 #define CUSTOMVOLTAGE_VERSION 1
+#define CPU_UV_MV_MAX 1500000
+#define CPU_UV_MV_MIN 60000
 
 #ifdef CONFIG_CPU_UNDERVOLTING_MODULE
 static int (*gm_misc_register)(struct miscdevice * misc);
