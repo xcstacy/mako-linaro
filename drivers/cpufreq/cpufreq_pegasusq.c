@@ -758,21 +758,6 @@ static ssize_t store_min_cpu_lock(struct kobject *a, struct attribute *b,
 	return count;
 }
 
-static ssize_t store_min_cpu_lock(struct kobject *a, struct attribute *b,
-				  const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-	if (input == 0)
-		cpufreq_pegasusq_min_cpu_unlock();
-	else
-		cpufreq_pegasusq_min_cpu_lock(input);
-	return count;
-}
-
 static ssize_t store_hotplug_lock(struct kobject *a, struct attribute *b,
 				  const char *buf, size_t count)
 {
