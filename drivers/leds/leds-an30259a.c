@@ -82,6 +82,9 @@
 
 #define	MAX_NUM_LEDS	3
 
+u8 LED_DYNAMIC_CURRENT = 0x8;
+u8 LED_LOWPOWER_MODE = 0x0;
+
 static struct an30259_led_conf led_conf[] = {
 	{
 		.name = "led_r",
@@ -144,7 +147,9 @@ struct device *led_dev;
 int led_enable_fade;
 /*path : /sys/class/sec/led/led_pattern*/
 /*path : /sys/class/sec/led/led_blink*/
+
 /*path : /sys/class/sec/led/led_fade*/
+/*path : /sys/class/sec/led/led_brightness*/
 /*path : /sys/class/leds/led_r/brightness*/
 /*path : /sys/class/leds/led_g/brightness*/
 /*path : /sys/class/leds/led_b/brightness*/
@@ -317,7 +322,6 @@ static void an30259a_reset_register_work(struct work_struct *work)
 static void an30259a_start_led_pattern(int mode)
 {
 	int retval;
-
 	struct i2c_client *client;
 	struct work_struct *reset = 0;
 	client = b_client;
@@ -329,47 +333,47 @@ static void an30259a_start_led_pattern(int mode)
 	if (mode == LED_OFF)
 		return;
 
+	/* Set to low power consumption mode */
+	if (LED_LOWPOWER_MODE == 1)
+		LED_DYNAMIC_CURRENT = 0x8;
+	else
+		LED_DYNAMIC_CURRENT = 0x1;
+
 	switch (mode) {
 	/* leds_set_slope_mode(client, LED_SEL, DELAY,  MAX, MID, MIN,
 		SLPTT1, SLPTT2, DT1, DT2, DT3, DT4) */
 	case CHARGING:
-		leds_on(LED_R, true, false, LED_R_CURRENT);
-		leds_on(LED_G, false, false, LED_OFF);
-		leds_on(LED_B, false, false, LED_OFF);
+		leds_on(LED_R, true, false,
+					LED_R_CURRENT / LED_DYNAMIC_CURRENT);
 		break;
 
 	case CHARGING_ERR:
-		leds_on(LED_R, true, true, LED_R_CURRENT);
-		leds_on(LED_G, false, false, LED_OFF);
-		leds_on(LED_B, false, false, LED_OFF);
+		leds_on(LED_R, true, true,
+					LED_R_CURRENT / LED_DYNAMIC_CURRENT);
 		leds_set_slope_mode(client, LED_R,
 				1, 15, 15, 0, 1, 1, 0, 0, 0, 0);
 		break;
 
 	case MISSED_NOTI:
-		leds_on(LED_R, false, false, LED_OFF);
-		leds_on(LED_G, false, false, LED_OFF);
-		leds_on(LED_B, true, true, LED_B_CURRENT);
+		leds_on(LED_B, true, true,
+					LED_B_CURRENT / LED_DYNAMIC_CURRENT);
 		leds_set_slope_mode(client, LED_B,
 					10, 15, 15, 0, 1, 10, 0, 0, 0, 0);
 		break;
 
 	case LOW_BATTERY:
-		leds_on(LED_R, true, true, LED_R_CURRENT);
-		leds_on(LED_G, false, false, LED_OFF);
-		leds_on(LED_B, false, false, LED_OFF);
+		leds_on(LED_R, true, true,
+					LED_R_CURRENT / LED_DYNAMIC_CURRENT);
 		leds_set_slope_mode(client, LED_R,
 					10, 15, 15, 0, 1, 10, 0, 0, 0, 0);
 		break;
 
 	case FULLY_CHARGED:
-		leds_on(LED_R, false, false, LED_OFF);
-		leds_on(LED_G, true, false, LED_G_CURRENT);
-		leds_on(LED_B, false, false, LED_OFF);
+		leds_on(LED_G, true, false,
+					LED_G_CURRENT / LED_DYNAMIC_CURRENT);
 		break;
 
 	case POWERING:
-		leds_on(LED_R, false, false, 0);
 		leds_on(LED_G, true, true, LED_G_CURRENT);
 		leds_on(LED_B, true, true, LED_B_CURRENT);
 		leds_set_slope_mode(client, LED_G,
@@ -403,8 +407,15 @@ static void an30259a_set_led_blink(enum an30259a_led_enum led,
 	if (brightness > LED_MAX_CURRENT)
 		brightness = LED_MAX_CURRENT;
 
-	/* In user case, LED current is restricted to less than 2mA */
-	//brightness = (brightness * LED_R_CURRENT) / LED_MAX_CURRENT + 1;
+	if (led == LED_R)
+		LED_DYNAMIC_CURRENT = LED_R_CURRENT;
+	else if (led == LED_G)
+		LED_DYNAMIC_CURRENT = LED_G_CURRENT;
+	else if (led == LED_B)
+		LED_DYNAMIC_CURRENT = LED_B_CURRENT;
+
+	/* In user case, LED current is restricted */
+	SAMSUNGROM brightness = (brightness * LED_DYNAMIC_CURRENT) / LED_MAX_CURRENT;
 
 	if (delay_on_time > SLPTT_MAX_VALUE)
 		delay_on_time = SLPTT_MAX_VALUE;
@@ -437,6 +448,27 @@ static void an30259a_set_led_blink(enum an30259a_led_enum led,
 	}
 }
 
+static ssize_t store_an30259a_led_lowpower(struct device *dev,
+					struct device_attribute *devattr,
+					const char *buf, size_t count)
+{
+	int retval;
+	u8 led_lowpower;
+	struct an30259a_data *data = dev_get_drvdata(dev);
+
+	retval = kstrtou8(buf, 0, &led_lowpower);
+	if (retval != 0) {
+		dev_err(&data->client->dev, "fail to get led_lowpower.\n");
+		return count;
+	}
+
+	LED_LOWPOWER_MODE = led_lowpower;
+
+	printk(KERN_DEBUG "led_lowpower mode set to %i\n", led_lowpower);
+
+	return count;
+}
+
 static ssize_t store_an30259a_led_br_lev(struct device *dev,
 					struct device_attribute *devattr,
 					const char *buf, size_t count)
@@ -449,7 +481,7 @@ static ssize_t store_an30259a_led_br_lev(struct device *dev,
 
 	retval = strict_strtoul(buf, 16, &brightness_lev);
 	if (retval != 0) {
-		dev_err(&data->client->dev, "fail to get led_pattern mode.\n");
+		dev_err(&data->client->dev, "fail to get led_br_lev.\n");
 		return count;
 	}
 
@@ -463,17 +495,19 @@ static ssize_t store_an30259a_led_pattern(struct device *dev,
 					const char *buf, size_t count)
 {
 	int retval;
-	unsigned long mode;
+	unsigned int mode = 0;
+	unsigned int type = 0;
 	struct an30259a_data *data = dev_get_drvdata(dev);
 
-	retval = strict_strtoul(buf, 16, &mode);
-	if (retval != 0) {
+	retval = sscanf(buf, "%d %d", &mode, &type);
+
+	if (retval == 0) {
 		dev_err(&data->client->dev, "fail to get led_pattern mode.\n");
 		return count;
 	}
 
 	an30259a_start_led_pattern(mode);
-	printk(KERN_DEBUG "led pattern : %lu is activated\n", mode);
+	printk(KERN_DEBUG "led pattern : %d is activated\n", mode);
 
 	return count;
 }
@@ -517,7 +551,8 @@ static ssize_t store_an30259a_led_blink(struct device *dev,
 
 	leds_i2c_write_all(data->client);
 
-	printk(KERN_DEBUG "led_blink is called\n");
+	printk(KERN_DEBUG "led_blink is called, Color:0x%X Brightness:%i\n",
+			led_brightness, LED_DYNAMIC_CURRENT);
 
 	return count;
 }
@@ -739,6 +774,9 @@ static DEVICE_ATTR(led_fade, 0664, show_an30259a_led_fade, \
 					store_an30259a_led_fade);
 static DEVICE_ATTR(led_br_lev, 0664, NULL, \
 					store_an30259a_led_br_lev);
+static DEVICE_ATTR(led_lowpower, 0664, NULL, \
+					store_an30259a_led_lowpower);
+
 
 #endif
 static struct attribute *led_class_attrs[] = {
@@ -761,6 +799,7 @@ static struct attribute *sec_led_attributes[] = {
 	&dev_attr_led_blink.attr,
 	&dev_attr_led_fade.attr,
 	&dev_attr_led_br_lev.attr,
+	&dev_attr_led_lowpower.attr,
 	NULL,
 };
 
@@ -867,11 +906,14 @@ static int __devinit an30259a_probe(struct i2c_client *client,
 		dev_err(&client->dev,
 			"Failed to create device for samsung specific led\n");
 		ret = -ENODEV;
+		goto exit;
 	}
 	ret = sysfs_create_group(&led_dev->kobj, &sec_led_attr_group);
-	if (ret)
+	if (ret) {
 		dev_err(&client->dev,
 			"Failed to create sysfs group for samsung specific led\n");
+		goto exit;
+	}
 #endif
 	return ret;
 exit:

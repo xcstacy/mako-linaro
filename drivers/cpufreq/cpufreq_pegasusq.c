@@ -161,11 +161,11 @@ static unsigned int get_nr_run_avg(void)
 #define DEF_UP_NR_CPUS				(1)
 #define DEF_CPU_UP_RATE				(10)
 #define DEF_CPU_DOWN_RATE			(20)
-#define DEF_FREQ_STEP				(40)
+#define DEF_FREQ_STEP				(37)
 #define DEF_START_DELAY				(0)
 
 #define UP_THRESHOLD_AT_MIN_FREQ		(40)
-#define FREQ_FOR_RESPONSIVENESS			(500000)
+#define FREQ_FOR_RESPONSIVENESS			(400000)
 
 #define HOTPLUG_DOWN_INDEX			(0)
 #define HOTPLUG_UP_INDEX			(1)
@@ -730,6 +730,21 @@ static ssize_t store_min_cpu_lock(struct kobject *a, struct attribute *b,
 	return count;
 }
 
+static ssize_t store_min_cpu_lock(struct kobject *a, struct attribute *b,
+				  const char *buf, size_t count)
+{
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+	if (input == 0)
+		cpufreq_pegasusq_min_cpu_unlock();
+	else
+		cpufreq_pegasusq_min_cpu_lock(input);
+	return count;
+}
+
 static ssize_t store_hotplug_lock(struct kobject *a, struct attribute *b,
 				  const char *buf, size_t count)
 {
@@ -970,7 +985,7 @@ static int check_up(void)
 		&& online < dbs_tuners_ins.min_cpu_lock)
 		return 1;
 
-	if (num_hist % up_rate)
+	if (num_hist == 0 || num_hist % up_rate)
 		return 0;
 	if(num_hist == 0) num_hist = MAX_HOTPLUG_RATE;
 
@@ -1032,7 +1047,7 @@ static int check_down(void)
 		&& online <= dbs_tuners_ins.min_cpu_lock)
 		return 0;
 
-	if (num_hist % down_rate)
+	if (num_hist == 0 || num_hist % down_rate)
 		return 0;
 	if(num_hist == 0) num_hist = MAX_HOTPLUG_RATE; //make it circular -gm
 
