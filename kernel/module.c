@@ -570,6 +570,7 @@ MODINFO_ATTR(version);
 MODINFO_ATTR(srcversion);
 
 static char last_unloaded_module[MODULE_NAME_LEN+1];
+static unsigned int last_unloaded_module_addr;
 
 #ifdef CONFIG_MODULE_UNLOAD
 
@@ -841,7 +842,7 @@ SYSCALL_DEFINE2(delete_module, const char __user *, name_user,
 
 	/* Store the name of the last unloaded module for diagnostic purposes */
 	strlcpy(last_unloaded_module, mod->name, sizeof(last_unloaded_module));
-
+	last_unloaded_module_addr = (unsigned int)&mod->module_core;
 	free_module(mod);
 	return 0;
 out:
@@ -2290,8 +2291,7 @@ static int copy_and_check(struct load_info *info,
 		return -ENOEXEC;
 
 	/* Suck in entire file: we'll want most of it. */
-	/* vmalloc barfs on "unusual" numbers.  Check here */
-	if (len > 64 * 1024 * 1024 || (hdr = vmalloc(len)) == NULL)
+	if ((hdr = vmalloc(len)) == NULL)
 		return -ENOMEM;
 
 	if (copy_from_user(hdr, umod, len) != 0) {
@@ -3405,7 +3405,8 @@ void print_modules(void)
 		printk(" %s%s", mod->name, module_flags(mod, buf));
 	preempt_enable();
 	if (last_unloaded_module[0])
-		printk(" [last unloaded: %s]", last_unloaded_module);
+		printk(" [last unloaded: %s](%x)", last_unloaded_module,
+			last_unloaded_module_addr);
 	printk("\n");
 }
 
