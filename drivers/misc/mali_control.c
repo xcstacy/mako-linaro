@@ -41,6 +41,7 @@ typedef struct mali_dvfs_staycount{
 #ifdef MODULE
 mali_runtime_resume_table *mali_runtime_resume;
 mali_dvfs_table *mali_dvfs;
+mali_dvfs_table *mali_dvfs_all;
 mali_dvfs_threshold_table *mali_dvfs_threshold;
 mali_dvfs_staycount_table *mali_dvfs_staycount;
 #else
@@ -52,17 +53,8 @@ extern mali_dvfs_staycount_table mali_dvfs_staycount[5];
 
 
 static ssize_t gpu_clock_show(struct device *dev, struct device_attribute *attr, char *buf) {
-	return sprintf(buf, "Step0: %d\nStep1: %d\nStep2: %d\nStep3: %d\n"
-						"Threshold0-1/up-down: %d%% %d%%\n"
-						"Threshold1-2/up-down: %d%% %d%%\n"
-						"Threshold2-3/up-down: %d%% %d%%\n",
-		mali_dvfs[0].clock, mali_dvfs[1].clock, mali_dvfs[2].clock, mali_dvfs[3].clock,
-		mali_dvfs_threshold[0].upthreshold, 
-		mali_dvfs_threshold[1].downthreshold,
-		mali_dvfs_threshold[1].upthreshold,
-		mali_dvfs_threshold[2].downthreshold,
-		mali_dvfs_threshold[2].upthreshold,
-		mali_dvfs_threshold[3].downthreshold
+	return sprintf(buf, "Step0: %d\nStep1: %d\nStep2: %d\nStep3: %d\nStep4: %d\n",
+		mali_dvfs[0].clock, mali_dvfs[1].clock, mali_dvfs[2].clock, mali_dvfs[3].clock, mali_dvfs[4].clock
 		);
 }
 
@@ -73,60 +65,50 @@ static ssize_t gpu_clock_store(struct device *dev, struct device_attribute *attr
 	int i = 0;
 	unsigned int g[8];
 
-	if ( (ret=sscanf(buf, "%d%% %d%% %d%% %d%% %d%% %d%%",
-			&g[0], &g[1], &g[2], &g[3], &g[4], &g[5])) == 6 )
-	{
-		if(g[1]<0 || g[0]>100) return -EINVAL;
-		mali_dvfs_threshold[0].upthreshold = g[0];
-		mali_dvfs_threshold[1].downthreshold = g[1];
-		mali_dvfs_threshold[1].upthreshold = g[2];
-		mali_dvfs_threshold[2].downthreshold = g[3];
-		mali_dvfs_threshold[2].upthreshold = g[4];
-		mali_dvfs_threshold[3].downthreshold = g[5];
-	} 
-	else {
-	  if ( (ret=sscanf(buf, "%d %d %d %d", &g[0], &g[1], &g[2], &g[3]))!=5 )
+	if ( (ret=sscanf(buf, "%d %d %d %d %d", &g[0], &g[1], &g[2], &g[3], &g[4]))!=5 )
 			return -EINVAL;
-		/* safety floor and ceiling - netarchy */
-		for( i = 0; i < 5; i++ ) {
-			if (g[i] < GPU_MIN_CLOCK) {
-				g[i] = GPU_MIN_CLOCK;
-			}
-			else if (g[i] > GPU_MAX_CLOCK) {
-				g[i] = GPU_MAX_CLOCK;
-			}
-			mali_dvfs[i].clock=g[i];
+	/* safety floor and ceiling - netarchy */
+	for( i = 0; i < 5; i++ ) {
+		if (g[i] < GPU_MIN_CLOCK) {
+			g[i] = GPU_MIN_CLOCK;
 		}
+		else if (g[i] > GPU_MAX_CLOCK) {
+			g[i] = GPU_MAX_CLOCK;
+		}
+		mali_dvfs_all[i].clock=g[i];
+		mali_dvfs[i].clock=g[i];
 	}
 	return count;	
 }
 
 static ssize_t gpu_staycount_show(struct device *dev, struct device_attribute *attr, char *buf) {
-	return sprintf(buf, "%d %d %d %d\n", 
+	return sprintf(buf, "%d %d %d %d %d\n", 
 	mali_dvfs_staycount[0].staycount,
 	mali_dvfs_staycount[1].staycount,
 	mali_dvfs_staycount[2].staycount,
-	mali_dvfs_staycount[3].staycount
+	mali_dvfs_staycount[3].staycount,
+	mali_dvfs_staycount[4].staycount
 	);
 }
 
 static ssize_t gpu_staycount_store(struct device *dev, struct device_attribute *attr, const char *buf,
 									size_t count) {
 	unsigned int ret = -EINVAL;
-	int i1, i2, i3, i4;
+	int i1, i2, i3, i4, i5;
 
-    if ( (ret=sscanf(buf, "%d %d %d %d", &i1, &i2, &i3, &i4))!=4 )
+    if ( (ret=sscanf(buf, "%d %d %d %d %d", &i1, &i2, &i3, &i4, &i5))!=5 )
 		return -EINVAL;
 	mali_dvfs_staycount[0].staycount = i1;
 	mali_dvfs_staycount[1].staycount = i2;
 	mali_dvfs_staycount[2].staycount = i3;
 	mali_dvfs_staycount[3].staycount = i4;
+	mali_dvfs_staycount[3].staycount = i5;
 	return count;	
 }
 
 static ssize_t gpu_voltage_show(struct device *dev, struct device_attribute *attr, char *buf) {
-	return sprintf(buf, "Step1: %d\nStep2: %d\nStep3: %d\nStep4: %d\n",
-			mali_dvfs[0].vol, mali_dvfs[1].vol,mali_dvfs[2].vol,mali_dvfs[3].vol);
+	return sprintf(buf, "Step1: %d\nStep2: %d\nStep3: %d\nStep4: %d\nStep5: %d\n",
+			mali_dvfs[0].vol, mali_dvfs[1].vol,mali_dvfs[2].vol,mali_dvfs[3].vol,mali_dvfs[4].vol);
 }
 
 static ssize_t gpu_voltage_store(struct device *dev, struct device_attribute *attr, const char *buf,
@@ -135,20 +117,21 @@ static ssize_t gpu_voltage_store(struct device *dev, struct device_attribute *at
 	int i = 0;
 	unsigned int gv[5];
 
-	ret = sscanf(buf, "%d %d %d %d", &gv[0], &gv[1], &gv[2], &gv[3]);
-	if(ret!=4) 
+	ret = sscanf(buf, "%d %d %d %d %d", &gv[0], &gv[1], &gv[2], &gv[3], &gv[4]);
+	if(ret!=5) 
 	{
 		return -EINVAL;
 	}
 	
     /* safety floor and ceiling - netarchy */
-    for( i = 0; i < 4; i++ ) {
+    for( i = 0; i < 5; i++ ) {
         if (gv[i] < MIN_VOLTAGE_GPU) {
             gv[i] = MIN_VOLTAGE_GPU;
         }
         else if (gv[i] > MAX_VOLTAGE_GPU) {
             gv[i] = MAX_VOLTAGE_GPU;
     	}
+		mali_dvfs_all[i].vol=gv[i];
 		mali_dvfs[i].vol=gv[i];
     }
 //	mali_runtime_resume.vol = mali_dvfs[1].vol;
@@ -182,6 +165,7 @@ static int __init malicontrol_init(void)
     pr_info("%s misc_register(%s)\n", __FUNCTION__, malicontrol_device.name);
 #ifdef MODULE
 	mali_dvfs = (mali_dvfs_table *)kallsyms_lookup_name("mali_dvfs");
+	mali_dvfs_all = (mali_dvfs_table *)kallsyms_lookup_name("mali_dvfs_all");
 	mali_dvfs_threshold = (mali_dvfs_threshold_table *)kallsyms_lookup_name("mali_dvfs_threshold");
 	mali_dvfs_staycount = (mali_dvfs_staycount_table *)kallsyms_lookup_name("mali_dvfs_staycount");
 #endif
