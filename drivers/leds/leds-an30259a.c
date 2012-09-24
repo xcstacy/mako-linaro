@@ -952,7 +952,6 @@ static int __devexit an30259a_remove(struct i2c_client *client)
 		led_classdev_unregister(&data->leds[i].cdev);
 		cancel_work_sync(&data->leds[i].brightness_work);
 	}
-	
 	mutex_destroy(&data->mutex);
 	kfree(data);
 	return 0;

@@ -845,9 +845,8 @@ static irqreturn_t touchkey_interrupt(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
-	if (pressed) {
+	if (pressed)
 		set_touchkey_debug('P');
-    }
 
 	if (get_tsp_status() && pressed)
 		printk(KERN_DEBUG "[TouchKey] touchkey pressed"
@@ -1714,7 +1713,7 @@ static int i2c_touchkey_probe(struct i2c_client *client,
 	input_dev = input_allocate_device();
 
 	if (!input_dev) {
-		printk(KERN_ERR "[Touchkey] failed to allocate input device\n");
+		printk(KERN_ERR"[Touchkey] failed to allocate input device\n");
 		kfree(tkey_i2c);
 		return -ENOMEM;
 	}
@@ -1743,7 +1742,7 @@ static int i2c_touchkey_probe(struct i2c_client *client,
 
 	ret = input_register_device(input_dev);
 	if (ret) {
-		printk(KERN_ERR "[Touchkey] failed to register input device\n");
+		printk(KERN_ERR"[Touchkey] failed to register input device\n");
 		input_free_device(input_dev);
 		kfree(tkey_i2c);
 		return err;
@@ -1802,7 +1801,8 @@ static int i2c_touchkey_probe(struct i2c_client *client,
 				IRQF_DISABLED | IRQF_TRIGGER_FALLING |
 				IRQF_ONESHOT, tkey_i2c->name, tkey_i2c);
 	if (ret < 0) {
-		printk(KERN_ERR "[Touchkey]: failed to request irq(%d) - %d\n",
+		printk(KERN_ERR
+			"[Touchkey]: failed to request irq(%d) - %d\n",
 			tkey_i2c->irq, ret);
 		input_unregister_device(input_dev);
 		touchkey_probe = false;
@@ -1814,7 +1814,8 @@ static int i2c_touchkey_probe(struct i2c_client *client,
 #if defined(TK_HAS_FIRMWARE_UPDATE)
 	ret = touchkey_firmware_update(tkey_i2c);
 	if (ret < 0) {
-		printk(KERN_ERR "[Touchkey]: failed firmware updating process (%d)\n",
+		printk(KERN_ERR
+			"[Touchkey]: failed firmware updating process (%d)\n",
 			ret);
 		input_unregister_device(input_dev);
 		touchkey_probe = false;
@@ -1881,7 +1882,8 @@ static int __init touchkey_init(void)
 	ret = i2c_add_driver(&touchkey_i2c_driver);
 
 	if (ret) {
-		printk(KERN_ERR "[TouchKey] registration failed, module not inserted.ret= %d\n",
+		printk(KERN_ERR
+	       "[TouchKey] registration failed, module not inserted.ret= %d\n",
 	       ret);
 	}
 #ifdef TEST_JIG_MODE

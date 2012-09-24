@@ -116,6 +116,8 @@ static const struct usb_device_id id_table[] = {
 };
 MODULE_DEVICE_TABLE(usb, id_table);
 
+#define EFS_SYNC_IFC_NUM	2
+
 static struct usb_driver qcdriver = {
 	.name			= "qcserial",
 	.probe			= usb_serial_probe,
@@ -264,6 +266,14 @@ set_interface:
 		}
 		break;
 
+	case 9:
+		if (ifnum != EFS_SYNC_IFC_NUM) {
+			kfree(data);
+			break;
+		}
+
+		retval = 0;
+		break;
 	default:
 		dev_err(&serial->dev->dev,
 			"unknown number of interfaces: %d\n", nintf);
