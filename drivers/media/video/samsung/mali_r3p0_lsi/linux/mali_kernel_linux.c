@@ -146,6 +146,24 @@ extern int step3_vol;
 module_param(step3_vol, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP| S_IROTH); /* rw-rw-r-- */
 MODULE_PARM_DESC(step3_vol, "Mali Current step3_vol");
 #endif
+#if (MALI_DVFS_STEPS > 4)
+extern int step4_clk;
+module_param(step4_clk, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP| S_IROTH); /* rw-rw-r-- */
+MODULE_PARM_DESC(step4_clk, "Mali Current step4_clk");
+
+extern int step3_up;
+module_param(step3_up, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP| S_IROTH); /* rw-rw-r-- */
+MODULE_PARM_DESC(step3_up, "Mali Current step3_up");
+
+extern int step4_down;
+module_param(step4_down, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP| S_IROTH); /* rw-rw-r-- */
+MODULE_PARM_DESC(step4_down, "Mali Current step4_down");
+#ifdef DEBUG
+extern int step4_vol;
+module_param(step4_vol, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP| S_IROTH); /* rw-rw-r-- */
+MODULE_PARM_DESC(step4_vol, "Mali Current step4	_vol");
+#endif
+#endif
 #endif
 #endif
 #endif
@@ -154,6 +172,11 @@ MODULE_PARM_DESC(step3_vol, "Mali Current step3_vol");
 extern int mali_gpu_clk;
 module_param(mali_gpu_clk, int, S_IRUSR | S_IRGRP | S_IROTH); /* r--r--r-- */
 MODULE_PARM_DESC(mali_gpu_clk, "Mali Current Clock");
+
+//thanks to michyprima@XDA
+extern int mali_dvfs_utilization;
+module_param(mali_dvfs_utilization, int, S_IRUSR | S_IRGRP | S_IROTH); /* r--r--r-- */
+MODULE_PARM_DESC(mali_dvfs_utilization, "Mali Current Utilization");
 
 extern int mali_gpu_vol;
 module_param(mali_gpu_vol, int, S_IRUSR | S_IRGRP | S_IROTH); /* r--r--r-- */
@@ -164,6 +187,9 @@ module_param(gpu_power_state, int, S_IRUSR | S_IRGRP | S_IROTH); /* r--r--r-- */
 MODULE_PARM_DESC(gpu_power_state, "Mali Power State");
 #endif
 
+int mali_touch_boost_level = 0;
+module_param(mali_touch_boost_level, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH); /* rw--rw--r-- */
+MODULE_PARM_DESC(mali_touch_boost_level, "Mali Touch Boost Level");
 
 static char mali_dev_name[] = "mali"; /* should be const, but the functions we call requires non-cost */
 
