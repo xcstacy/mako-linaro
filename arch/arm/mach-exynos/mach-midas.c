@@ -2096,6 +2096,43 @@ struct platform_device coresight_etm_device = {
 
 #endif
 
+#ifdef CONFIG_CPUPOWER
+#include <linux/power/cpupower.h>
+static unsigned int table_default_power[1] = {
+	1024
+};
+
+static struct cputopo_power default_cpu_power = {
+	.max  = 1,
+	.step = 1,
+	.table = table_default_power,
+};
+
+static unsigned int table_ca9_power[10] = {
+/* freq< 200   400   600   800  1000  1200  1400  1600  1800  other*/
+	8192, 8192, 8192, 1024, 1024, 1024, 1024, 1024, 1024, 1024, /* Power save mode CA9 MP */
+};
+
+static struct cputopo_power CA9_cpu_power = {
+	.max  = 10,
+	.step = 200000,
+	.table = table_ca9_power,
+};
+
+/* This table list all possible cpu power configuration */
+static struct cputopo_power *midas_cpupower_data[2] = {
+	&default_cpu_power,
+	&CA9_cpu_power,
+};
+
+static struct platform_device midas_cpupower_dev = {
+	.name = "cpupower",
+	.dev = {
+		.platform_data = midas_cpupower_data,
+	},
+};
+#endif
+
 static struct platform_device *midas_devices[] __initdata = {
 #ifdef CONFIG_SEC_WATCHDOG_RESET
 	&watchdog_reset_device,
@@ -2363,6 +2400,9 @@ static struct platform_device *midas_devices[] __initdata = {
 	&coresight_tpiu_device,
 	&coresight_funnel_device,
 	&coresight_etm_device,
+#endif
+#ifdef CONFIG_CPUPOWER
+	&midas_cpupower_dev,
 #endif
 };
 
