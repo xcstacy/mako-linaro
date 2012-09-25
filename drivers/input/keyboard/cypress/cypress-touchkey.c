@@ -669,8 +669,6 @@ static int touchkey_firmware_update(struct touchkey_i2c *tkey_i2c)
 #endif
 
 #ifndef TEST_JIG_MODE
-void gpu_boost_on_touch(void);
-
 static irqreturn_t touchkey_interrupt(int irq, void *dev_id)
 {
 	struct touchkey_i2c *tkey_i2c = dev_id;
@@ -724,7 +722,6 @@ AOSPROM {
             }
         }
 }
-		gpu_boost_on_touch();
     } else {
 AOSPROM {
         // touch led timeout on keyup
