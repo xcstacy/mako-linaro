@@ -4,7 +4,7 @@
 #
 # For Mali
 config VIDEO_MALI400MP
-	bool "Enable MALI integration"
+	tristate "Enable MALI integration"
 	depends on VIDEO_SAMSUNG
 	default n
 	---help---

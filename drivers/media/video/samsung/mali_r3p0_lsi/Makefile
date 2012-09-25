@@ -165,7 +165,7 @@ else
 endif
 
 # Target build file
-obj-$(CONFIG_VIDEO_MALI400MP)		+= mali.o
+obj-$(CONFIG_MALI_R3P0_LSI)		+= mali.o
 
 # Use our defines when compiling
 # MALI
@@ -189,7 +189,7 @@ EXTRA_CFLAGS += -I$(MALI_INCLUDE_PREFIX)linux/license/gpl
 EXTRA_CFLAGS += -I$(MALI_INCLUDE_PREFIX)common/pmm
 
 # Source files which always are included in a build
-ifeq ($(CONFIG_VIDEO_UMP),y)
+ifeq ($(CONFIG_MALI_R3P0_LSI),y)
 OSKFILES=\
         $(FILES_PREFIX)$(OSKOS)/mali_osk_irq.o \
         $(FILES_PREFIX)$(OSKOS)/mali_osk_low_level_mem.o \

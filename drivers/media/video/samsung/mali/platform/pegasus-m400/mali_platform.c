@@ -80,7 +80,7 @@ int mali_gpu_clk = 266;
 int mali_gpu_vol = 900000;
 
 #if MALI_DVFS_ENABLED
-#define MALI_DVFS_DEFAULT_STEP 1
+#define MALI_DVFS_DEFAULT_STEP 0
 #endif
 #if MALI_VOLTAGE_LOCK
 int mali_lock_vol = 0;
@@ -134,6 +134,7 @@ int mali_regulator_get_usecount(void)
 
 void mali_regulator_disable(void)
 {
+	bPoweroff = 1;
 	if( IS_ERR_OR_NULL(g3d_regulator) )
 	{
 		MALI_DEBUG_PRINT(1, ("error on mali_regulator_disable : g3d_regulator is null\n"));
@@ -141,11 +142,11 @@ void mali_regulator_disable(void)
 	}
 	regulator_disable(g3d_regulator);
 	MALI_DEBUG_PRINT(1, ("regulator_disable -> use cnt: %d \n",mali_regulator_get_usecount()));
-	bPoweroff = 1;
 }
 
 void mali_regulator_enable(void)
 {
+	bPoweroff = 0;
 	if( IS_ERR_OR_NULL(g3d_regulator) )
 	{
 		MALI_DEBUG_PRINT(1, ("error on mali_regulator_enable : g3d_regulator is null\n"));
@@ -153,7 +154,6 @@ void mali_regulator_enable(void)
 	}
 	regulator_enable(g3d_regulator);
 	MALI_DEBUG_PRINT(1, ("regulator_enable -> use cnt: %d \n",mali_regulator_get_usecount()));
-	bPoweroff = 0;
 }
 
 void mali_regulator_set_voltage(int min_uV, int max_uV)
@@ -434,6 +434,8 @@ static mali_bool init_mali_clock(void)
 {
 	mali_bool ret = MALI_TRUE;
 
+	gpu_power_state = 0;
+
 	if (mali_clock != 0)
 		return ret; // already initialized
 
@@ -473,15 +475,15 @@ static mali_bool init_mali_clock(void)
 
 	MALI_DEBUG_PRINT(2, ("MALI Clock is set at mali driver\n"));
 
+
 	MALI_DEBUG_PRINT(3,("::clk_put:: %s mali_parent_clock - normal\n", __FUNCTION__));
 	MALI_DEBUG_PRINT(3,("::clk_put:: %s mpll_clock  - normal\n", __FUNCTION__));
 
 	mali_clk_put(MALI_FALSE);
 
-	gpu_power_state=0;
-	bPoweroff=1;
-
 	return MALI_TRUE;
+
+
 #ifdef CONFIG_REGULATOR
 err_regulator:
 	regulator_put(g3d_regulator);
@@ -516,6 +518,7 @@ static _mali_osk_errcode_t enable_mali_clocks(void)
 	err = clk_enable(mali_clock);
 	MALI_DEBUG_PRINT(3,("enable_mali_clocks mali_clock %p error %d \n", mali_clock, err));
 
+	mali_runtime_resume.vol = mali_dvfs_get_vol(MALI_DVFS_STEPS + 1);
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 #if MALI_DVFS_ENABLED
 	// set clock rate
@@ -524,8 +527,9 @@ static _mali_osk_errcode_t enable_mali_clocks(void)
 	else {
 		mali_regulator_set_voltage(mali_runtime_resume.vol, mali_runtime_resume.vol);
 		mali_clk_set_rate(mali_runtime_resume.clk, GPU_MHZ);
-		set_mali_dvfs_current_step(MALI_DVFS_DEFAULT_STEP);
 	}
+	if (mali_gpu_clk <= mali_runtime_resume.clk)
+		set_mali_dvfs_current_step(MALI_DVFS_STEPS + 1);
 	/* lock/unlock CPU freq by Mali */
 	if (mali_gpu_clk >= 533)
 		err = cpufreq_lock_by_mali(1200);

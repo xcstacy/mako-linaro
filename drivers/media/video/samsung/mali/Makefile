@@ -154,7 +154,7 @@ EXTRA_CFLAGS += -I$(MALI_FILE_PREFIX)/linux/license/gpl
 EXTRA_CFLAGS += -I$(MALI_FILE_PREFIX)/common/pmm
 
 # Source files which always are included in a build
-ifeq ($(CONFIG_VIDEO_UMP),y)
+ifeq ($(CONFIG_VIDEO_MALI400MP),y)
 OSKFILES=\
         $(FILES_PREFIX)$(OSKOS)/mali_osk_irq.o \
         $(FILES_PREFIX)$(OSKOS)/mali_osk_low_level_mem.o \

@@ -22,6 +22,7 @@
 #include <plat/cpu.h>
 #include <plat/pd.h>
 #include <plat/bts.h>
+#include <linux/module.h>
 
 int exynos_pd_init(struct device *dev)
 {
@@ -78,6 +79,7 @@ int exynos_pd_enable(struct device *dev)
 	bts_enable(pdata->id);
 	return 0;
 }
+EXPORT_SYMBOL(exynos_pd_enable);
 
 int exynos_pd_disable(struct device *dev)
 {
