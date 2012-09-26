@@ -39,22 +39,29 @@ typedef struct mali_dvfs_staycount{
 }mali_dvfs_staycount_table;
 
 #ifdef MODULE
-mali_runtime_resume_table *mali_runtime_resume;
-mali_dvfs_table *mali_dvfs;
-mali_dvfs_table *mali_dvfs_all;
-mali_dvfs_threshold_table *mali_dvfs_threshold;
-mali_dvfs_staycount_table *mali_dvfs_staycount;
+mali_runtime_resume_table *gm_mali_runtime_resume;
+mali_dvfs_table *gm_mali_dvfs;
+mali_dvfs_table *gm_mali_dvfs_all;
+mali_dvfs_threshold_table *gm_mali_dvfs_threshold;
+mali_dvfs_staycount_table *gm_mali_dvfs_staycount;
+int *gm_mali_dvfs_control;
 #else
+#define gm_mali_runtime_resume mali_runtime_resume
+#define gm_mali_dvfs mali_dvfs
+#define gm_mali_dvfs_all mali_dvfs_all
+#define gm_mali_dvfs_threshold mali_dvfs_threshold
+#define gm_mali_dvfs_staycount mali_dvfs_staycount
 extern mali_runtime_resume_table mali_runtime_resume;
 extern mali_dvfs_table mali_dvfs[5];
 extern mali_dvfs_threshold_table mali_dvfs_threshold[5];
 extern mali_dvfs_staycount_table mali_dvfs_staycount[5];
+extern int mali_dvfs_control;
 #endif
 
 
 static ssize_t gpu_clock_show(struct device *dev, struct device_attribute *attr, char *buf) {
 	return sprintf(buf, "Step0: %d\nStep1: %d\nStep2: %d\nStep3: %d\nStep4: %d\n",
-		mali_dvfs[0].clock, mali_dvfs[1].clock, mali_dvfs[2].clock, mali_dvfs[3].clock, mali_dvfs[4].clock
+		gm_mali_dvfs[0].clock, gm_mali_dvfs[1].clock, gm_mali_dvfs[2].clock, gm_mali_dvfs[3].clock, gm_mali_dvfs[4].clock
 		);
 }
 
@@ -75,19 +82,23 @@ static ssize_t gpu_clock_store(struct device *dev, struct device_attribute *attr
 		else if (g[i] > GPU_MAX_CLOCK) {
 			g[i] = GPU_MAX_CLOCK;
 		}
-		mali_dvfs_all[i].clock=g[i];
-		mali_dvfs[i].clock=g[i];
+		gm_mali_dvfs_all[i].clock=g[i];
 	}
+#ifdef MODULE
+	*gm_mali_dvfs_control = 999;
+#else
+	mali_dvfs_control = 999;
+#endif
 	return count;	
 }
 
 static ssize_t gpu_staycount_show(struct device *dev, struct device_attribute *attr, char *buf) {
 	return sprintf(buf, "%d %d %d %d %d\n", 
-	mali_dvfs_staycount[0].staycount,
-	mali_dvfs_staycount[1].staycount,
-	mali_dvfs_staycount[2].staycount,
-	mali_dvfs_staycount[3].staycount,
-	mali_dvfs_staycount[4].staycount
+	gm_mali_dvfs_staycount[0].staycount,
+	gm_mali_dvfs_staycount[1].staycount,
+	gm_mali_dvfs_staycount[2].staycount,
+	gm_mali_dvfs_staycount[3].staycount,
+	gm_mali_dvfs_staycount[4].staycount
 	);
 }
 
@@ -98,17 +109,17 @@ static ssize_t gpu_staycount_store(struct device *dev, struct device_attribute *
 
     if ( (ret=sscanf(buf, "%d %d %d %d %d", &i1, &i2, &i3, &i4, &i5))!=5 )
 		return -EINVAL;
-	mali_dvfs_staycount[0].staycount = i1;
-	mali_dvfs_staycount[1].staycount = i2;
-	mali_dvfs_staycount[2].staycount = i3;
-	mali_dvfs_staycount[3].staycount = i4;
-	mali_dvfs_staycount[3].staycount = i5;
+	gm_mali_dvfs_staycount[0].staycount = i1;
+	gm_mali_dvfs_staycount[1].staycount = i2;
+	gm_mali_dvfs_staycount[2].staycount = i3;
+	gm_mali_dvfs_staycount[3].staycount = i4;
+	gm_mali_dvfs_staycount[3].staycount = i5;
 	return count;	
 }
 
 static ssize_t gpu_voltage_show(struct device *dev, struct device_attribute *attr, char *buf) {
 	return sprintf(buf, "Step1: %d\nStep2: %d\nStep3: %d\nStep4: %d\nStep5: %d\n",
-			mali_dvfs[0].vol, mali_dvfs[1].vol,mali_dvfs[2].vol,mali_dvfs[3].vol,mali_dvfs[4].vol);
+			gm_mali_dvfs[0].vol, gm_mali_dvfs[1].vol,gm_mali_dvfs[2].vol,gm_mali_dvfs[3].vol,gm_mali_dvfs[4].vol);
 }
 
 static ssize_t gpu_voltage_store(struct device *dev, struct device_attribute *attr, const char *buf,
@@ -131,10 +142,9 @@ static ssize_t gpu_voltage_store(struct device *dev, struct device_attribute *at
         else if (gv[i] > MAX_VOLTAGE_GPU) {
             gv[i] = MAX_VOLTAGE_GPU;
     	}
-		mali_dvfs_all[i].vol=gv[i];
-		mali_dvfs[i].vol=gv[i];
+		gm_mali_dvfs[i].vol=gv[i];
     }
-//	mali_runtime_resume.vol = mali_dvfs[1].vol;
+//	gm_mali_runtime_resume.vol = gm_mali_dvfs[1].vol;
 	return count;	
 }
 
@@ -164,10 +174,11 @@ static int __init malicontrol_init(void)
 
     pr_info("%s misc_register(%s)\n", __FUNCTION__, malicontrol_device.name);
 #ifdef MODULE
-	mali_dvfs = (mali_dvfs_table *)kallsyms_lookup_name("mali_dvfs");
-	mali_dvfs_all = (mali_dvfs_table *)kallsyms_lookup_name("mali_dvfs_all");
-	mali_dvfs_threshold = (mali_dvfs_threshold_table *)kallsyms_lookup_name("mali_dvfs_threshold");
-	mali_dvfs_staycount = (mali_dvfs_staycount_table *)kallsyms_lookup_name("mali_dvfs_staycount");
+	gm_mali_dvfs = (mali_dvfs_table *)kallsyms_lookup_name("mali_dvfs");
+	gm_mali_dvfs_all = (mali_dvfs_table *)kallsyms_lookup_name("mali_dvfs_all");
+	gm_mali_dvfs_threshold = (mali_dvfs_threshold_table *)kallsyms_lookup_name("mali_dvfs_threshold");
+	gm_mali_dvfs_staycount = (mali_dvfs_staycount_table *)kallsyms_lookup_name("mali_dvfs_staycount");
+	gm_mali_dvfs_control = (int *)kallsyms_lookup_name("mali_dvfs_control");
 #endif
     ret = misc_register(&malicontrol_device);
     if (ret) 
