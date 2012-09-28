@@ -113,7 +113,7 @@ static ssize_t gpu_staycount_store(struct device *dev, struct device_attribute *
 	gm_mali_dvfs_staycount[1].staycount = i2;
 	gm_mali_dvfs_staycount[2].staycount = i3;
 	gm_mali_dvfs_staycount[3].staycount = i4;
-	gm_mali_dvfs_staycount[3].staycount = i5;
+	gm_mali_dvfs_staycount[4].staycount = i5;
 	return count;	
 }
 
