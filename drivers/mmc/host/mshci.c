@@ -1800,6 +1800,7 @@ static irqreturn_t mshci_irq(int irq, void *dev_id)
 			 * DTO intr comes later than error intr.
 			 * so, it has to wait for DTO intr.
 			 */
+			timeout = 0x10000;
 			while (--timeout && !(mshci_readl(host, MSHCI_MINTSTS)
 				& INTMSK_DTO))
 				; /* Nothing to do */
