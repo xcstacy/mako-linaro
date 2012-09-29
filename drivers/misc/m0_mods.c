@@ -97,10 +97,18 @@ void enable_overclocked_frequencies(void)
 	gm_cpufreq_stats_create_table_cpu = (void (*)(unsigned int))
 			kallsyms_lookup_name("cpufreq_stats_create_table_cpu");
 
-	gm_exynos4x12_freq_table[0].frequency = 1600 * 1000;
-	gm_exynos4x12_freq_table[1].frequency = 1500 * 1000;
-	gm_exynos4x12_volt_table[1] = gm_exynos4x12_volt_table[2] + 50000;
-	gm_exynos4x12_volt_table[0] = gm_exynos4x12_volt_table[1] + 50000;
+	if(gm_exynos4x12_freq_table[1].frequency == CPUFREQ_ENTRY_INVALID)
+	{
+		gm_exynos4x12_freq_table[1].frequency =
+				gm_exynos4x12_freq_table[2].frequency + 100000;
+		gm_exynos4x12_volt_table[1] = gm_exynos4x12_volt_table[2] + 50000;
+	}
+	if(gm_exynos4x12_freq_table[0].frequency == CPUFREQ_ENTRY_INVALID)
+	{
+		gm_exynos4x12_freq_table[0].frequency =
+				gm_exynos4x12_freq_table[1].frequency + 100000;
+		gm_exynos4x12_volt_table[0] = gm_exynos4x12_volt_table[1] + 50000;
+	}
 	gm_exynos_info->max_support_idx = 0;
 	policy->cpuinfo.max_freq = 1600000;
 	exynos_cpufreq_get_level(policy->min, &level);
@@ -142,10 +150,12 @@ void adjust_regulator_constraints(void)
 			if(strcmp(rdev->constraints->name, "vdd_g3d range") == 0)
 			{
 				rdev->constraints->min_uV = 600000;
+				rdev->constraints->max_uV = 1400000;
 			}
 			if(strcmp(rdev->constraints->name, "vdd_arm range") == 0)
 			{
 				rdev->constraints->min_uV = 600000;
+				rdev->constraints->max_uV = 1500000;
 			}
 		}
 		mutex_unlock(&rdev->mutex);
