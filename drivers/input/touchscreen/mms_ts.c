@@ -14,7 +14,7 @@
  *
  */
 
-#define DEBUG
+//#define DEBUG
 /* #define VERBOSE_DEBUG */
 /*#define SEC_TSP_DEBUG*/
 /* #define SEC_TSP_VERBOSE_DEBUG */
@@ -523,7 +523,7 @@ static void release_all_fingers(struct mms_ts_info *info)
 	struct i2c_client *client = info->client;
 	int i;
 
-	printk(KERN_DEBUG "[TSP] %s\n", __func__);
+	pr_debug(KERN_DEBUG "[TSP] %s\n", __func__);
 
 	for (i = 0; i < MAX_FINGERS; i++) {
 		if (info->finger_state[i] == 1) {
