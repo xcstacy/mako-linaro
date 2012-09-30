@@ -373,8 +373,11 @@ static int ump_file_ioctl(struct inode *inode, struct file *filp, unsigned int c
 			break;
 
 		case UMP_IOC_MSYNC:
+			err = ump_msync_wrapper((u32 __user *)argument, session_data, false);
+			break;
+
 		case UMP_IOC_MSYNC_OLD:
-			err = ump_msync_wrapper((u32 __user *)argument, session_data);
+			err = ump_msync_wrapper((u32 __user *)argument, session_data, true);
 			break;
 
 		case UMP_IOC_CACHE_OPERATIONS_CONTROL:
@@ -454,7 +457,7 @@ static int ump_file_mmap(struct file * filp, struct vm_area_struct * vma)
 		DBG_MSG(3, ("UMP Map function: Forcing the CPU to use cache\n"));
 	}
 	/* By setting this flag, during a process fork; the child process will not have the parent UMP mappings */
-	vma->vm_flags |= VM_DONTCOPY;
+	//vma->vm_flags |= VM_DONTCOPY;
 
 	DBG_MSG(4, ("UMP vma->flags: %x\n", vma->vm_flags ));
 
