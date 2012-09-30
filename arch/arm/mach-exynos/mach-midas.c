@@ -2108,14 +2108,23 @@ static struct cputopo_power default_cpu_power = {
 	.table = table_default_power,
 };
 
-static unsigned int table_ca9_power[10] = {
-/* freq< 200   400   600   800  1000  1200  1400  1600  1800  other*/
-	8192, 8192, 8192, 1024, 1024, 1024, 1024, 1024, 1024, 1024, /* Power save mode CA9 MP */
+static unsigned int table_ca9_power[18] = {
+/* freq< 
+    200  300  400  500
+    600  700  800  900
+   1000 1100 1200 1300
+   1400 1500 1600 1700
+   1800 other*/
+	8192, 8192, 8192, 8192,
+	8192, 1024, 1024, 1024,
+	1024, 1024, 1024, 1024,
+	1024, 1024, 1024, 1024,
+	1024, 1024,
 };
 
 static struct cputopo_power CA9_cpu_power = {
-	.max  = 10,
-	.step = 200000,
+	.max  = 18,
+	.step = 100000,
 	.table = table_ca9_power,
 };
 
