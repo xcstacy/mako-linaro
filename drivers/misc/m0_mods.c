@@ -221,14 +221,17 @@ void create_m0mods_misc_device(void)
 
 static int __init m0mods_init(void)
 {
-	gm_exynos_info = *(
-		(struct exynos_dvfs_info **)kallsyms_lookup_name("exynos_info")
-		);
-	cpufreq_register_notifier(&m0_exynos_cpufreq_policy_notifier,
+	if(kallsyms_lookup_name("rom_feature_set") == 0)
+	{
+		gm_exynos_info = *(
+			(struct exynos_dvfs_info **)kallsyms_lookup_name("exynos_info")
+			);
+		cpufreq_register_notifier(&m0_exynos_cpufreq_policy_notifier,
 						CPUFREQ_POLICY_NOTIFIER);
-	adjust_regulator_constraints();
-	hijack_exynos_driver_init();
-	enable_overclocked_frequencies();
+		adjust_regulator_constraints();
+		hijack_exynos_driver_init();
+		enable_overclocked_frequencies();
+	}
 	create_m0mods_misc_device();
     return 0;
 }
