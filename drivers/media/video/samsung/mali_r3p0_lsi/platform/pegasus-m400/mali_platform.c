@@ -246,6 +246,7 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 				MALI_PRINT( ("MALI Error : failed to get source ext_xtal_clock\n"));
 				return MALI_FALSE;
 			}
+			clk_enable(ext_xtal_clock);
 		}
 
 		if (vpll_src_clock == NULL)
@@ -255,6 +256,7 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 				MALI_PRINT( ("MALI Error : failed to get source vpll_src_clock\n"));
 				return MALI_FALSE;
 			}
+			clk_enable(vpll_src_clock);
 		}
 
 		if (fout_vpll_clock == NULL)
@@ -264,6 +266,7 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 				MALI_PRINT( ("MALI Error : failed to get source fout_vpll_clock\n"));
 				return MALI_FALSE;
 			}
+			clk_enable(fout_vpll_clock);
 		}
 
 		if (sclk_vpll_clock == NULL)
@@ -273,6 +276,7 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 				MALI_PRINT( ("MALI Error : failed to get source sclk_vpll_clock\n"));
 				return MALI_FALSE;
 			}
+			clk_enable(sclk_vpll_clock);
 		}
 
 		if (mali_parent_clock == NULL)
@@ -283,6 +287,7 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 				MALI_PRINT( ( "MALI Error : failed to get source mali parent clock\n"));
 				return MALI_FALSE;
 			}
+			clk_enable(mali_parent_clock);
 		}
 	}
 	else // mpll
