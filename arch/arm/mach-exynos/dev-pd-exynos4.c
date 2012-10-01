@@ -19,7 +19,6 @@
 #include <mach/regs-clock.h>
 
 #include <plat/pd.h>
-#include <linux/module.h>
 
 static u32 exynos_pd_status[8];
 
@@ -254,4 +253,3 @@ struct platform_device exynos4_device_pd[] = {
 		},
 	}, 
 };
-EXPORT_SYMBOL(exynos4_device_pd);

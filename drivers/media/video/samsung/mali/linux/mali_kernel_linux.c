@@ -184,7 +184,7 @@ module_param(mali_dvfs_utilization, int, S_IRUSR | S_IRGRP | S_IROTH); /* r--r--
 MODULE_PARM_DESC(mali_dvfs_utilization, "Mali Current Utilization");
 
 extern int mali_gpu_utilization_timeout;
-module_param(mali_gpu_utilization_timeout, int, S_IRUSR | S_IRGRP | S_IROTH); /* r--r--r-- */
+module_param(mali_gpu_utilization_timeout, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP| S_IROTH); /* rw--rw--r-- */
 MODULE_PARM_DESC(mali_gpu_utilization_timeout, "Mali GPU Utilization Timeout");
 
 extern int mali_gpu_vol;
@@ -227,7 +227,7 @@ struct file_operations mali_fops =
 };
 
 
-int mali_driver_init(void)
+int late_mali_driver_init(void)
 {
 	int err;
 #if USING_MALI_PMM
@@ -259,6 +259,11 @@ int mali_driver_init(void)
 	MALI_DEBUG_PRINT(2, ("%s\n", __malidrv_build_info()));
 
     return 0;
+}
+
+int mali_driver_init(void)
+{
+	return 0;
 }
 
 void mali_driver_exit(void)

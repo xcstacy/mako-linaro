@@ -229,6 +229,8 @@ int sysctl_legacy_va_layout;
 
 extern int late_init_android_gadget(int romtype);
 extern int mfc_late_init(void);
+extern int new_late_mali_driver_init(void);
+extern int late_mali_driver_init(void);
 int
 rom_feature_set_sysctl(struct ctl_table *table, int write,
                      void __user *buffer, size_t *lenp,
@@ -251,6 +253,8 @@ rom_feature_set_sysctl(struct ctl_table *table, int write,
 		rom_feature_set_save = rom_feature_set;
 		printk("Initializing USB with rom_feature_set: %d\n", rom_feature_set);
 		late_init_android_gadget(rom_feature_set);
+		if(rom_feature_set) new_late_mali_driver_init();
+		else late_mali_driver_init();
 		mfc_late_init();
 	}
 	return 0;

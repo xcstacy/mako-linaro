@@ -20,7 +20,6 @@
 #include <mach/asv.h>
 #include <mach/map.h>
 #include <plat/cpu.h>
-#include <linux/module.h>
 
 /* ASV function for Fused Chip */
 #define IDS_ARM_OFFSET		24
@@ -45,7 +44,6 @@
 #define CHIP_ID_REG		(S5P_VA_CHIPID + 0x4)
 
 unsigned int exynos_armclk_max;
-EXPORT_SYMBOL(exynos_armclk_max);
 
 struct asv_judge_table exynos4x12_limit[] = {
 	/* HPM, IDS */

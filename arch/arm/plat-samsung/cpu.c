@@ -19,11 +19,8 @@
 
 #include <mach/map.h>
 #include <plat/cpu.h>
-#include <linux/module.h>
 
 unsigned long samsung_cpu_id;
-EXPORT_SYMBOL(samsung_cpu_id);
-
 static unsigned int samsung_cpu_rev;
 
 unsigned int samsung_rev(void)

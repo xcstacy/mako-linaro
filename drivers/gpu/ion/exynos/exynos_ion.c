@@ -31,7 +31,6 @@
 #include <asm/pgtable.h>
 #include <asm/cacheflush.h>
 #include <asm/outercache.h>
-#include <linux/module.h>
 
 #include "../ion_priv.h"
 
@@ -48,7 +47,6 @@ struct ion_device {
 };
 
 struct ion_device *ion_exynos;
-EXPORT_SYMBOL(ion_exynos);
 
 static int num_heaps;
 static struct ion_heap **heaps;
