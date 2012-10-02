@@ -727,4 +727,3 @@ void flush_all_cpu_caches(void)
 {
 	on_each_cpu(flush_all_cpu_cache, NULL, 1);
 }
-EXPORT_SYMBOL(flush_all_cpu_caches);
