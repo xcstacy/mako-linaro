@@ -38,25 +38,12 @@ typedef struct mali_dvfs_staycount{
 	unsigned int staycount;
 }mali_dvfs_staycount_table;
 
-#ifdef MODULE
 mali_runtime_resume_table *gm_mali_runtime_resume;
 mali_dvfs_table *gm_mali_dvfs;
 mali_dvfs_table *gm_mali_dvfs_all;
 mali_dvfs_threshold_table *gm_mali_dvfs_threshold;
 mali_dvfs_staycount_table *gm_mali_dvfs_staycount;
 int *gm_mali_dvfs_control;
-#else
-#define gm_mali_runtime_resume mali_runtime_resume
-#define gm_mali_dvfs mali_dvfs
-#define gm_mali_dvfs_all mali_dvfs_all
-#define gm_mali_dvfs_threshold mali_dvfs_threshold
-#define gm_mali_dvfs_staycount mali_dvfs_staycount
-extern mali_runtime_resume_table mali_runtime_resume;
-extern mali_dvfs_table mali_dvfs[5];
-extern mali_dvfs_threshold_table mali_dvfs_threshold[5];
-extern mali_dvfs_staycount_table mali_dvfs_staycount[5];
-extern int mali_dvfs_control;
-#endif
 
 
 static ssize_t gpu_clock_show(struct device *dev, struct device_attribute *attr, char *buf) {
@@ -84,11 +71,7 @@ static ssize_t gpu_clock_store(struct device *dev, struct device_attribute *attr
 		}
 		gm_mali_dvfs_all[i].clock=g[i];
 	}
-#ifdef MODULE
 	*gm_mali_dvfs_control = 999;
-#else
-	mali_dvfs_control = 999;
-#endif
 	return count;	
 }
 
@@ -168,13 +151,12 @@ static struct miscdevice malicontrol_device = {
 	.name = "mali_control",
 };
 
-static int __init malicontrol_init(void)
+int register_mali_control(void)
 {
     int ret;
 	int *rom_feature_set;
 	int hasNewDriver = 0;
     pr_info("%s misc_register(%s)\n", __FUNCTION__, malicontrol_device.name);
-#ifdef MODULE
 	rom_feature_set = (int *)kallsyms_lookup_name("rom_feature_set");
 	if(rom_feature_set == NULL) hasNewDriver = 0;
 	else if(*rom_feature_set > 0) hasNewDriver = 1;
@@ -194,7 +176,6 @@ static int __init malicontrol_init(void)
 		gm_mali_dvfs_staycount = (mali_dvfs_staycount_table *)kallsyms_lookup_name("new_mali_dvfs_staycount");
 		gm_mali_dvfs_control = (int *)kallsyms_lookup_name("new_mali_dvfs_control");	
 	}
-#endif
     ret = misc_register(&malicontrol_device);
     if (ret) 
 	{
@@ -208,6 +189,15 @@ static int __init malicontrol_init(void)
 	}
 
     return 0;
+}
+
+static int __init malicontrol_init(void)
+{
+#ifdef MODULE
+	return register_mali_control();
+#else
+	return 0;
+#endif
 }
 
 static void __exit malicontrol_exit(void)
