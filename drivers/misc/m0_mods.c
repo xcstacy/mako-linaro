@@ -167,12 +167,13 @@ void release_exynos_driver_init(void)
 	gm_exynos_driver->init = old_exynos_cpufreq_cpu_init;
 }
 
-struct device *gm_sec_touchscreen;
-int * gm_touch_boost_level;
+struct device **gm_sec_touchscreen;
 
 static ssize_t m0mods_touch_boost_level_write(struct device * dev, struct device_attribute * attr, const char * buf, size_t size)
 {
 	int lvl;
+	int * gm_touch_boost_level;
+	gm_touch_boost_level = (int*)(dev_get_drvdata(*gm_sec_touchscreen)) + 71;
     if (sscanf(buf, "%d", &lvl) == 1)
 	{
 		*gm_touch_boost_level = lvl;
@@ -182,6 +183,8 @@ static ssize_t m0mods_touch_boost_level_write(struct device * dev, struct device
 
 static ssize_t m0mods_touch_boost_level_read(struct device * dev, struct device_attribute * attr, char * buf)
 {
+	int * gm_touch_boost_level;
+	gm_touch_boost_level = (int*)(dev_get_drvdata(*gm_sec_touchscreen)) + 71;
     return sprintf(buf, "%d\n", *gm_touch_boost_level);
 }
 
@@ -208,10 +211,9 @@ void create_m0mods_misc_device(void)
 {
 	int ret;
 	
-	gm_sec_touchscreen = *(
+	gm_sec_touchscreen = (
 		(struct device**)kallsyms_lookup_name("sec_touchscreen")
 		);
-	gm_touch_boost_level = (int*)(dev_get_drvdata(gm_sec_touchscreen)) + 71;
 
     ret = misc_register(&m0mods_device);
     if (ret) return;
