@@ -107,7 +107,7 @@ static int exynos_target(struct cpufreq_policy *policy,
 		goto out;
 
 	freqs.old = policy->cur;
-
+	if(freqs.old == 1704000) freqs.old = 1700000;
 	/*
 	 * cpufreq_frequency_table_target() cannot be used for freqs.old
 	 * because policy->min/max may have been changed. If changed, the
