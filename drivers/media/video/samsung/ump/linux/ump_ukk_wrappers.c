@@ -159,7 +159,7 @@ int ump_msync_wrapper(u32 __user * argument, struct ump_session_data  * session_
 
 	user_interaction.ctx = (void *) session_data;
 
-	if(old) _ump_ukk_msync( &user_interaction );
+	if(old) _ump_ukk_msync_old( &user_interaction );
 	else _ump_ukk_msync( &user_interaction );
 
 	user_interaction.ctx = NULL;
