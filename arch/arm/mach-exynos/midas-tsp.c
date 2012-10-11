@@ -2247,6 +2247,8 @@ static void flexrate_work(struct work_struct *work)
 {
 	cpufreq_ondemand_flexrate_request(10000, 10);
 }
+static DECLARE_WORK(flex_work, flexrate_work);
+#endif
 
 #include <linux/pm_qos_params.h>
 static struct pm_qos_request_list busfreq_qos;
@@ -2255,13 +2257,16 @@ static void flexrate_qos_cancel(struct work_struct *work)
 	pm_qos_update_request(&busfreq_qos, 0);
 }
 
-static DECLARE_WORK(flex_work, flexrate_work);
 static DECLARE_DELAYED_WORK(busqos_work, flexrate_qos_cancel);
 
+extern void gpu_boost_on_touch(void);
+extern void new_gpu_boost_on_touch(void);
 void midas_tsp_request_qos(void *data)
 {
+#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_FLEXRATE
 	if (!work_pending(&flex_work))
 		schedule_work_on(0, &flex_work);
+#endif
 
 	/* Guarantee that the bus runs at >= 266MHz */
 	if (!pm_qos_request_active(&busfreq_qos))
@@ -2272,7 +2277,9 @@ void midas_tsp_request_qos(void *data)
 		pm_qos_update_request(&busfreq_qos, 266000);
 	}
 
+	SAMSUNGROM gpu_boost_on_touch();
+	else new_gpu_boost_on_touch();
+
 	/* Cancel the QoS request after 1/10 sec */
 	schedule_delayed_work_on(0, &busqos_work, HZ / 5);
 }
-#endif

@@ -50,6 +50,7 @@
 
 #include <asm/unaligned.h>
 #include "../keyboard/cypress/cypress-touchkey.h"
+#include <mach/midas-tsp.h>
 
 #define MAX_FINGERS		10
 #define MAX_WIDTH		30
@@ -741,6 +742,7 @@ static irqreturn_t mms_ts_interrupt(int irq, void *dev_id)
 	}
 
 #if TOUCH_BOOSTER
+	if(!!touch_is_pressed) midas_tsp_request_qos(NULL);
 	set_dvfs_lock(info, !!touch_is_pressed);
 #endif
 out:

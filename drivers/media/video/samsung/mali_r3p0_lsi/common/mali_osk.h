@@ -224,6 +224,7 @@
 #define change_dvfs_tableset new_change_dvfs_tableset
 #define maliDvfsStatus new_maliDvfsStatus
 #define mali_dvfs_control new_mali_dvfs_control
+#define gpu_boost_on_touch new_gpu_boost_on_touch
 
 #ifndef __MALI_OSK_H__
 #define __MALI_OSK_H__
