@@ -84,8 +84,8 @@ static struct clk  *mali_clock = 0;
 
 static unsigned int GPU_MHZ	= 1000000;
 
-int mali_gpu_clk = 266;
-int mali_gpu_vol = 900000;
+extern int mali_gpu_clk;
+extern int mali_gpu_vol;
 
 #if MALI_DVFS_ENABLED
 #define MALI_DVFS_DEFAULT_STEP 0
@@ -96,7 +96,7 @@ static _mali_osk_atomic_t voltage_lock_status;
 static mali_bool mali_vol_lock_flag = 0;
 #endif
 
-int  gpu_power_state;
+extern int  gpu_power_state;
 static int bPoweroff;
 
 #ifdef CONFIG_REGULATOR

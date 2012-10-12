@@ -154,28 +154,12 @@ static struct miscdevice malicontrol_device = {
 int register_mali_control(void)
 {
     int ret;
-	int *rom_feature_set;
-	int hasNewDriver = 0;
     pr_info("%s misc_register(%s)\n", __FUNCTION__, malicontrol_device.name);
-	rom_feature_set = (int *)kallsyms_lookup_name("rom_feature_set");
-	if(rom_feature_set == NULL) hasNewDriver = 0;
-	else if(*rom_feature_set > 0) hasNewDriver = 1;
-	if(!hasNewDriver)
-	{
-		gm_mali_dvfs = (mali_dvfs_table *)kallsyms_lookup_name("mali_dvfs");
-		gm_mali_dvfs_all = (mali_dvfs_table *)kallsyms_lookup_name("mali_dvfs_all");
-		gm_mali_dvfs_threshold = (mali_dvfs_threshold_table *)kallsyms_lookup_name("mali_dvfs_threshold");
-		gm_mali_dvfs_staycount = (mali_dvfs_staycount_table *)kallsyms_lookup_name("mali_dvfs_staycount");
-		gm_mali_dvfs_control = (int *)kallsyms_lookup_name("mali_dvfs_control");
-	}
-	else
-	{
-		gm_mali_dvfs = (mali_dvfs_table *)kallsyms_lookup_name("new_mali_dvfs");
-		gm_mali_dvfs_all = (mali_dvfs_table *)kallsyms_lookup_name("new_mali_dvfs_all");
-		gm_mali_dvfs_threshold = (mali_dvfs_threshold_table *)kallsyms_lookup_name("new_mali_dvfs_threshold");
-		gm_mali_dvfs_staycount = (mali_dvfs_staycount_table *)kallsyms_lookup_name("new_mali_dvfs_staycount");
-		gm_mali_dvfs_control = (int *)kallsyms_lookup_name("new_mali_dvfs_control");	
-	}
+	gm_mali_dvfs = (mali_dvfs_table *)kallsyms_lookup_name("mali_dvfs");
+	gm_mali_dvfs_all = (mali_dvfs_table *)kallsyms_lookup_name("mali_dvfs_all");
+	gm_mali_dvfs_threshold = (mali_dvfs_threshold_table *)kallsyms_lookup_name("mali_dvfs_threshold");
+	gm_mali_dvfs_staycount = (mali_dvfs_staycount_table *)kallsyms_lookup_name("mali_dvfs_staycount");
+	gm_mali_dvfs_control = (int *)kallsyms_lookup_name("mali_dvfs_control");
     ret = misc_register(&malicontrol_device);
     if (ret) 
 	{

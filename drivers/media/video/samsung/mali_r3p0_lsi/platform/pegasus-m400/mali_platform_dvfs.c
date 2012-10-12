@@ -84,21 +84,7 @@ mali_dvfs_step step[MALI_DVFS_STEPS]={
 #endif
 };
 
-mali_dvfs_staycount_table mali_dvfs_staycount[MALI_DVFS_STEPS]={
-	/*step 0*/{0},
-#if (MALI_DVFS_STEPS > 1)
-	/*step 1*/{0},
-#if (MALI_DVFS_STEPS > 2)
-	/*step 2*/{0},
-#if (MALI_DVFS_STEPS > 3)
-	/*step 3*/{0},
-#if (MALI_DVFS_STEPS > 4)
-	/*step 4*/{0}
-#endif
-#endif
-#endif
-#endif
-};
+extern mali_dvfs_staycount_table mali_dvfs_staycount[MALI_DVFS_STEPS];
 
 /* dvfs information */
 // L0 = 533Mhz, 1.075V
@@ -107,71 +93,38 @@ mali_dvfs_staycount_table mali_dvfs_staycount[MALI_DVFS_STEPS]={
 // L3 = 266Mhz, 0.90V
 // L4 = 160Mhz, 0.875V
 
-int step0_clk = 160;
-int step0_vol = 875000;
+extern int step0_clk;
+extern int step0_vol;
 #if (MALI_DVFS_STEPS > 1)
-int step1_clk = 266;
-int step1_vol = 900000;
-int step0_up = 70;
-int step1_down = 62;
+extern int step1_clk;
+extern int step1_vol;
+extern int step0_up;
+extern int step1_down;
 #if (MALI_DVFS_STEPS > 2)
-int step2_clk = 350;
-int step2_vol = 950000;
-int step1_up = 90;
-int step2_down = 85;
+extern int step2_clk;
+extern int step2_vol;
+extern int step1_up;
+extern int step2_down;
 #if (MALI_DVFS_STEPS > 3)
-int step3_clk = 440;
-int step3_vol = 1025000;
-int step2_up = 90;
-int step3_down = 85;
+extern int step3_clk;
+extern int step3_vol;
+extern int step2_up;
+extern int step3_down;
 #if (MALI_DVFS_STEPS > 4)
-int step4_clk = 533;
-int step4_vol = 1075000;
-int step3_up = 90;
-int step4_down = 95;
+extern int step4_clk;
+extern int step4_vol;
+extern int step3_up;
+extern int step4_down;
 #endif
 #endif
 #endif
 #endif
 
-mali_dvfs_table mali_dvfs_all[MAX_MALI_DVFS_STEPS]={
-	{160   ,1000000   ,  875000},
-	{266   ,1000000   ,  900000},
-	{350   ,1000000   ,  950000},
-	{440   ,1000000   , 1025000},
-	{533   ,1000000   , 1075000} };
+extern mali_dvfs_table mali_dvfs_all[MAX_MALI_DVFS_STEPS];
 
-mali_dvfs_table mali_dvfs[MALI_DVFS_STEPS]={
-	{160   ,1000000   , 875000},
-#if (MALI_DVFS_STEPS > 1)
-	{266   ,1000000   , 900000},
-#if (MALI_DVFS_STEPS > 2)
-	{350   ,1000000   , 950000},
-#if (MALI_DVFS_STEPS > 3)
-	{440   ,1000000   ,1025000},
-#if (MALI_DVFS_STEPS > 4)
-	{533   ,1000000   ,1075000}
-#endif
-#endif
-#endif
-#endif
-};
+extern mali_dvfs_table mali_dvfs[MALI_DVFS_STEPS];
 
-mali_dvfs_threshold_table mali_dvfs_threshold[MALI_DVFS_STEPS]={
-	{0   , 70},
-#if (MALI_DVFS_STEPS > 1)
-	{62  , 90},
-#if (MALI_DVFS_STEPS > 2)
-	{85  , 90},
-#if (MALI_DVFS_STEPS > 3)
-	{85  ,90},
-#if (MALI_DVFS_STEPS > 4)
-	{95  ,100}
-#endif
-#endif
-#endif
-#endif
-};
+extern mali_dvfs_threshold_table mali_dvfs_threshold[MALI_DVFS_STEPS];
 
 #ifdef EXYNOS4_ASV_ENABLED
 #define ASV_LEVEL     12	/* ASV0, 1, 11 is reserved */
@@ -224,9 +177,9 @@ static unsigned int asv_3d_volt_9_table_for_prime[MALI_DVFS_STEPS][ASV_LEVEL] = 
 
 /*dvfs status*/
 mali_dvfs_currentstatus maliDvfsStatus;
-int mali_dvfs_control=0;
+extern int mali_dvfs_control;
 
-u32 mali_dvfs_utilization = 255;
+extern u32 mali_dvfs_utilization;
 
 static void mali_dvfs_work_handler(struct work_struct *w);
 
