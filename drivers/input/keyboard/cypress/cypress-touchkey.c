@@ -45,7 +45,6 @@
 #include <linux/i2c/mxt224_u1.h>
 #endif
 #include <linux/i2c/touchkey_i2c.h>
-#include <mach/midas-tsp.h>
 
 /* M0 Touchkey temporary setting */
 
@@ -723,7 +722,6 @@ AOSPROM {
             }
         }
 }
-		midas_tsp_request_qos(NULL);
     } else {
 AOSPROM {
         // touch led timeout on keyup
