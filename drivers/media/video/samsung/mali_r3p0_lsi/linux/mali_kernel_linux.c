@@ -83,7 +83,7 @@ EXPORT_SYMBOL(mali_get_user_setting);
 extern int mali_dvfs_control;
 module_param(mali_dvfs_control, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP| S_IROTH); /* rw-rw-r-- */
 MODULE_PARM_DESC(mali_dvfs_control, "Mali Current DVFS");
-#if defined(CONFIG_CPU_EXYNOS4210)
+#if 0 //defined(CONFIG_CPU_EXYNOS4210)
 #else
 extern int step0_clk;
 module_param(step0_clk, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP| S_IROTH); /* rw-rw-r-- */

@@ -22,9 +22,15 @@
 #include <linux/kallsyms.h>
 #include <linux/delay.h>
 
+#ifdef CONFIG_CPU_EXYNOS4210
+#define ROUNDDOWN_STEP 25000
+#else
+#define ROUNDDOWN_STEP 12500
+#endif
+
 #define CUSTOMVOLTAGE_VERSION 1
 #define CPU_UV_MV_MAX 1500000
-#define CPU_UV_MV_MIN 60000
+#define CPU_UV_MV_MIN 600000
 
 #ifdef MODULE
 static int (*gm_misc_register)(struct miscdevice * misc);
@@ -42,7 +48,11 @@ extern struct busfreq_table *exynos4_busfreq_table;
 #endif
 
 static unsigned long max_voltages[2] = {CPU_UV_MV_MAX, 1300000};
+#ifdef CONFIG_CPU_EXYNOS4210
+static int num_int_freqs = 3;
+#else
 static int num_int_freqs = 6;
+#endif
 void customvoltage_updateintvolt(unsigned long * int_voltages)
 {
 }
@@ -119,7 +129,8 @@ void acpuclk_set_vdd(unsigned int khz, unsigned int vdd)
 		else continue;
 
 		//always round down
-		if(new_vdd % 12500) new_vdd = (new_vdd / 12500) * 12500;
+		if(new_vdd % ROUNDDOWN_STEP)
+			new_vdd = (new_vdd / ROUNDDOWN_STEP) * ROUNDDOWN_STEP;
 
 		exynos_info->volt_table[i] = new_vdd;
 	}
@@ -232,7 +243,8 @@ ssize_t store_UV_mV_table(struct cpufreq_policy *policy,
 
 		u[i] *= 1000;
 		//always round down
-		if(u[i] % 12500) u[i] = (u[i] / 12500) * 12500;
+		if(u[i] % ROUNDDOWN_STEP)
+			u[i] = (u[i] / ROUNDDOWN_STEP) * ROUNDDOWN_STEP;
 
 		if (u[j] > CPU_UV_MV_MAX)
 		{
@@ -443,9 +455,11 @@ static DEVICE_ATTR(version, S_IRUGO , customvoltage_version, NULL);
 static struct attribute *customvoltage_attributes[] = 
     {
 	&dev_attr_arm_volt.attr,
-	&dev_attr_int_volt.attr,
 	&dev_attr_max_arm_volt.attr,
+#ifndef CONFIG_CPU_EXYNOS4210
 	&dev_attr_max_int_volt.attr,
+	&dev_attr_int_volt.attr,
+#endif
 	&dev_attr_version.attr,
 	NULL
     };

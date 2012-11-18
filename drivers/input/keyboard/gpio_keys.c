@@ -453,7 +453,11 @@ static inline int64_t get_time_inms(void) {
 	return tinms;
 }
 
+#ifdef CONFIG_MACH_U1
+#define HOME_KEY_VAL	102
+#else
 #define HOME_KEY_VAL	0xac
+#endif
 extern void mdnie_toggle_negative(void);
 int homekey_trg_cnt = 4;
 int homekey_trg_ms = 300;

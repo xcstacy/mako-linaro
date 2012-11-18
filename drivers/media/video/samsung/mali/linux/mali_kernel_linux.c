@@ -86,7 +86,7 @@ MODULE_PARM_DESC(mali_boot_profiling, "Start profiling as a part of Mali driver 
 extern int mali_dvfs_control;
 module_param(mali_dvfs_control, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP| S_IROTH); /* rw-rw-r-- */
 MODULE_PARM_DESC(mali_dvfs_control, "Mali Current DVFS");
-#if defined(CONFIG_CPU_EXYNOS4210)
+#if 0 //defined(CONFIG_CPU_EXYNOS4210)
 #else
 extern int step0_clk;
 module_param(step0_clk, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP| S_IROTH); /* rw-rw-r-- */
@@ -196,6 +196,11 @@ module_param(gpu_power_state, int, S_IRUSR | S_IRGRP | S_IROTH); /* r--r--r-- */
 MODULE_PARM_DESC(gpu_power_state, "Mali Power State");
 extern _mali_device_power_states mali_dvfs_device_state;
 
+#ifdef CONFIG_CPU_EXYNOS4210
+int mali_use_vpll = 0;
+module_param(mali_use_vpll, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH); /* rw--rw--r-- */
+MODULE_PARM_DESC(mali_use_vpll, "Mali Use VPLL for Clock");
+#endif
 static char mali_dev_name[] = "mali"; /* should be const, but the functions we call requires non-cost */
 
 /* the mali device */
