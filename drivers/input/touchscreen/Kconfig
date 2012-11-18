@@ -1006,4 +1006,8 @@ config TOUCHSCREEN_GESTURES
           Definition of the gesture paths and reporting of the
           detections are available through sysfs entries.
 
+config SLIDE_TO_WAKE
+        bool "Enable slide-to-wake"
+        depends on TOUCHSCREEN_ATMEL_MXT224_U1 || TOUCHSCREEN_MELFAS
+
 endif
