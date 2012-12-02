@@ -53,6 +53,8 @@ static int num_int_freqs = 3;
 #else
 static int num_int_freqs = 6;
 #endif
+int fcount = 0;
+
 void customvoltage_updateintvolt(unsigned long * int_voltages)
 {
 }
@@ -140,8 +142,11 @@ ssize_t store_UV_uV_table(struct cpufreq_policy *policy,
 				 const char *buf, size_t count) {
 	int i = 0;
 	int j = 0;
-	int u[20] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } , stepcount = 0, tokencount = 0;
-
+	int u[] = { 
+			0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0 };
+	int tokencount = 0;
 	if(count < 1) return -EINVAL;
 
 	//parse input... time to miss strtok... -gm
@@ -159,21 +164,16 @@ ssize_t store_UV_uV_table(struct cpufreq_policy *policy,
 			if(u[j] != 0)
 			{
 				j++;
+				if(j >= sizeof(u)) return -EINVAL;
 			}
 		}
 		else
 			break;
 	}
 	
-	//find number of available steps
-	for(i = exynos_info->max_support_idx; i<=exynos_info->min_support_idx; i++)
-	{
-		if(exynos_info->freq_table[i].frequency==CPUFREQ_ENTRY_INVALID) continue;
-		stepcount++;
-	}
 	//do not keep backward compatibility for scripts this time.
 	//I want the number of tokens to be exactly the same with stepcount -gm
-	if(stepcount != tokencount) return -EINVAL;
+	if(fcount != tokencount) return -EINVAL;
 	
 	//we have u[0] starting from the first available frequency to u[stepcount]
 	//that is why we use an additiona j here...
@@ -200,7 +200,11 @@ ssize_t store_UV_mV_table(struct cpufreq_policy *policy,
 {
 	int i = 0;
 	int j = 0;
-	int u[20] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } , stepcount = 0, tokencount = 0;
+	int u[] = { 
+			0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0 };
+	int tokencount = 0;
 
 	if(count < 1) return -EINVAL;
 
@@ -219,32 +223,26 @@ ssize_t store_UV_mV_table(struct cpufreq_policy *policy,
 			if(u[j] != 0)
 			{
 				j++;
+				if(j >= sizeof(u)) return -EINVAL;
 			}
 		}
 		else
 			break;
 	}
 	
-	//find number of available steps
-	for(i = exynos_info->max_support_idx; i<=exynos_info->min_support_idx; i++)
-	{
-		if(exynos_info->freq_table[i].frequency==CPUFREQ_ENTRY_INVALID) continue;
-		stepcount++;
-	}
 	//do not keep backward compatibility for scripts this time.
 	//I want the number of tokens to be exactly the same with stepcount -gm
-	if(stepcount != tokencount) return -EINVAL;
+	if(fcount != tokencount) return -EINVAL;
 	
 	//we have u[0] starting from the first available frequency to u[stepcount]
 	//that is why we use an additiona j here...
 	for(j=0, i = exynos_info->max_support_idx; i<=exynos_info->min_support_idx; i++)
 	{
 		if(exynos_info->freq_table[i].frequency==CPUFREQ_ENTRY_INVALID) continue;
-
-		u[i] *= 1000;
+		u[j] *= 1000;
 		//always round down
-		if(u[i] % ROUNDDOWN_STEP)
-			u[i] = (u[i] / ROUNDDOWN_STEP) * ROUNDDOWN_STEP;
+		if(u[j] % ROUNDDOWN_STEP)
+			u[j] = (u[j] / ROUNDDOWN_STEP) * ROUNDDOWN_STEP;
 
 		if (u[j] > CPU_UV_MV_MAX)
 		{
@@ -483,6 +481,12 @@ void create_standard_UV_interfaces(void)
 {
 	int ret = 0;
 	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+	int i;
+	for(fcount = 0, i = exynos_info->max_support_idx; i<=exynos_info->min_support_idx; i++)
+	{
+		if(exynos_info->freq_table[i].frequency==CPUFREQ_ENTRY_INVALID) continue;
+		fcount++;
+	}
 	ret = sysfs_create_file(&policy->kobj, &vdd_levels.attr);
 	ret = sysfs_create_file(&policy->kobj, &UV_mV_table.attr);
 	ret = sysfs_create_file(&policy->kobj, &UV_uV_table.attr);
