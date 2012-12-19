@@ -18,7 +18,7 @@ struct create_idle {
 	unsigned int cpu;
 };
 
-static void __cpuinit do_fork_idle(struct work_struct *work)
+static void do_fork_idle(struct work_struct *work)
 {
 	struct create_idle *c = container_of(work, struct create_idle, work);
 
@@ -26,7 +26,7 @@ static void __cpuinit do_fork_idle(struct work_struct *work)
 	complete(&c->done);
 }
 
-static struct task_struct * __cpuinit idle_thread_create(unsigned int cpu)
+static struct task_struct * idle_thread_create(unsigned int cpu)
 {
 	struct create_idle c_idle = {
 		.cpu	= cpu,
@@ -56,7 +56,7 @@ static inline struct task_struct *get_idle_for_cpu(unsigned int cpu)
 	return tsk;
 }
 
-struct task_struct * __cpuinit idle_thread_get(unsigned int cpu)
+struct task_struct * idle_thread_get(unsigned int cpu)
 {
 	return per_cpu(idle_threads, cpu);
 }
@@ -72,7 +72,7 @@ void __init idle_thread_set_boot_cpu(void)
  *
  * Creates the thread if it does not exist.
  */
-static int __cpuinit idle_thread_init(unsigned int cpu)
+static int idle_thread_init(unsigned int cpu)
 {
 	struct task_struct *idle = get_idle_for_cpu(cpu);
 
@@ -90,7 +90,7 @@ static inline int idle_thread_init(unsigned int cpu) { return 0; }
 /**
  * smpboot_prepare - generic smpboot preparation
  */
-int __cpuinit smpboot_prepare(unsigned int cpu)
+int smpboot_prepare(unsigned int cpu)
 {
 	return idle_thread_init(cpu);
 }

@@ -385,7 +385,7 @@ static void hotplug_decision_work_fn(struct work_struct *work)
 
 }
 
-static void __cpuinit hotplug_online_all_work_fn(struct work_struct *work)
+static void hotplug_online_all_work_fn(struct work_struct *work)
 {
 	int cpu;
 	for_each_possible_cpu(cpu) {
@@ -414,7 +414,7 @@ static void hotplug_offline_all_work_fn(struct work_struct *work)
 	}
 }
 
-static void __cpuinit hotplug_online_single_work_fn(struct work_struct *work)
+static void hotplug_online_single_work_fn(struct work_struct *work)
 {
 	int cpu;
 
