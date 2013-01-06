@@ -972,7 +972,7 @@ void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
 			drv.acpu_freq_tbl[i].vdd_core = new_vdd_uv;
 		}
 	}
-	pr_warn("User voltage table modified!\n");
+	pr_warn("%s: user voltage table modified!\n", __func__);
 	mutex_unlock(&driver_lock);
 }
 #endif
