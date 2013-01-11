@@ -50,10 +50,6 @@
 
 #include <asm/unaligned.h>
 
-#ifdef CONFIG_MACH_SUPERIOR_KOR_SKT
-#define FW_465GS37
-#endif
-
 #define MAX_FINGERS		10
 #define MAX_WIDTH		30
 #define MAX_PRESSURE		255
@@ -151,14 +147,6 @@ int touch_is_pressed = 0;
 
 #define MAX_FW_PATH 255
 #define TSP_FW_FILENAME "melfas_fw.bin"
-
-#ifdef FW_465GS37
-#define FW_VERSION_4_65 0x11
-#define FW_VERSION_HW   0x01
-#undef  FW_VERSION_4_8
-#define FW_VERSION_4_8 FW_VERSION_4_65
-#include "465GS37_V11.h"
-#endif
 
 #if ISC_DL_MODE	/* ISC_DL_MODE start */
 
@@ -272,7 +260,6 @@ struct mms_ts_info {
 	u8 fw_update_state;
 #endif
 	u8			fw_ic_ver;
-	u8			fw_hw_ver;
 	enum fw_flash_mode fw_flash_mode;
 
 #if TOUCH_BOOSTER
@@ -1753,20 +1740,6 @@ static int get_fw_version(struct mms_ts_info *info)
 	do {
 		ret = i2c_smbus_read_byte_data(info->client, MMS_FW_VERSION);
 	} while (ret < 0 && retries-- > 0);
-#ifdef FW_465GS37
-	if ((ret == 0xBB) || (ret == 0xBD)) {
-		ret = 1;
-	} else {
-		unsigned char rd_buf[6];
-		retries = 3;
-		do {
-			ret = mms100_i2c_read(info->client, MMS_TSP_REVISION, 6,
-			rd_buf);
-		} while (ret < 0 && retries-- > 0);
-		if (ret >= 0)
-			ret = rd_buf[4];
-	}
-#endif
 
 	return ret;
 }
@@ -1777,19 +1750,9 @@ static int get_hw_version(struct mms_ts_info *info)
 	int retries = 3;
 
 	/* this seems to fail sometimes after a reset.. retry a few times */
-#ifdef FW_465GS37
-	unsigned char rd_buf[6];
-	do {
-		ret = mms100_i2c_read(info->client, MMS_TSP_REVISION, 6,
-		rd_buf);
-	} while (ret < 0 && retries-- > 0);
-	if (ret >= 0)
-		ret = rd_buf[1];
-#else
 	do {
 		ret = i2c_smbus_read_byte_data(info->client, MMS_HW_REVISION);
 	} while (ret < 0 && retries-- > 0);
-#endif
 
 	return ret;
 }
@@ -1866,7 +1829,6 @@ static int mms_ts_fw_info(struct mms_ts_info *info)
 			 "[TSP]fw version 0x%02x !!!!\n", ver);
 
 	hw_rev = get_hw_version(info);
-	info->fw_hw_ver = hw_rev;
 	dev_info(&client->dev,
 		"[TSP] hw rev = %x\n", hw_rev);
 
@@ -1889,40 +1851,6 @@ static int mms_ts_fw_info(struct mms_ts_info *info)
 	return ret;
 }
 
-#ifdef FW_465GS37
-static int mms_ts_fw_download(struct mms_ts_info *info)
-{
-	struct i2c_client *client = info->client;
-	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
-	int ret = 0;
-	const u8 *buff = 0;
-	long fsize = 0;
-
-	fsize = MELFAS_binary_nLength_465GS37;
-	buff = MELFAS_binary_465GS37;
-
-	disable_irq(info->irq);
-
-	i2c_lock_adapter(adapter);
-	info->pdata->mux_fw_flash(true);
-
-	ret = fw_download(info, (const u8 *)buff,
-			(const size_t)fsize);
-
-	info->pdata->mux_fw_flash(false);
-	i2c_unlock_adapter(adapter);
-
-	if (ret < 0) {
-		dev_err(&client->dev, "retrying flashing\n");
-		enable_irq(info->irq);
-		return 1;
-	}
-
-	enable_irq(info->irq);
-	return 0;
-}
-#endif
-
 static int mms_ts_fw_load(struct mms_ts_info *info)
 {
 
@@ -1938,7 +1866,6 @@ static int mms_ts_fw_load(struct mms_ts_info *info)
 		 "[TSP]fw version 0x%02x !!!!\n", ver);
 
 	hw_rev = get_hw_version(info);
-	info->fw_hw_ver = hw_rev;
 	dev_info(&client->dev,
 		"[TSP]hw rev = 0x%02x\n", hw_rev);
 
@@ -1963,11 +1890,7 @@ static int mms_ts_fw_load(struct mms_ts_info *info)
 	}
 
 	while (retries--) {
-#ifdef FW_465GS37
-		ret = mms_ts_fw_download(info);
-#else
 		ret = mms100_ISC_download_mbinary(info);
-#endif
 
 		ver = get_fw_version(info);
 		info->fw_ic_ver = ver;
@@ -2255,11 +2178,7 @@ static void fw_update(void *device_data)
 		dev_info(&client->dev, "built in 4.8 fw is loaded!!\n");
 
 		while (retries--) {
-#ifdef FW_465GS37
-			ret = mms_ts_fw_download(info);
-#else
 			ret = mms100_ISC_download_mbinary(info);
-#endif
 			ver = get_fw_version(info);
 			info->fw_ic_ver = ver;
 			if (ret == 0) {
@@ -2384,14 +2303,7 @@ static void get_fw_ver_bin(void *device_data)
 
 	set_default_result(info);
 
-#if defined(CONFIG_MACH_M3_USA_TMO)
-	snprintf(buff, sizeof(buff), "ME0045%02x", FW_VERSION_4_8);
-#elif defined(FW_465GS37)
-	snprintf(buff, sizeof(buff), "ME%02X%04X",
-		FW_VERSION_HW, FW_VERSION_4_8);
-#else
-	snprintf(buff, sizeof(buff), "%02x", FW_VERSION_4_8);
-#endif
+	snprintf(buff, sizeof(buff), "%#02x", FW_VERSION_4_8);
 
 	set_cmd_result(info, buff, strnlen(buff, sizeof(buff)));
 	info->cmd_state = 2;
@@ -2409,15 +2321,8 @@ static void get_fw_ver_ic(void *device_data)
 	set_default_result(info);
 
 	ver = info->fw_ic_ver;
+	snprintf(buff, sizeof(buff), "%#02x", ver);
 
-#if defined(CONFIG_MACH_M3_USA_TMO)
-	snprintf(buff, sizeof(buff), "ME0045%02x", ver);
-#elif defined(FW_465GS37)
-	snprintf(buff, sizeof(buff), "ME%02X%04X",
-		info->fw_hw_ver, ver);
-#else
-	snprintf(buff, sizeof(buff), "%02x", ver);
-#endif
 	set_cmd_result(info, buff, strnlen(buff, sizeof(buff)));
 	info->cmd_state = 2;
 	dev_info(&info->client->dev, "%s: %s(%d)\n", __func__,
@@ -2432,11 +2337,7 @@ static void get_config_ver(void *device_data)
 
 	set_default_result(info);
 
-#if defined(FW_465GS37)
-	snprintf(buff, sizeof(buff), "E220S_Me_0928");
-#else
 	snprintf(buff, sizeof(buff), "%s", info->config_fw_version);
-#endif
 	set_cmd_result(info, buff, strnlen(buff, sizeof(buff)));
 	info->cmd_state = 2;
 	dev_info(&info->client->dev, "%s: %s(%d)\n", __func__,

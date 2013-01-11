@@ -508,7 +508,6 @@ struct sii9234_data {
 	wait_queue_head_t		wq;
 #ifdef CONFIG_SAMSUNG_MHL_9290
 	struct notifier_block           acc_con_nb;
-	struct work_struct		tmds_reset_work;
 #endif
 	bool				claimed;
 	u8				cbus_connected; /* wolverin */
@@ -597,8 +596,6 @@ static irqreturn_t sii9234_irq_thread(int irq, void *data);
 
 #ifdef CONFIG_SAMSUNG_MHL_9290
 static int sii9234_30pin_init_for_9290(struct sii9234_data *sii9234);
-void sii9234_tmds_reset(void);
-void sii9234_tmds_reset_work(struct work_struct *work);
 #endif
 
 #ifdef CONFIG_SAMSUNG_USE_11PIN_CONNECTOR

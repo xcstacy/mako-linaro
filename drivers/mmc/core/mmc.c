@@ -16,6 +16,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/mmc.h>
+#include <linux/string.h>
 
 #include "core.h"
 #include "bus.h"
@@ -107,6 +108,7 @@ static int mmc_decode_cid(struct mmc_card *card)
 		card->cid.prod_name[3]	= UNSTUFF_BITS(resp, 72, 8);
 		card->cid.prod_name[4]	= UNSTUFF_BITS(resp, 64, 8);
 		card->cid.prod_name[5]	= UNSTUFF_BITS(resp, 56, 8);
+		card->cid.prod_rev	= UNSTUFF_BITS(resp, 48, 8);
 		card->cid.serial	= UNSTUFF_BITS(resp, 16, 32);
 		card->cid.month		= UNSTUFF_BITS(resp, 12, 4);
 		card->cid.year		= UNSTUFF_BITS(resp, 8, 4) + 1997;
@@ -579,17 +581,9 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 	}
 
 	if (card->ext_csd.rev >= 5) {
-		/* enable discard feature if emmc is 4.41+ moviNand */
+		/* enable discard feature if emmc is 4.41+ */
 		if ((ext_csd[EXT_CSD_VENDOR_SPECIFIC_FIELD + 0] & 0x1) &&
 			(card->cid.manfid == 0x15))
-			card->ext_csd.feature_support |= MMC_DISCARD_FEATURE;
-
-		/*
-		 * enable discard feature if emmc is 4.41+ Toshiba eMMC 19nm
-		 * Normally, emmc 4.5 use EXT_CSD[501]
-		 */
-		if ((ext_csd[EXT_CSD_MAX_PACKED_READS] & 0x3F) &&
-			(card->cid.manfid == 0x11))
 			card->ext_csd.feature_support |= MMC_DISCARD_FEATURE;
 
 		/* check whether the eMMC card supports HPI */
@@ -1500,6 +1494,15 @@ static int mmc_resume(struct mmc_host *host)
 
 	mmc_claim_host(host);
 	err = mmc_init_card(host, host->ocr, host->card);
+
+	if (host->card->movi_ops == 0x2) {
+		err = mmc_start_movi_operation(host->card);
+		if (err) {
+			pr_warning("%s: movi operation is failed\n",
+							mmc_hostname(host));
+		}
+	}
+
 	mmc_release_host(host);
 
 	return err;
@@ -1512,6 +1515,15 @@ static int mmc_power_restore(struct mmc_host *host)
 	host->card->state &= ~MMC_STATE_HIGHSPEED;
 	mmc_claim_host(host);
 	ret = mmc_init_card(host, host->ocr, host->card);
+
+	if (host->card->movi_ops == 0x2) {
+		ret = mmc_start_movi_operation(host->card);
+		if (ret) {
+			pr_warning("%s: movi operation is failed\n",
+							mmc_hostname(host));
+		}
+	}
+
 	mmc_release_host(host);
 
 	return ret;
@@ -1641,6 +1653,20 @@ int mmc_attach_mmc(struct mmc_host *host)
 	mmc_claim_host(host);
 	if (err)
 		goto remove_card;
+
+	if (!strncmp(host->card->cid.prod_name, "VTU00M", 6) &&
+		(host->card->cid.prod_rev == 0xf1) &&
+		(mmc_start_movi_smart(host->card) == 0x2))
+		host->card->movi_ops = 0x2;
+
+	if (host->card->movi_ops == 0x2) {
+		err = mmc_start_movi_operation(host->card);
+		if (err) {
+			pr_warning("%s: movi operation is failed\n",
+							mmc_hostname(host));
+			goto remove_card;
+		}
+	}
 
 	return 0;
 
