@@ -373,20 +373,23 @@ static inline int check_gps_uart_op(void)
 #ifdef CONFIG_INTERNAL_MODEM_IF
 static int check_idpram_op(void)
 {
-#ifdef CONFIG_SEC_MODEM_U1_SPR
-	/* This pin is high when CP might be accessing dpram */
-	/* return !!gpio_get_value(GPIO_CP_DUMP_INT); */
-	int x1_2 = __raw_readl(S5P_VA_GPIO2 + 0xC24) & 4; /* GPX1(2) */
-	if (x1_2 != 0)
-		pr_info("%s x1_2 is %s\n", __func__, x1_2 ? "high" : "low");
-	return x1_2;
-#else
 	/* This pin is high when CP might be accessing dpram */
 	int cp_int = gpio_get_value(GPIO_CP_AP_DPRAM_INT);
 	if (cp_int != 0)
 		pr_info("%s cp_int is high.\n", __func__);
 	return cp_int;
+}
 #endif
+
+#if defined(CONFIG_ISDBT)
+static int check_isdbt_op(void)
+{
+	/* This pin is high when isdbt is working */
+	int isdbt_is_running = gpio_get_value(GPIO_ISDBT_EN);
+	
+	if (isdbt_is_running != 0)
+		printk("isdbt_is_running is high\n");
+	return isdbt_is_running;
 }
 #endif
 
@@ -426,6 +429,11 @@ static int exynos4_check_operation(void)
 #endif
 	if (check_usb_op())
 		return 1;
+
+#if defined(CONFIG_ISDBT)
+	if (check_isdbt_op())
+		return 1;
+#endif
 
 #if defined(CONFIG_BT)
 	if (check_bt_op())

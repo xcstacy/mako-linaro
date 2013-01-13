@@ -12,21 +12,16 @@ obj-$(CONFIG_VIDEO_FIMG2D3X)	+= fimg2d3x/
 obj-$(CONFIG_VIDEO_FIMG2D4X)	+= fimg2d4x/
 endif
 
-ifeq ($(CONFIG_MALI_UMP_R3P1_LSI), y)
-obj-$(CONFIG_VIDEO_MALI400MP_UMP)	+= ump_r3p1/
-obj-$(CONFIG_VIDEO_MALI400MP_UMP)	+= mali_r3p1/
+ifeq ($(CONFIG_UMP_R3P1_LSI), y)
+obj-$(CONFIG_VIDEO_UMP)		+= ump_r3p1_lsi/
 else ifeq ($(CONFIG_MACH_U1), y)
-obj-$(CONFIG_VIDEO_MALI400MP_UMP)	+= ump/
-obj-$(CONFIG_VIDEO_MALI400MP_UMP)	+= mali/
+obj-$(CONFIG_VIDEO_UMP)		+= ump/
 else ifeq ($(CONFIG_MACH_SMDKC210), y)
-obj-$(CONFIG_VIDEO_MALI400MP_UMP)	+= ump/
-obj-$(CONFIG_VIDEO_MALI400MP_UMP)	+= mali/
+obj-$(CONFIG_VIDEO_UMP)		+= ump/
 else ifeq ($(CONFIG_MACH_SMDKV310), y)
-obj-$(CONFIG_VIDEO_MALI400MP_UMP)	+= ump/
-obj-$(CONFIG_VIDEO_MALI400MP_UMP)	+= mali/
+obj-$(CONFIG_VIDEO_UMP)		+= ump/
 else
-obj-$(CONFIG_VIDEO_MALI400MP_UMP)	+= ump/
-obj-$(CONFIG_VIDEO_MALI400MP_UMP)	+= mali/
+obj-$(CONFIG_VIDEO_UMP)		+= ump/
 endif
 
 obj-$(CONFIG_VIDEO_TSI)		+= tsi/
@@ -35,7 +30,6 @@ ifeq ($(CONFIG_MALI_R3P1_LSI), y)
 obj-$(CONFIG_VIDEO_MALI400MP)	+= mali_r3p1_lsi/
 else ifeq ($(CONFIG_MACH_U1), y)
 obj-$(CONFIG_VIDEO_MALI400MP)	+= mali/
-obj-$(CONFIG_MALI_R3P0_LSI)	+= mali_r3p0_lsi/
 else ifeq ($(CONFIG_MACH_SMDKC210), y)
 obj-$(CONFIG_VIDEO_MALI400MP)	+= mali/
 else ifeq ($(CONFIG_MACH_SMDKV310), y)

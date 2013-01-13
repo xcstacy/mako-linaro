@@ -286,15 +286,14 @@ int ath6kl_control_tx(void *devt, struct sk_buff *skb,
 	struct ath6kl *ar = devt;
 	int status = 0;
 	struct ath6kl_cookie *cookie = NULL;
-#if 0 // by bbelief
 	struct ath6kl_vif *vif;
 	vif = ath6kl_vif_first(ar);
-#endif
 
-	if (WARN_ON_ONCE(ar->state == ATH6KL_STATE_WOW)) {
-		dev_kfree_skb(skb);
-		return -EACCES;
-	}
+	if (WARN_ON_ONCE(ar->state == ATH6KL_STATE_WOW))
+		goto fail_ctrl_tx;
+
+	if (!test_bit(WMI_READY, &ar->flag))
+		goto fail_ctrl_tx;
 
 	spin_lock_bh(&ar->lock);
 
@@ -310,12 +309,12 @@ int ath6kl_control_tx(void *devt, struct sk_buff *skb,
 		cookie = NULL;
 		ath6kl_err("wmi ctrl ep full, dropping pkt : 0x%p, len:%d\n",
 			   skb, skb->len);
-#if 0 // by bbelief
+#ifdef CONFIG_MACH_PX
 		if (vif->nw_type == INFRA_NETWORK)
-			cfg80211_priv_event(vif->ndev, "HANG", GFP_ATOMIC);
+			vif->force_reload = true;
 #endif
 	} else
-		cookie = ath6kl_alloc_cookie(ar, eid == ar->ctrl_ep);
+		cookie = ath6kl_alloc_cookie(ar);
 
 	if (cookie == NULL) {
 		spin_unlock_bh(&ar->lock);
@@ -366,8 +365,8 @@ int ath6kl_data_tx(struct sk_buff *skb, struct net_device *dev)
 	u32 flags = 0;
 
 	ath6kl_dbg(ATH6KL_DBG_WLAN_TX,
-		   "%s: skb=0x%p, data=0x%p, len=0x%x\n", __func__,
-		   skb, skb->data, skb->len);
+		   "%s: skb=0x%p, data=0x%p, len=0x%x, actual_len=0x%x\n", __func__,
+		   skb, skb->data, skb->len, skb->tail - skb->data);
 
 	/* If target is not associated */
 	if (!test_bit(CONNECTED, &vif->flags)) {
@@ -398,7 +397,8 @@ int ath6kl_data_tx(struct sk_buff *skb, struct net_device *dev)
 			csum_dest = skb->csum_offset + csum_start;
 		}
 
-		if (skb_headroom(skb) < dev->needed_headroom) {
+		if (skb_headroom(skb) < dev->needed_headroom)
+		{
 			struct sk_buff *tmp_skb = skb;
 
 			skb = skb_realloc_headroom(skb, dev->needed_headroom);
@@ -467,7 +467,7 @@ int ath6kl_data_tx(struct sk_buff *skb, struct net_device *dev)
 	}
 
 	/* allocate resource for this packet */
-	cookie = ath6kl_alloc_cookie(ar, eid == ar->ctrl_ep);
+	cookie = ath6kl_alloc_cookie(ar);
 
 	if (!cookie) {
 		spin_unlock_bh(&ar->lock);
@@ -505,7 +505,6 @@ int ath6kl_data_tx(struct sk_buff *skb, struct net_device *dev)
 
 	ath6kl_dbg_dump(ATH6KL_DBG_RAW_BYTES, __func__, "tx ",
 			skb->data, skb->len);
-
 	/*
 	 * HTC interface is asynchronous, if this fails, cleanup will
 	 * happen in the ath6kl_tx_complete callback.
@@ -602,7 +601,6 @@ enum htc_send_full_action ath6kl_tx_queue_full(struct htc_target *target,
 		 */
 		set_bit(WMI_CTRL_EP_FULL, &ar->flag);
 		ath6kl_err("wmi ctrl ep is full\n");
-		ath6kl_recovery_err_notify(ar, ATH6KL_FW_EP_FULL);
 		return action;
 	}
 
@@ -615,8 +613,7 @@ enum htc_send_full_action ath6kl_tx_queue_full(struct htc_target *target,
 	 */
 	if (ar->ac_stream_pri_map[ar->ep2ac_map[endpoint]] <
 	    ar->hiac_stream_active_pri &&
-	    ar->cookie_count <=
-			target->endpoint[endpoint].tx_drop_packet_threshold)
+	    ar->cookie_count <= MAX_HI_COOKIE_NUM)
 		/*
 		 * Give preference to the highest priority stream by
 		 * dropping the packets which overflowed.
@@ -693,6 +690,7 @@ void ath6kl_tx_complete(void *context, struct list_head *packet_queue)
 	bool flushing[ATH6KL_VIF_MAX] = {false};
 	u8 if_idx;
 	struct ath6kl_vif *vif;
+	bool ctrl_ep = false;
 
 	skb_queue_head_init(&skb_queue);
 
@@ -707,28 +705,21 @@ void ath6kl_tx_complete(void *context, struct list_head *packet_queue)
 		list_del(&packet->list);
 
 		ath6kl_cookie = (struct ath6kl_cookie *)packet->pkt_cntxt;
-		if (WARN_ON_ONCE(!ath6kl_cookie))
-			continue;
+		if (!ath6kl_cookie)
+			goto fatal;
 
 		status = packet->status;
 		skb = ath6kl_cookie->skb;
 		eid = packet->endpoint;
 		map_no = ath6kl_cookie->map_no;
 
-		if (WARN_ON_ONCE(!skb || !skb->data)) {
-			dev_kfree_skb(skb);
-			ath6kl_free_cookie(ar, ath6kl_cookie,
-					   eid == ar->ctrl_ep);
-			continue;
-		}
+		if (!skb || !skb->data)
+			goto fatal;
 
 		__skb_queue_tail(&skb_queue, skb);
 
-		if (WARN_ON_ONCE(!status && (packet->act_len != skb->len))) {
-			ath6kl_free_cookie(ar, ath6kl_cookie,
-					   eid == ar->ctrl_ep);
-			continue;
-		}
+		if (!status && (packet->act_len != skb->len))
+			goto fatal;
 
 		ar->tx_pending[eid]--;
 
@@ -741,54 +732,50 @@ void ath6kl_tx_complete(void *context, struct list_head *packet_queue)
 
 			if (ar->tx_pending[eid] == 0)
 				wake_event = true;
-		}
+			ctrl_ep = true;
 
-		if (eid == ar->ctrl_ep) {
-			if_idx = wmi_cmd_hdr_get_if_idx(
-				(struct wmi_cmd_hdr *) packet->buf);
 		} else {
 			if_idx = wmi_data_hdr_get_if_idx(
-				(struct wmi_data_hdr *) packet->buf);
+					(struct wmi_data_hdr *) packet->buf);
+
+			vif = ath6kl_get_vif_by_index(ar, if_idx);
+			if (!vif) {
+				ath6kl_free_cookie(ar, ath6kl_cookie);
+				continue;
+			}
+
+			if (status) {
+				if (status == -ECANCELED)
+					/* a packet was flushed  */
+					flushing[if_idx] = true;
+
+				vif->net_stats.tx_errors++;
+
+				if (status != -ENOSPC && status != -ECANCELED)
+					ath6kl_warn("tx complete error: %d\n", status);
+
+				ath6kl_dbg(ATH6KL_DBG_WLAN_TX,
+					   "%s: skb=0x%p data=0x%p len=0x%x eid=%d %s\n",
+					   __func__, skb, packet->buf, packet->act_len,
+					   eid, "error!");
+			} else {
+				ath6kl_dbg(ATH6KL_DBG_WLAN_TX,
+					   "%s: skb=0x%p data=0x%p len=0x%x eid=%d %s\n",
+					   __func__, skb, packet->buf, packet->act_len,
+					   eid, "OK");
+
+				flushing[if_idx] = false;
+				vif->net_stats.tx_packets++;
+				vif->net_stats.tx_bytes += skb->len;
+			}
+
+			ath6kl_tx_clear_node_map(vif, eid, map_no);
+			if (test_bit(NETQ_STOPPED, &vif->flags))
+				clear_bit(NETQ_STOPPED, &vif->flags);
 		}
 
-		vif = ath6kl_get_vif_by_index(ar, if_idx);
-		if (!vif) {
-			ath6kl_free_cookie(ar, ath6kl_cookie,
-					   eid == ar->ctrl_ep);
-			continue;
-		}
 
-		if (status) {
-			if (status == -ECANCELED)
-				/* a packet was flushed  */
-				flushing[if_idx] = true;
-
-			vif->net_stats.tx_errors++;
-
-			if (status != -ENOSPC && status != -ECANCELED)
-				ath6kl_warn("tx complete error: %d\n", status);
-
-			ath6kl_dbg(ATH6KL_DBG_WLAN_TX,
-				   "%s: skb=0x%p data=0x%p len=0x%x eid=%d %s\n",
-				   __func__, skb, packet->buf, packet->act_len,
-				   eid, "error!");
-		} else {
-			ath6kl_dbg(ATH6KL_DBG_WLAN_TX,
-				   "%s: skb=0x%p data=0x%p len=0x%x eid=%d %s\n",
-				   __func__, skb, packet->buf, packet->act_len,
-				   eid, "OK");
-
-			flushing[if_idx] = false;
-			vif->net_stats.tx_packets++;
-			vif->net_stats.tx_bytes += skb->len;
-		}
-
-		ath6kl_tx_clear_node_map(vif, eid, map_no);
-
-		ath6kl_free_cookie(ar, ath6kl_cookie, eid == ar->ctrl_ep);
-
-		if (test_bit(NETQ_STOPPED, &vif->flags))
-			clear_bit(NETQ_STOPPED, &vif->flags);
+		ath6kl_free_cookie(ar, ath6kl_cookie);
 	}
 
 	spin_unlock_bh(&ar->lock);
@@ -796,20 +783,27 @@ void ath6kl_tx_complete(void *context, struct list_head *packet_queue)
 	__skb_queue_purge(&skb_queue);
 
 	/* FIXME: Locking */
-	spin_lock_bh(&ar->list_lock);
-	list_for_each_entry(vif, &ar->vif_list, list) {
-		if (test_bit(CONNECTED, &vif->flags) &&
-		    !flushing[vif->fw_vif_idx]) {
-			spin_unlock_bh(&ar->list_lock);
-			netif_wake_queue(vif->ndev);
-			spin_lock_bh(&ar->list_lock);
+	if (!ctrl_ep) {
+		spin_lock_bh(&ar->list_lock);
+		list_for_each_entry(vif, &ar->vif_list, list) {
+			if (test_bit(CONNECTED, &vif->flags) &&
+					!flushing[vif->fw_vif_idx]) {
+				spin_unlock_bh(&ar->list_lock);
+				netif_wake_queue(vif->ndev);
+				spin_lock_bh(&ar->list_lock);
+			}
 		}
+		spin_unlock_bh(&ar->list_lock);
 	}
-	spin_unlock_bh(&ar->list_lock);
 
 	if (wake_event)
 		wake_up(&ar->event_wq);
 
+	return;
+
+fatal:
+	WARN_ON(1);
+	spin_unlock_bh(&ar->lock);
 	return;
 }
 
@@ -839,6 +833,10 @@ static void ath6kl_deliver_frames_to_nw_stack(struct net_device *dev,
 	}
 
 	skb->protocol = eth_type_trans(skb, skb->dev);
+
+#ifdef CONFIG_MACH_PX
+	skb->len = skb->tail - skb->data;
+#endif
 
 	netif_rx_ni(skb);
 }
@@ -1138,13 +1136,11 @@ static bool aggr_process_recv_frm(struct aggr_info_conn *agg_conn, u8 tid,
 		    ((end > extended_end) && (cur > extended_end) &&
 		     (cur < end))) {
 			aggr_deque_frms(agg_conn, tid, 0, 0);
-			spin_lock_bh(&rxtid->lock);
 			if (cur >= rxtid->hold_q_sz - 1)
 				rxtid->seq_next = cur - (rxtid->hold_q_sz - 1);
 			else
 				rxtid->seq_next = ATH6KL_MAX_SEQ_NO -
 						  (rxtid->hold_q_sz - 2 - cur);
-			spin_unlock_bh(&rxtid->lock);
 		} else {
 			/*
 			 * Dequeue only those frames that are outside the
@@ -1198,28 +1194,25 @@ static bool aggr_process_recv_frm(struct aggr_info_conn *agg_conn, u8 tid,
 	aggr_deque_frms(agg_conn, tid, 0, 1);
 
 	if (agg_conn->timer_scheduled)
-		return is_queued;
-
-	for (idx = 0 ; idx < rxtid->hold_q_sz; idx++) {
-		spin_lock_bh(&rxtid->lock);
-		if (rxtid->hold_q[idx].skb) {
-			/*
-			 * There is a frame in the queue and no
-			 * timer so start a timer to ensure that
-			 * the frame doesn't remain stuck
-			 * forever.
-			 */
-			agg_conn->timer_scheduled = true;
-			mod_timer(&agg_conn->timer,
-					(jiffies +
-					 HZ * (AGGR_RX_TIMEOUT) / 1000));
-			rxtid->progress = false;
-			rxtid->timer_mon = true;
-			spin_unlock_bh(&rxtid->lock);
-			break;
+		rxtid->progress = true;
+	else
+		for (idx = 0 ; idx < rxtid->hold_q_sz; idx++) {
+			if (rxtid->hold_q[idx].skb) {
+				/*
+				 * There is a frame in the queue and no
+				 * timer so start a timer to ensure that
+				 * the frame doesn't remain stuck
+				 * forever.
+				 */
+				agg_conn->timer_scheduled = true;
+				mod_timer(&agg_conn->timer,
+					  (jiffies +
+					   HZ * (AGGR_RX_TIMEOUT) / 1000));
+				rxtid->progress = false;
+				rxtid->timer_mon = true;
+				break;
+			}
 		}
-		spin_unlock_bh(&rxtid->lock);
-	}
 
 	return is_queued;
 }
@@ -1353,8 +1346,8 @@ void ath6kl_rx(struct htc_target *target, struct htc_packet *packet)
 	spin_unlock_bh(&vif->if_lock);
 
 
-	ath6kl_dbg_dump(ATH6KL_DBG_RAW_BYTES, __func__, "rx ",
-			skb->data, skb->len);
+	//ath6kl_dbg_dump(ATH6KL_DBG_RAW_BYTES, __func__, "rx ",
+	//		skb->data, skb->len);
 
 	skb->dev = vif->ndev;
 
@@ -1552,8 +1545,6 @@ void ath6kl_rx(struct htc_target *target, struct htc_packet *packet)
 		return;
 	}
 
-	ath6kl_check_wow_status(ar, skb, false);
-
 	if (vif->nw_type == AP_NETWORK) {
 		datap = (struct ethhdr *) skb->data;
 		if (is_multicast_ether_addr(datap->h_dest))
@@ -1604,8 +1595,7 @@ void ath6kl_rx(struct htc_target *target, struct htc_packet *packet)
 			/* aggregation code will handle the skb */
 			return;
 		}
-	} else if (!is_broadcast_ether_addr(datap->h_dest))
-		vif->net_stats.multicast++;
+	}
 
 	ath6kl_deliver_frames_to_nw_stack(vif->ndev, skb);
 }
@@ -1640,15 +1630,12 @@ static void aggr_timeout(unsigned long arg)
 
 		if (rxtid->aggr && rxtid->hold_q) {
 			for (j = 0; j < rxtid->hold_q_sz; j++) {
-				spin_lock_bh(&rxtid->lock);
 				if (rxtid->hold_q[j].skb) {
 					aggr_conn->timer_scheduled = true;
 					rxtid->timer_mon = true;
 					rxtid->progress = false;
-					spin_unlock_bh(&rxtid->lock);
 					break;
 				}
-				spin_unlock_bh(&rxtid->lock);
 			}
 
 			if (j >= rxtid->hold_q_sz)

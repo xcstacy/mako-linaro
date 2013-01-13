@@ -54,8 +54,7 @@
 /* #define __CONFIG_MHL_SWING_LEVEL__ */
 #define	__CONFIG_SS_FACTORY__
 #define	__CONFIG_MHL_DEBUG__
-#if defined(CONFIG_MACH_T0) || defined(CONFIG_MACH_M3) \
-	|| defined(CONFIG_MACH_M0_DUOSCTC)
+#if defined(CONFIG_MACH_T0) || defined(CONFIG_MACH_M3)
 #	define __CONFIG_MHL_VER_1_2__
 #else
 #	define __CONFIG_MHL_VER_1_1__
@@ -131,7 +130,7 @@ static struct mutex sii9234_irq_lock;
 int en_irq;
 #	define sii9234_enable_irq() \
 	do { \
-		mutex_lock(&sii9234_irq_lock); \
+		sii9234_mutex_lock(&sii9234_irq_lock); \
 		if (atomic_read(&sii9234->is_irq_enabled) == false) { \
 			atomic_set(&sii9234->is_irq_enabled, true); \
 			enable_irq(sii9234->pdata->mhl_tx_client->irq); \
@@ -141,12 +140,12 @@ int en_irq;
 			printk(KERN_INFO"%s() : irq is already enabled(%d)\n" \
 					, __func__, en_irq); \
 		} \
-		mutex_unlock(&sii9234_irq_lock); \
+		sii9234_mutex_unlock(&sii9234_irq_lock); \
 	} while (0)
 
 #	define sii9234_disable_irq() \
 	do { \
-		mutex_lock(&sii9234_irq_lock); \
+		sii9234_mutex_lock(&sii9234_irq_lock); \
 		if (atomic_read(&sii9234->is_irq_enabled) == true) { \
 			atomic_set(&sii9234->is_irq_enabled, false); \
 			disable_irq_nosync(sii9234->pdata->mhl_tx_client->irq);\
@@ -156,27 +155,27 @@ int en_irq;
 			printk(KERN_INFO"%s() : irq is already disabled(%d)\n"\
 					, __func__, en_irq); \
 		} \
-		mutex_unlock(&sii9234_irq_lock); \
+		sii9234_mutex_unlock(&sii9234_irq_lock); \
 	} while (0)
 #else
 #	define sii9234_enable_irq() \
 	do { \
-		mutex_lock(&sii9234_irq_lock); \
+		sii9234_mutex_lock(&sii9234_irq_lock); \
 		if (atomic_read(&sii9234->is_irq_enabled) == false) { \
 			atomic_set(&sii9234->is_irq_enabled, true); \
 			enable_irq(sii9234->pdata->mhl_tx_client->irq); \
 		} \
-		mutex_unlock(&sii9234_irq_lock); \
+		sii9234_mutex_unlock(&sii9234_irq_lock); \
 	} while (0)
 
 #	define sii9234_disable_irq() \
 	do { \
-		mutex_lock(&sii9234_irq_lock); \
+		sii9234_mutex_lock(&sii9234_irq_lock); \
 		if (atomic_read(&sii9234->is_irq_enabled) == true) { \
 			atomic_set(&sii9234->is_irq_enabled, false); \
 			disable_irq_nosync(sii9234->pdata->mhl_tx_client->irq);\
 		} \
-		mutex_unlock(&sii9234_irq_lock); \
+		sii9234_mutex_unlock(&sii9234_irq_lock); \
 	} while (0)
 #endif /*__SII9234_IRQ_DEBUG__*/
 
@@ -2761,26 +2760,6 @@ static int sii9234_30pin_init_for_9290(struct sii9234_data *sii9234)
 	sii9234_mutex_unlock(&sii9234->lock);
 	return false;
 }
-static struct workqueue_struct *sii9234_tmds_reset_wq;
-
-void sii9234_tmds_reset()
-{
-	struct sii9234_data *sii9234 = dev_get_drvdata(sii9244_mhldev);
-	queue_work(sii9234_tmds_reset_wq, &(sii9234->tmds_reset_work));
-}
-void sii9234_tmds_reset_work(struct work_struct *work)
-{
-	/*this function is a workaround for LSI AP*/
-	struct sii9234_data *sii9234 = dev_get_drvdata(sii9244_mhldev);
-
-	msleep(80);
-	mhl_tx_write_reg(sii9234, 0x1A, 1 << 4);
-	mhl_tx_clear_reg(sii9234, 0x1A, 1 << 4);
-	pr_info("sii9234: tmds reset\n");
-
-}
-EXPORT_SYMBOL(sii9234_tmds_reset);
-
 #endif				/* CONFIG_SAMSUNG_MHL_9290 */
 
 static void save_cbus_pkt_to_buffer(struct sii9234_data *sii9234)
@@ -4111,14 +4090,6 @@ static int __devinit sii9234_mhl_tx_i2c_probe(struct i2c_client *client,
 #ifdef CONFIG_SAMSUNG_MHL_9290
 	sii9234->acc_con_nb.notifier_call = sii9234_30pin_callback;
 	acc_register_notifier(&sii9234->acc_con_nb);
-
-	sii9234_tmds_reset_wq =
-		create_singlethread_workqueue("sii9234_tmds_reset_wq");
-	if (!sii9234_tmds_reset_wq) {
-		printk(KERN_ERR	"[ERROR] %s() tmds_reset"
-				" workqueue create fail\n", __func__);
-	}
-	INIT_WORK(&sii9234->tmds_reset_work, sii9234_tmds_reset_work);
 #endif
 
 #ifdef CONFIG_EXTCON
