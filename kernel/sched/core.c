@@ -3099,11 +3099,11 @@ void thread_group_times(struct task_struct *p, cputime_t *ut, cputime_t *st)
 # define nsecs_to_cputime(__nsecs)	nsecs_to_jiffies(__nsecs)
 #endif
 
-static cputime_t scale_utime(cputime_t utime, cputime_t rtime, cputime_t total)
+static cputime_t scale_stime(cputime_t stime, cputime_t rtime, cputime_t total)
 {
 	u64 temp = (__force u64) rtime;
 
-	temp *= (__force u64) utime;
+	temp *= (__force u64) stime;
 
 	if (sizeof(cputime_t) == 4)
 		temp = div_u64(temp, (__force u32) total);
@@ -3144,20 +3144,20 @@ void thread_group_times(struct task_struct *p, cputime_t *ut, cputime_t *st)
 {
 	struct signal_struct *sig = p->signal;
 	struct task_cputime cputime;
-	cputime_t rtime, utime, total;
+	cputime_t rtime, stime, total;
 
 	thread_group_cputime(p, &cputime);
 
-	total = cputime.utime + cputime.stime;
+	total = cputime.stime + cputime.utime;
 	rtime = nsecs_to_cputime(cputime.sum_exec_runtime);
 
 	if (total)
-		utime = scale_utime(cputime.utime, rtime, total);
+		stime = scale_stime(cputime.stime, rtime, total);
 	else
-		utime = rtime;
+		stime = rtime;
 
-	sig->prev_utime = max(sig->prev_utime, utime);
-	sig->prev_stime = max(sig->prev_stime, rtime - sig->prev_utime);
+	sig->prev_stime = max(sig->prev_stime, stime);
+	sig->prev_utime = max(sig->prev_utime, rtime - sig->prev_stime);
 
 	*ut = sig->prev_utime;
 	*st = sig->prev_stime;
