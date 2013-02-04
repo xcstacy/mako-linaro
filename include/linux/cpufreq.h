@@ -110,6 +110,11 @@ struct cpufreq_policy {
 	unsigned int		policy; /* see above */
 	struct cpufreq_governor	*governor; /* see below */
 	void			*governor_data;
+	/* This should be set by init() of platforms having multiple
+	 * clock-domains, i.e.  supporting multiple policies. With this sysfs
+	 * directories of governor would be created in cpu/cpu<num>/cpufreq/
+	 * directory */
+	bool			have_multiple_policies;
 
 	struct work_struct	update; /* if update_policy() needs to be
 					 * called, but you're in IRQ context */
@@ -134,6 +139,15 @@ struct cpufreq_policy {
 static inline bool policy_is_shared(struct cpufreq_policy *policy)
 {
 	return cpumask_weight(policy->cpus) > 1;
+}
+
+static inline struct kobject *
+get_governor_parent_kobj(struct cpufreq_policy *policy)
+{
+	if (policy->have_multiple_policies)
+		return &policy->kobj;
+	else
+		return cpufreq_global_kobject;
 }
 
 /******************** cpufreq transition notifiers *******************/
@@ -189,7 +203,6 @@ static inline unsigned long cpufreq_scale(unsigned long old, u_int div, u_int mu
 
 struct cpufreq_governor {
 	char	name[CPUFREQ_NAME_LEN];
-	int	initialized;
 	int	(*governor)	(struct cpufreq_policy *policy,
 				 unsigned int event);
 	ssize_t	(*show_setspeed)	(struct cpufreq_policy *policy,
