@@ -7748,7 +7748,11 @@ static void free_sched_group(struct task_group *tg)
 	kfree(tg);
 }
 
-/* allocate runqueue etc for a new task group */
+/*
+ * Allocate runqueue etc for a new task group.  Note that new groups
+ * are created with zero runtime, so there is no need to update the
+ * free bandwidth counters.
+ */
 struct task_group *sched_create_group(struct task_group *parent)
 {
 	struct task_group *tg;
@@ -7788,6 +7792,8 @@ static void free_sched_group_rcu(struct rcu_head *rhp)
 	free_sched_group(container_of(rhp, struct task_group, rcu));
 }
 
+static DEFINE_MUTEX(rt_constraints_mutex);
+
 /* Destroy runqueue etc associated with a task group */
 void sched_destroy_group(struct task_group *tg)
 {
@@ -7802,6 +7808,10 @@ void sched_destroy_group(struct task_group *tg)
 	list_del_rcu(&tg->list);
 	list_del_rcu(&tg->siblings);
 	spin_unlock_irqrestore(&task_group_lock, flags);
+
+	mutex_lock(&rt_constraints_mutex);
+	rt_reset_runtime();
+	mutex_unlock(&rt_constraints_mutex);
 
 	/* wait for possible concurrent references to cfs_rqs complete */
 	call_rcu(&tg->rcu, free_sched_group_rcu);
@@ -7935,7 +7945,6 @@ static void update_dl_bw(void)
 /*
  * Ensure that the real time constraints are schedulable.
  */
-static DEFINE_MUTEX(rt_constraints_mutex);
 
 /* Must be called with tasklist_lock held */
 static inline int tg_has_rt_tasks(struct task_group *tg)
@@ -8043,7 +8052,7 @@ static int tg_rt_schedulable(struct task_group *tg, void *data)
 static int __rt_schedulable(struct task_group *tg, u64 period,
 			u64 runtime, int task_data)
 {
-	int ret;
+	int ret = 0;
 
 	struct rt_schedulable_data data = {
 		.tg = tg,
@@ -8062,7 +8071,7 @@ static int __rt_schedulable(struct task_group *tg, u64 period,
 static int tg_set_rt_bandwidth(struct task_group *tg, int task_data,
 		u64 rt_period, u64 rt_runtime)
 {
-	int i, err = 0;
+	int err = 0;
 
 	mutex_lock(&rt_constraints_mutex);
 	read_lock(&tasklist_lock);
@@ -8074,15 +8083,6 @@ static int tg_set_rt_bandwidth(struct task_group *tg, int task_data,
 		raw_spin_lock_irq(&tg->rt_task_bandwidth.rt_runtime_lock);
 		tg->rt_task_bandwidth.rt_period = ns_to_ktime(rt_period);
 		tg->rt_task_bandwidth.rt_runtime = rt_runtime;
-
-		for_each_possible_cpu(i) {
-			struct rt_rq *rt_rq = tg->rt_rq[i];
-
-			raw_spin_lock(&rt_rq->rt_runtime_lock);
-			rt_rq->rt_runtime = rt_runtime;
-			rt_rq->rt_period = ns_to_ktime(rt_period);
-			raw_spin_unlock(&rt_rq->rt_runtime_lock);
-		}
 		raw_spin_unlock_irq(&tg->rt_task_bandwidth.rt_runtime_lock);
 	} else {
 		raw_spin_lock_irq(&tg->rt_bandwidth.rt_runtime_lock);
@@ -8093,6 +8093,8 @@ static int tg_set_rt_bandwidth(struct task_group *tg, int task_data,
 
 unlock:
 	read_unlock(&tasklist_lock);
+	if (task_data)
+		rt_reset_runtime();
 	mutex_unlock(&rt_constraints_mutex);
 
 	return err;
@@ -8207,6 +8209,8 @@ int sched_rt_can_attach(struct task_group *tg, struct task_struct *tsk)
 	return ret;
 }
 
+static inline void sched_rt_update_bandwidth(void) {}
+
 #else /* !CONFIG_RT_GROUP_SCHED */
 static int sched_rt_global_constraints(void)
 {
@@ -8234,16 +8238,24 @@ static int sched_rt_global_constraints(void)
 	raw_spin_lock_irqsave(&def_rt_bandwidth.rt_runtime_lock, flags);
 
 	for_each_possible_cpu(i) {
-		struct rt_rq *rt_rq = &cpu_rq(i)->rt;
+		struct rt_rq *rt_rq = &cpu_rq(i)->rt.rt_rq;
 
 		raw_spin_lock(&rt_rq->rt_runtime_lock);
 		rt_rq->rt_runtime = global_rt_runtime();
+		rt_rq->rt_bw = to_ratio(global_rt_period(),
+					global_rt_runtime());
 		raw_spin_unlock(&rt_rq->rt_runtime_lock);
 	}
 	raw_spin_unlock_irqrestore(&def_rt_bandwidth.rt_runtime_lock, flags);
 
 	return 0;
 }
+
+static inline void sched_rt_update_bandwidth(void)
+{
+	rt_reset_runtime();
+}
+
 #endif /* CONFIG_RT_GROUP_SCHED */
 
 static bool __sched_dl_global_constraints(u64 runtime, u64 period)
@@ -8297,8 +8309,8 @@ int sched_rt_handler(struct ctl_table *table, int write,
 			def_rt_bandwidth.rt_runtime = global_rt_runtime();
 			def_rt_bandwidth.rt_period =
 				ns_to_ktime(global_rt_period());
-
 			update_dl_bw();
+			sched_rt_update_bandwidth();
 		}
 		raw_spin_unlock_irqrestore(&def_dl_bandwidth.dl_runtime_lock,
 					   flags);
