@@ -31,6 +31,7 @@
 #define DEF_FREQUENCY_DOWN_DIFFERENTIAL		(10)
 #define DEF_FREQUENCY_UP_THRESHOLD		(80)
 #define DEF_SAMPLING_DOWN_FACTOR		(1)
+#define DEF_GRAD_UP_THRESHOLD			(50)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define MICRO_FREQUENCY_DOWN_DIFFERENTIAL	(3)
 #define MICRO_FREQUENCY_UP_THRESHOLD		(95)
@@ -168,11 +169,26 @@ static void od_check_cpu(int cpu, unsigned int load_freq)
 	struct cpufreq_policy *policy = dbs_info->cdbs.cur_policy;
 	struct dbs_data *dbs_data = policy->governor_data;
 	struct od_dbs_tuners *od_tuners = dbs_data->tuners;
+	int boost_freq = 0;
 
 	dbs_info->freq_lo = 0;
 
+	/*
+	 * Calculate the gradient of load_freq. If it is too steep we assume
+	 * that the load will go over up_threshold in next iteration(s) and
+	 * we increase the frequency immediately
+	 */
+	if (od_tuners->early_demand) {
+		if (load_freq > dbs_info->prev_load_freq &&
+		   (load_freq - dbs_info->prev_load_freq >
+		    od_tuners->grad_up_threshold * policy->cur))
+			boost_freq = 1;
+
+		dbs_info->prev_load_freq = load_freq;
+	}
+
 	/* Check for frequency increase */
-	if (load_freq > od_tuners->up_threshold * policy->cur) {
+	if (boost_freq || (load_freq > od_tuners->up_threshold * policy->cur)) {
 		/* If switching to max speed, apply sampling_down_factor */
 		if (policy->cur < policy->max)
 			dbs_info->rate_mult =
@@ -445,12 +461,47 @@ static ssize_t store_powersave_bias(struct cpufreq_policy *policy,
 	return count;
 }
 
+static ssize_t store_grad_up_threshold(struct cpufreq_policy *policy,
+		const char *buf, size_t count)
+{
+	struct dbs_data *dbs_data = policy->governor_data;
+	struct od_dbs_tuners *od_tuners = dbs_data->tuners;
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+
+	if (ret != 1 || input > MAX_FREQUENCY_UP_THRESHOLD ||
+			input < MIN_FREQUENCY_UP_THRESHOLD) {
+		return -EINVAL;
+	}
+
+	od_tuners->grad_up_threshold = input;
+	return count;
+}
+
+static ssize_t store_early_demand(struct cpufreq_policy *policy,
+		const char *buf, size_t count)
+{
+	struct dbs_data *dbs_data = policy->governor_data;
+	struct od_dbs_tuners *od_tuners = dbs_data->tuners;
+	unsigned int input;
+	int ret;
+
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+	od_tuners->early_demand = !!input;
+	return count;
+}
+
 show_one(od, sampling_rate, sampling_rate);
 show_one(od, io_is_busy, io_is_busy);
 show_one(od, up_threshold, up_threshold);
 show_one(od, sampling_down_factor, sampling_down_factor);
 show_one(od, ignore_nice, ignore_nice);
 show_one(od, powersave_bias, powersave_bias);
+show_one(od, grad_up_threshold, grad_up_threshold);
+show_one(od, early_demand, early_demand);
 declare_show_sampling_rate_min();
 
 cpufreq_freq_attr_rw(sampling_rate);
@@ -459,6 +510,8 @@ cpufreq_freq_attr_rw(up_threshold);
 cpufreq_freq_attr_rw(sampling_down_factor);
 cpufreq_freq_attr_rw(ignore_nice);
 cpufreq_freq_attr_rw(powersave_bias);
+cpufreq_freq_attr_rw(grad_up_threshold);
+cpufreq_freq_attr_rw(early_demand);
 cpufreq_freq_attr_ro(sampling_rate_min);
 
 static struct attribute *dbs_attributes[] = {
@@ -469,6 +522,8 @@ static struct attribute *dbs_attributes[] = {
 	&ignore_nice.attr,
 	&powersave_bias.attr,
 	&io_is_busy.attr,
+	&grad_up_threshold.attr,
+	&early_demand.attr,
 	NULL
 };
 
@@ -516,9 +571,11 @@ static int od_init(struct dbs_data *dbs_data)
 	}
 
 	tuners->sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR;
+	tuners->grad_up_threshold = DEF_GRAD_UP_THRESHOLD;
 	tuners->ignore_nice = 0;
 	tuners->powersave_bias = 0;
 	tuners->io_is_busy = should_io_be_busy();
+	tuners->early_demand = 0;
 
 	dbs_data->tuners = tuners;
 	mutex_init(&dbs_data->mutex);

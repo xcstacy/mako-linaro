@@ -96,6 +96,7 @@ struct od_cpu_dbs_info_s {
 	unsigned int freq_hi_jiffies;
 	unsigned int rate_mult;
 	unsigned int sample_type:1;
+	unsigned int prev_load_freq;
 };
 
 struct cs_cpu_dbs_info_s {
@@ -114,6 +115,8 @@ struct od_dbs_tuners {
 	unsigned int adj_up_threshold;
 	unsigned int powersave_bias;
 	unsigned int io_is_busy;
+	unsigned int grad_up_threshold;
+	unsigned int early_demand;
 };
 
 struct cs_dbs_tuners {

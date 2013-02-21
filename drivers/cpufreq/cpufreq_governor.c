@@ -322,6 +322,7 @@ int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		} else {
 			od_dbs_info->rate_mult = 1;
 			od_dbs_info->sample_type = OD_NORMAL_SAMPLE;
+			od_dbs_info->prev_load_freq = 0;
 			od_ops->powersave_bias_init_cpu(cpu);
 		}
 
