@@ -253,6 +253,9 @@ int cpufreq_governor_dbs(struct dbs_data *dbs_data,
 
 			cpufreq_register_notifier(ops->notifier_block,
 					CPUFREQ_TRANSITION_NOTIFIER);
+
+			dbs_data->min_sampling_rate = MIN_SAMPLING_RATE_RATIO *
+				jiffies_to_usecs(10);
 		} else {
 			struct od_ops *ops = dbs_data->gov_ops;
 
@@ -260,8 +263,10 @@ int cpufreq_governor_dbs(struct dbs_data *dbs_data,
 		}
 
 		/* Bring kernel and HW constraints together */
-		dbs_data->min_sampling_rate = 40000;
-		*sampling_rate = dbs_data->min_sampling_rate;
+		dbs_data->min_sampling_rate = max(dbs_data->min_sampling_rate,
+				MIN_LATENCY_MULTIPLIER * latency);
+		*sampling_rate = max(dbs_data->min_sampling_rate, latency *
+				LATENCY_MULTIPLIER);
 
 second_time:
 		if (dbs_data->governor == GOV_CONSERVATIVE) {
