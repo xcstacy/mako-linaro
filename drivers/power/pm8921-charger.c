@@ -84,7 +84,7 @@
 /* check EOC every 10 seconds */
 #define EOC_CHECK_PERIOD_MS	10000
 /* check for USB unplug every 200 msecs */
-#define UNPLUG_CHECK_WAIT_PERIOD_MS 200
+#define UNPLUG_CHECK_WAIT_PERIOD_MS 1000
 /* wait for 1s to complete the chg gone handling */
 #define CHG_GONE_WAIT_TIMEOUT 1000
 
@@ -1729,54 +1729,9 @@ void pm8921_charger_vbus_draw(unsigned int mA)
 {
 	unsigned long flags;
 
-	pr_debug("Enter charge=%d\n", mA);
-
-	if (!the_chip) {
-		pr_err("chip not yet initalized\n");
-		return;
-	}
-
-	/*
-	 * Reject VBUS requests if USB connection is the only available
-	 * power source. This makes sure that if booting without
-	 * battery the iusb_max value is not decreased avoiding potential
-	 * brown_outs.
-	 *
-	 * This would also apply when the battery has been
-	 * removed from the running system.
-	 */
-	if (!get_prop_batt_present(the_chip)
-		&& !is_dc_chg_plugged_in(the_chip)) {
-		if (!the_chip->has_dc_supply) {
-			pr_err("rejected: no other power source connected\n");
-			return;
-		}
-	}
-
-	if (usb_max_current && mA > usb_max_current) {
-		pr_warn("restricting usb current to %d instead of %d\n",
-					usb_max_current, mA);
-		mA = usb_max_current;
-	}
-	if (usb_target_ma == 0 && mA > USB_WALL_THRESHOLD_MA)
-		usb_target_ma = mA;
-
 	spin_lock_irqsave(&vbus_lock, flags);
-	if (the_chip) {
-		if (mA > USB_WALL_THRESHOLD_MA)
-			__pm8921_charger_vbus_draw(USB_WALL_THRESHOLD_MA);
-		else
-			__pm8921_charger_vbus_draw(mA);
-	} else {
-		/*
-		 * called before pmic initialized,
-		 * save this value and use it at probe
-		 */
-		if (mA > USB_WALL_THRESHOLD_MA)
-			usb_chg_current = USB_WALL_THRESHOLD_MA;
-		else
-			usb_chg_current = mA;
-	}
+	if (mA > USB_WALL_THRESHOLD_MA)
+		__pm8921_charger_vbus_draw(mA);
 	spin_unlock_irqrestore(&vbus_lock, flags);
 }
 EXPORT_SYMBOL_GPL(pm8921_charger_vbus_draw);
