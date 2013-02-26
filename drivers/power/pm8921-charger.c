@@ -1730,8 +1730,7 @@ void pm8921_charger_vbus_draw(unsigned int mA)
 	unsigned long flags;
 
 	spin_lock_irqsave(&vbus_lock, flags);
-	if (mA > USB_WALL_THRESHOLD_MA)
-		__pm8921_charger_vbus_draw(mA);
+	__pm8921_charger_vbus_draw(mA);
 	spin_unlock_irqrestore(&vbus_lock, flags);
 }
 EXPORT_SYMBOL_GPL(pm8921_charger_vbus_draw);
