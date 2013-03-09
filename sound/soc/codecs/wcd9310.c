@@ -8412,6 +8412,10 @@ void update_headset_volume_boost(int vol_boost)
 }
 #endif
 
+#ifdef CONFIG_SOUND_CONTROL_HAX_GPL
+struct snd_kcontrol_new *gpl_faux_snd_controls_ptr =
+		(struct snd_kcontrol_new *)tabla_snd_controls;
+#endif
 
 static int tabla_codec_probe(struct snd_soc_codec *codec)
 {
