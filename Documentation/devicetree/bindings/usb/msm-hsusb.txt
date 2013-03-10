@@ -51,6 +51,53 @@ Example HSUSB OTG controller device node :
 		qcom,hsusb-otg-power-budget = <500>;
 		qcom,hsusb-otg-pclk-src-name = "dfab_usb_clk";
 		qcom,hsusb-otg-pmic-id-irq = <47>
+<<<<<<< HEAD
+=======
+		qcom,hsusb-otg-lpm-on-dev-suspend;
+		qcom,hsusb-otg-clk-always-on-workaround;
+		hsusb_vdd_dig-supply = <&pm8226_s1_corner>;
+                HSUSB_1p8-supply = <&pm8226_l10>;
+                HSUSB_3p3-supply = <&pm8226_l20>;
+		qcom,vdd-voltage-level = <1 5 7>;
+
+		qcom,msm_bus,name = "usb2";
+		qcom,msm_bus,num_cases = <2>;
+		qcom,msm_bus,active_only = <0>;
+		qcom,msm_bus,num_paths = <1>;
+		qcom,msm_bus,vectors =
+				<87 512 0 0>,
+				<87 512 60000000 960000000>;
+	};
+
+MSM HSUSB EHCI controller
+
+Required properties :
+- compatible : should be "qcom,ehci-host"
+- reg : offset and length of the register set in the memory map
+- interrupts: IRQ lines used by this controller
+- interrupt-names : Required interrupt resource entries are:
+            HSUSB EHCI expects "core_irq" and optionally "async_irq".
+- <supply-name>-supply: handle to the regulator device tree node
+  Required "supply-name" is "HSUSB_VDDCX" "HSUSB_1p8-supply" "HSUSB_3p3-supply".
+- qcom,usb2-power-budget: maximum vbus power (in mA) that can be provided.
+
+Optional properties :
+- qcom,usb2-enable-hsphy2: If present, select second PHY for USB operation.
+- qcom,pool-64-bit-align: If present then the pool's memory will be aligned
+  to 64 bits
+
+Example MSM HSUSB EHCI controller device node :
+	ehci: qcom,ehci-host@f9a55000 {
+		compatible = "qcom,ehci-host";
+		reg = <0xf9a55000 0x400>;
+		interrupts = <0 134 0>, <0 140 0>;
+		interrupt-names = "core_irq", "async_irq";
+		HSUSB_VDDCX-supply = <&pm8841_s2>;
+		HSUSB_1p8-supply = <&pm8941_l6>;
+		HSUSB_3p3-supply = <&pm8941_l24>;
+		qcom,usb2-enable-hsphy2;
+		qcom,usb2-power-budget = <500>;
+>>>>>>> 36a0c85... usb: ehci: update 64 bit align use-case
 	};
 
 BAM:
