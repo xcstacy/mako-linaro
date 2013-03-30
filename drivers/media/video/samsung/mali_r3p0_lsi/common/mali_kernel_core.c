@@ -66,7 +66,7 @@ static u32 first_pp_offset = 0;
 
 /* timer related */
 int mali_max_job_runtime = WATCHDOG_MSECS_DEFAULT;
-extern int mali_hang_check_interval;
+int mali_hang_check_interval = HANG_CHECK_MSECS_DEFAULT;
 
 static _mali_osk_resource_t *mali_find_resource(_mali_osk_resource_type_t type, u32 offset)
 {

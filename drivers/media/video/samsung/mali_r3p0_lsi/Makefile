@@ -165,7 +165,7 @@ else
 endif
 
 # Target build file
-obj-$(CONFIG_MALI_R3P0_LSI)		+= mali.o
+obj-$(CONFIG_VIDEO_MALI400MP)		+= mali.o
 
 # Use our defines when compiling
 # MALI

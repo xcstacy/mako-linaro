@@ -36,7 +36,7 @@ else ifeq ($(CONFIG_MACH_SMDKV310), y)
 obj-$(CONFIG_VIDEO_MALI400MP)	+= mali/
 else
 obj-$(CONFIG_VIDEO_MALI400MP)	+= mali/
-obj-$(CONFIG_MALI_R3P0_LSI)	+= mali_r3p0_lsi/
+obj-$(CONFIG_VIDEO_MALI400MP)	+= mali_cm/
 endif
 
 obj-$(CONFIG_VIDEO_MALI400MP_R2P3)	+= mali_r2p3/

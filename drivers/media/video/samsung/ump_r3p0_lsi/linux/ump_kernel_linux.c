@@ -376,28 +376,21 @@ static int ump_file_ioctl(struct inode *inode, struct file *filp, unsigned int c
 			break;
 
 		case UMP_IOC_CACHE_OPERATIONS_CONTROL:
-SAMSUNGROM	err = ump_ion_import_wrapper((u32 __user *)argument, session_data);
-else		err = ump_cache_operations_control_wrapper((u32 __user *)argument, session_data);
+			err = ump_cache_operations_control_wrapper((u32 __user *)argument, session_data);
 			break;
 
 		case UMP_IOC_SWITCH_HW_USAGE:
-AOSPROM
-{
 			err = ump_switch_hw_usage_wrapper((u32 __user *)argument, session_data);
 			break;
-}
+
 		case UMP_IOC_LOCK:
-AOSPROM
-{
 			err = ump_lock_wrapper((u32 __user *)argument, session_data);
 			break;
-}
+
 		case UMP_IOC_UNLOCK:
-AOSPROM
-{
 			err = ump_unlock_wrapper((u32 __user *)argument, session_data);
 			break;
-}
+
 		default:
 			DBG_MSG(1, ("No handler for IOCTL. cmd: 0x%08x, arg: 0x%08lx\n", cmd, arg));
 			err = -EFAULT;

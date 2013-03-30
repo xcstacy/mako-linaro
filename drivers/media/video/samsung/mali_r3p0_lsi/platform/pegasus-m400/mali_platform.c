@@ -51,14 +51,14 @@
 #define CLK_DIV_STAT_G3D 	0x1003C62C
 #define CLK_DESC 			"clk-divider-status"
 
-#define MALI_BOTTOMLOCK_VOL	600000
+#define MALI_BOTTOMLOCK_VOL	900000
 
 typedef struct mali_runtime_resumeTag{
 	int clk;
 	int vol;
 }mali_runtime_resume_table;
 
-mali_runtime_resume_table mali_runtime_resume = {266, 900000};
+mali_runtime_resume_table mali_runtime_resume = {350, 950000};
 
 /* lock/unlock CPU freq by Mali */
 extern int cpufreq_lock_by_mali(unsigned int freq);
@@ -84,11 +84,11 @@ static struct clk  *mali_clock = 0;
 
 static unsigned int GPU_MHZ	= 1000000;
 
-extern int mali_gpu_clk;
-extern int mali_gpu_vol;
+int mali_gpu_clk = 350;
+int mali_gpu_vol = 950000;
 
 #if MALI_DVFS_ENABLED
-#define MALI_DVFS_DEFAULT_STEP 0
+#define MALI_DVFS_DEFAULT_STEP 2
 #endif
 #if MALI_VOLTAGE_LOCK
 int mali_lock_vol = 0;
@@ -96,7 +96,7 @@ static _mali_osk_atomic_t voltage_lock_status;
 static mali_bool mali_vol_lock_flag = 0;
 #endif
 
-extern int  gpu_power_state;
+int  gpu_power_state;
 static int bPoweroff;
 
 #ifdef CONFIG_REGULATOR
@@ -171,7 +171,6 @@ void mali_regulator_set_voltage(int min_uV, int max_uV)
 	min_uV = mali_gpu_vol;
 	max_uV = mali_gpu_vol;
 #endif
-/*
 #if MALI_VOLTAGE_LOCK
 	if (mali_vol_lock_flag == MALI_FALSE) {
 		if (min_uV < MALI_BOTTOMLOCK_VOL || max_uV < MALI_BOTTOMLOCK_VOL) {
@@ -194,7 +193,6 @@ void mali_regulator_set_voltage(int min_uV, int max_uV)
 		}
 	}
 #endif
-*/
 
 	_mali_osk_lock_wait(mali_dvfs_lock, _MALI_OSK_LOCKMODE_RW);
 
@@ -246,7 +244,6 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 				MALI_PRINT( ("MALI Error : failed to get source ext_xtal_clock\n"));
 				return MALI_FALSE;
 			}
-			clk_enable(ext_xtal_clock);
 		}
 
 		if (vpll_src_clock == NULL)
@@ -256,7 +253,6 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 				MALI_PRINT( ("MALI Error : failed to get source vpll_src_clock\n"));
 				return MALI_FALSE;
 			}
-			clk_enable(vpll_src_clock);
 		}
 
 		if (fout_vpll_clock == NULL)
@@ -266,7 +262,6 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 				MALI_PRINT( ("MALI Error : failed to get source fout_vpll_clock\n"));
 				return MALI_FALSE;
 			}
-			clk_enable(fout_vpll_clock);
 		}
 
 		if (sclk_vpll_clock == NULL)
@@ -276,7 +271,6 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 				MALI_PRINT( ("MALI Error : failed to get source sclk_vpll_clock\n"));
 				return MALI_FALSE;
 			}
-			clk_enable(sclk_vpll_clock);
 		}
 
 		if (mali_parent_clock == NULL)
@@ -287,7 +281,6 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 				MALI_PRINT( ( "MALI Error : failed to get source mali parent clock\n"));
 				return MALI_FALSE;
 			}
-			clk_enable(mali_parent_clock);
 		}
 	}
 	else // mpll
@@ -533,7 +526,7 @@ static _mali_osk_errcode_t enable_mali_clocks(void)
 	err = clk_enable(mali_clock);
 	MALI_DEBUG_PRINT(3,("enable_mali_clocks mali_clock %p error %d \n", mali_clock, err));
 
-#if 0
+#if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 #if MALI_DVFS_ENABLED
 	// set clock rate
 	if (get_mali_dvfs_control_status() != 0 || mali_gpu_clk >= mali_runtime_resume.clk)
@@ -545,10 +538,8 @@ static _mali_osk_errcode_t enable_mali_clocks(void)
 	}
 #if CPUFREQ_LOCK_DURING_440
 	/* lock/unlock CPU freq by Mali */
-	if (mali_gpu_clk >= 533)
+	if (mali_gpu_clk == 440)
 		err = cpufreq_lock_by_mali(1200);
-	else if (mali_gpu_clk == 440)
-		err = cpufreq_lock_by_mali(1000);
 #endif
 #else
 	mali_regulator_set_voltage(mali_runtime_resume.vol, mali_runtime_resume.vol);
