@@ -142,13 +142,13 @@ static int os_allocate(void* ctx, ump_dd_mem * descriptor)
 
 		if (is_cached)
 		{
-SAMSUNGROM
+OLDMALI
 			new_page = alloc_page(GFP_KERNEL | __GFP_ZERO | __GFP_NOWARN);
 else
 			new_page = alloc_page(GFP_KERNEL | __GFP_ZERO | __GFP_NORETRY | __GFP_NOWARN );
 		} else
 		{
-SAMSUNGROM
+OLDMALI
 			new_page = alloc_page(GFP_KERNEL | __GFP_ZERO | __GFP_NOWARN | __GFP_COLD);
 else
 			new_page = alloc_page(GFP_KERNEL | __GFP_ZERO | __GFP_NORETRY | __GFP_NOWARN | __GFP_COLD);
