@@ -399,7 +399,7 @@ static int set_min_freq_index(const char *val, const struct kernel_param *kp)
 	return ret;
 }
 
-static struct kernel_param_ops module_ops_enabled = {
+static struct kernel_param_ops module_ops = {
 	.set = set_enabled,
 	.get = param_get_bool,
 };
@@ -419,7 +419,7 @@ static struct kernel_param_ops module_ops_min_freq_index = {
 	.get = param_get_uint,
 };
 
-module_param_cb(enabled, &module_ops_enabled, &enabled, 0775);
+module_param_cb(enabled, &module_ops, &enabled, 0775);
 MODULE_PARM_DESC(enabled, "msm_thermal enforce limit on cpu (Y/N)");
 
 module_param_cb(thermal_debug, &module_ops_debug, &thermal_debug, 0775);
