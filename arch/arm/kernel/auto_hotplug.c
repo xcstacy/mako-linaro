@@ -192,7 +192,7 @@ static int min_online_cpus_set(const char *arg, const struct kernel_param *kp)
     ///at least 1 core must run even if set value is out of range
     if ((min_online_cpus < 1) || (min_online_cpus > CPUS_AVAILABLE))
         min_online_cpus = 1;
-    
+
     return ret;
 }
 
@@ -353,7 +353,7 @@ static void hotplug_decision_work_fn(struct work_struct *work)
 			flags |= HOTPLUG_PAUSED;
 			if (delayed_work_pending(&hotplug_offline_work))
 				cancel_delayed_work(&hotplug_offline_work);
-			schedule_work(&hotplug_online_all_work);
+			schedule_work_on(0, &hotplug_online_all_work);
 			return;
 		} else if (flags & HOTPLUG_PAUSED) {
 			schedule_delayed_work_on(0, &hotplug_decision_work, min_sampling_rate_in_jiffies);
@@ -389,7 +389,7 @@ static void __cpuinit hotplug_online_all_work_fn(struct work_struct *work)
 {
 	int cpu;
 	for_each_possible_cpu(cpu) {
-		if (likely(!cpu_online(cpu))) {
+		if (likely(!cpu_online(cpu)) && (cpu)) {
 			cpu_up(cpu);
 			if (debug)
 				pr_info("auto_hotplug: CPU%d up.\n", cpu);
@@ -419,13 +419,11 @@ static void __cpuinit hotplug_online_single_work_fn(struct work_struct *work)
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
-		if (cpu) {
-			if (!cpu_online(cpu)) {
-				cpu_up(cpu);
+		if (likely(!cpu_online(cpu) && (cpu))) {
+			cpu_up(cpu);
 				if (debug)
 					pr_info("auto_hotplug: CPU%d up.\n", cpu);
 				break;
-			}
 		}
 	}
 	schedule_delayed_work_on(0, &hotplug_decision_work, min_sampling_rate);
@@ -435,7 +433,7 @@ static void hotplug_offline_work_fn(struct work_struct *work)
 {
 	int cpu;
 	for_each_online_cpu(cpu) {
-		if (cpu) {
+		if (likely(cpu_online(cpu) && (cpu))) {
 			cpu_down(cpu);
 			if (debug)
 				pr_info("auto_hotplug: CPU%d down.\n", cpu);
@@ -490,7 +488,7 @@ void hotplug_boostpulse(void)
 		if (likely(online_cpus < 2)) {
 			cancel_delayed_work_sync(&hotplug_offline_work);
 			flags |= HOTPLUG_PAUSED;
-			schedule_work(&hotplug_online_single_work);
+			schedule_work_on(0, &hotplug_online_single_work);
 			schedule_delayed_work(&hotplug_unpause_work, HZ);
 		} else {
 			if (debug)
