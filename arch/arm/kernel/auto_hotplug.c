@@ -56,13 +56,10 @@
 
 /*
  * Load defines:
- * DEFAULT_ENABLE_ALL_LOAD_THRESHOLD is a default high watermark to rapidly online all CPUs
- *
  * DEFAULT_ENABLE_LOAD_THRESHOLD is the default load which is required to enable 1 extra CPU
  * DEFAULT_DISABLE_LOAD_THRESHOLD is the default load at which a CPU is disabled
  * These two are scaled based on num_online_cpus()
  */
-#define DEFAULT_ENABLE_ALL_LOAD_THRESHOLD	(100 * CPUS_AVAILABLE)
 #define DEFAULT_ENABLE_LOAD_THRESHOLD		200
 #define DEFAULT_DISABLE_LOAD_THRESHOLD		80
 
@@ -80,7 +77,6 @@ unsigned char flags;
  */
 static unsigned int debug = 0;
 
-static unsigned int enable_all_load_threshold;
 static unsigned int enable_load_threshold = DEFAULT_ENABLE_LOAD_THRESHOLD;
 static unsigned int disable_load_threshold = DEFAULT_DISABLE_LOAD_THRESHOLD;
 static unsigned int min_sampling_rate = DEFAULT_MIN_SAMPLING_RATE;
@@ -100,24 +96,6 @@ struct work_struct hotplug_boost_online_work;
 
 static unsigned int *history;
 static unsigned int index;
-
-static int set_enable_all_load_threshold(const char *val, const struct kernel_param *kp)
-{
-	int ret = 0;
-	long num;
-
-	if (!val)
-		return -EINVAL;
-
-	ret = strict_strtol(val, 0, &num);
-	if (ret == -EINVAL || num > 550 || num < 270)
-		return -EINVAL;
-
-	ret = param_set_int(val, kp);
-	pr_info("auto_hotplug: enable_all_load_threshold = %d\n", enable_all_load_threshold);
-
-	return ret;
-}
 
 static int set_enable_load_threshold(const char *val, const struct kernel_param *kp)
 {
@@ -241,11 +219,6 @@ static struct kernel_param_ops max_online_cpus_ops = {
     .get = param_get_uint,
 };
 
-static struct kernel_param_ops module_ops_enable_all_load_threshold = {
-	.set = set_enable_all_load_threshold,
-	.get = param_get_uint,
-};
-
 static struct kernel_param_ops module_ops_enable_load_threshold = {
 	.set = set_enable_load_threshold,
 	.get = param_get_uint,
@@ -270,9 +243,6 @@ static struct kernel_param_ops module_ops_sampling_periods = {
 	.set = set_sampling_periods,
 	.get = param_get_uint,
 };
-
-module_param_cb(enable_all_load_threshold, &module_ops_enable_all_load_threshold, &enable_all_load_threshold, 0775);
-MODULE_PARM_DESC(enable_all_load_threshold, "auto_hotplug load threshold to rapidly online all CPUs (270-550)");
 
 module_param_cb(enable_load_threshold, &module_ops_enable_load_threshold, &enable_load_threshold, 0775);
 MODULE_PARM_DESC(enable_load_threshold, "auto_hotplug load threshold to enable one CPU (130-250)");
@@ -368,9 +338,9 @@ static void hotplug_decision_work_fn(struct work_struct *work)
 		pr_info("average load: %d\n", avg_running);
 
 	if (likely(!(flags & HOTPLUG_DISABLED))) {
-		if (unlikely((avg_running >= enable_all_load_threshold) && (online_cpus < available_cpus) && (max_online_cpus > online_cpus))) {
+		if (unlikely((avg_running >= enable_load) && (online_cpus < available_cpus) && (max_online_cpus > online_cpus))) {
 			if (debug)
-				pr_info("auto_hotplug: Onlining all CPUs, avg running: %d\n", avg_running);
+				pr_info("auto_hotplug: Onlining secondary CPU, avg running: %d\n", avg_running);
 
 			/*
 			 * Flush any delayed offlining work from the workqueue.
@@ -387,13 +357,6 @@ static void hotplug_decision_work_fn(struct work_struct *work)
 			return;
 		} else if (flags & HOTPLUG_PAUSED) {
 			schedule_delayed_work_on(0, &hotplug_decision_work, min_sampling_rate_in_jiffies);
-			return;
-		} else if ((avg_running >= enable_load) && (online_cpus < available_cpus) && (max_online_cpus > online_cpus)) {
-			if (debug)
-				pr_info("auto_hotplug: Onlining single CPU, avg running: %d\n", avg_running);
-			if (delayed_work_pending(&hotplug_offline_work))
-				cancel_delayed_work(&hotplug_offline_work);
-			schedule_work(&hotplug_online_single_work);
 			return;
 		} else if ((avg_running <= disable_load) && (min_online_cpus < online_cpus)) {
 			/* Only queue a cpu_down() if there isn't one already pending */
@@ -594,7 +557,6 @@ int __init auto_hotplug_init(void)
 	history = kmalloc(live_sampling_periods * sizeof(int),GFP_KERNEL);
 
 	/* Placing these here to avoid a compiler warning */
-	enable_all_load_threshold = DEFAULT_ENABLE_ALL_LOAD_THRESHOLD;
 	max_online_cpus = num_possible_cpus();
 
 	INIT_DELAYED_WORK(&hotplug_decision_work, hotplug_decision_work_fn);
