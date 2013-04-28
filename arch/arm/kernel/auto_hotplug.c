@@ -46,7 +46,7 @@
  * SAMPLING_PERIODS * MIN_SAMPLING_RATE is the minimum
  * load history which will be averaged
  */
-#define DEFAULT_SAMPLING_PERIODS	10
+#define DEFAULT_SAMPLING_PERIODS	15
 
 /*
  * DEFAULT_MIN_SAMPLING_RATE is the base minimum sampling rate
@@ -60,8 +60,8 @@
  * DEFAULT_DISABLE_LOAD_THRESHOLD is the default load at which a CPU is disabled
  * These two are scaled based on num_online_cpus()
  */
-#define DEFAULT_ENABLE_LOAD_THRESHOLD		200
-#define DEFAULT_DISABLE_LOAD_THRESHOLD		80
+#define DEFAULT_ENABLE_LOAD_THRESHOLD		180
+#define DEFAULT_DISABLE_LOAD_THRESHOLD		60
 
 /* Control flags */
 unsigned char flags;
