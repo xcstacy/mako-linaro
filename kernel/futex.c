@@ -139,6 +139,26 @@ static const struct futex_q futex_q_init = {
 	.bitset = FUTEX_BITSET_MATCH_ANY
 };
 
+/**
+ * struct futex_h - The hashed condvar helper entry, one per helping task
+ * @list:		priority-sorted list of tasks helping on this condvar
+ * @task:		the task helping the condvar
+ * @lock_ptr:		the hash bucket lock
+ * @key:		the key the futex is hashed on
+ */
+struct futex_h {
+	struct plist_node list;
+
+	struct task_struct *task;
+	spinlock_t *lock_ptr;
+	union futex_key key;
+};
+
+static const struct futex_h futex_h_init = {
+	/* TODO list gets initialized in where? */
+	.key = FUTEX_KEY_INIT,
+};
+
 /*
  * Hash buckets are shared by all the futex_keys that hash to the same
  * location.  Each key may have multiple futex_q structures, one for each task
@@ -150,6 +170,13 @@ struct futex_hash_bucket {
 };
 
 static struct futex_hash_bucket futex_queues[1<<FUTEX_HASHBITS];
+
+/*
+ * Helper tasks for a certain condvar. Same as above, hash buckets may
+ * contain futex_h structures "helping" different condvars. Each futex_h
+ * is associated with a single helper task.
+ */
+static struct futex_hash_bucket futex_helpers[1<<FUTEX_HASHBITS];
 
 /*
  * We hash on the keys returned from get_futex_key (see below).
