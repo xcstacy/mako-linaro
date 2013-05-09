@@ -155,7 +155,7 @@ struct futex_h {
 };
 
 static const struct futex_h futex_h_init = {
-	/* TODO list gets initialized in where? */
+	/* list gets initialized in add_helper() */
 	.key = FUTEX_KEY_INIT,
 };
 
@@ -187,6 +187,17 @@ static struct futex_hash_bucket *hash_futex(union futex_key *key)
 			  (sizeof(key->both.word)+sizeof(key->both.ptr))/4,
 			  key->both.offset);
 	return &futex_queues[hash & ((1 << FUTEX_HASHBITS)-1)];
+}
+
+/*
+ * We hash on the keys returned from get_futex_key (same as above).
+ */
+static struct futex_hash_bucket *hash_futex_h(union futex_key *key)
+{
+	u32 hash = jhash2((u32*)&key->both.word,
+			  (sizeof(key->both.word)+sizeof(key->both.ptr))/4,
+			  key->both.offset);
+	return &futex_helpers[hash & ((1 << FUTEX_HASHBITS)-1)];
 }
 
 /*
@@ -2446,6 +2457,133 @@ out:
 	return ret;
 }
 
+/**
+ * add_helper() - Add the futex_h to the futex_hash_bucket
+ * @h:	The futex_h to enqueue
+ * @hb:	The destination hash bucket
+ *
+ * The hb->lock must be held by the caller, and is released here. 
+ */
+static inline void add_helper(struct futex_h *h, struct futex_hash_bucket *hb)
+	__releases(&hb->lock)
+{
+	int prio;
+
+	/*
+	 * The priority used to register this element is
+	 * - either the real thread-priority for the real-time threads
+	 * (i.e. threads with a priority lower than MAX_RT_PRIO)
+	 * - or MAX_RT_PRIO for non-RT threads.
+	 */
+	prio = min(current->normal_prio, MAX_RT_PRIO);
+
+	plist_node_init(&h->list, prio);
+	plist_add(&h->list, &hb->chain);
+	spin_unlock(&hb->lock);
+}
+
+/**
+ * del_helper() - Remove the futex_h from its futex_hash_bucket
+ * @h:	The futex_h to unqueue
+ *
+ * The h->lock_ptr must not be NULL and must be held by the caller.
+ */
+static void del_helper(struct futex_h *h)
+{
+	struct futex_hash_bucket *hb;
+
+	if (WARN_ON_SMP(!h->lock_ptr || !spin_is_locked(h->lock_ptr))
+	    || WARN_ON(plist_node_empty(&h->list)))
+		return;
+
+	hb = container_of(h->lock_ptr, struct futex_hash_bucket, lock);
+	plist_del(&h->list, &hb->chain);
+}
+
+/*
+ * Associate an helper task to this futex.
+ * @uaddr:	the futex
+ * @pid:	PID of the helper task
+ *
+ * Return:
+ *  0 - On success;
+ * <0 - On error
+ */
+static int futex_helper_add(struct futex_hash_bucket *hb, int pid)
+{
+	struct task_struct *p;
+	struct futex_h helper = futex_h_init;
+
+	p = futex_find_get_task(pid);
+	if (!p)
+		return -ESRCH;
+
+	helper.task = p;
+	add_helper(&helper, hb);
+
+	return 0;
+}
+
+/*
+ * Delete an helper task of this futex.
+ * @uaddr:	the futex
+ * @pid:	PID of the helper task
+ *
+ * Return:
+ *  0 - On success;
+ * <0 - On error
+ */
+static int futex_helper_delete(struct plist_head *head, union futex_key *key, int pid)
+{
+	struct futex_h *this, *next;
+	int ret = 1;
+
+	plist_for_each_entry_safe(this, next, head, list) {
+		if (match_futex (&this->key, key) && (this->task->pid == pid)) {
+			del_helper(this);
+			ret = 0;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+/*
+ * Manage an helper task of this futex (add/del).
+ * @uaddr:	the futex
+ * @pid:	PID of the helper task
+ * @ad:		add or delete?
+ *
+ * Return:
+ *  0 - On success;
+ * <0 - On error
+ */
+static int futex_helper_manage(u32 __user *uaddr, unsigned int flags, int pid, int ad)
+{
+	struct futex_hash_bucket *hb;
+	struct plist_head *head;
+	union futex_key key = FUTEX_KEY_INIT;
+	int ret;
+
+	ret = get_futex_key(uaddr, flags & FLAGS_SHARED, &key, VERIFY_READ);
+	if (unlikely(ret != 0))
+		goto out;
+
+	hb = hash_futex_h(&key);
+	spin_lock(&hb->lock);
+	head = &hb->chain;
+
+	if (ad)
+		ret = futex_helper_add(hb, pid);
+	else
+		ret = futex_helper_delete(head, &key, pid);
+	
+	put_futex_key(&key);
+out:
+	return ret;
+}
+
 /*
  * Support for robust futexes: the kernel cleans up held futexes at
  * thread exit time.
@@ -2717,6 +2855,8 @@ long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
 					     uaddr2);
 	case FUTEX_CMP_REQUEUE_PI:
 		return futex_requeue(uaddr, flags, uaddr2, val, val2, &val3, 1);
+	case FUTEX_COND_HELPER_MAN:
+		return futex_helper_manage(uaddr, flags, val, val2);
 	}
 	return -ENOSYS;
 }
