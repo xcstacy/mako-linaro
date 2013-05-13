@@ -123,6 +123,8 @@ struct futex_pi_state {
  */
 struct futex_q {
 	struct plist_node list;
+	/* Queued up on helper tasks cv_waiters list */
+	struct plist_node pi_list;
 
 	struct task_struct *task;
 	spinlock_t *lock_ptr;
@@ -1808,6 +1810,215 @@ out:
 	return ret ? ret : locked;
 }
 
+static inline bool tsk_is_cond_waiter(struct task_struct *tsk)
+{
+	return tsk->cond_waiter != NULL;
+}
+
+static inline int task_has_cv_waiters(struct task_struct *p)
+{
+	return !plist_head_empty(&p->cv_waiters);
+}
+
+static inline struct futex_q *
+task_top_cv_waiter(struct task_struct *p)
+{
+	return plist_first_entry(&p->cv_waiters, struct futex_q,
+				 pi_list);
+}
+
+/**
+ * helper_adjust_prio() - helper got a new waiter, adjust priority
+ *
+ * @task:	the helper task
+ * @prio:	new priority for it
+ */
+static void helper_adjust_prio(struct task_struct *task)
+{
+	unsigned long flags;
+	int prio, rt_prio = 0, cv_prio = 0;
+
+	if (task_has_pi_waiters(task))
+		rt_prio = task_top_pi_waiter(task)->task->prio;
+	
+	if (task_has_cv_waiters(task))
+		cv_prio = task_top_cv_waiter(task)->task->prio;
+	
+	prio = (rt_prio > cv_prio) ? rt_prio : cv_prio;
+	prio = (task->normal_prio < prio) ? prio : task->normal_prio;
+
+	raw_spin_lock_irqsave(&task->pi_lock, flags);
+
+	rt_mutex_setprio(task, prio);
+
+	if (unlikely(tsk_is_pi_blocked(task))) {
+		/*
+		 * Helper task is blocked on a rt_mutex and its prio
+		 * got modified. Walk the pi_chain to propagate the
+		 * (de)boosting TODO.
+		 */
+		struct rt_mutex_waiter *waiter;
+		struct task_struct *owner;
+		struct rt_mutex *lock;
+
+		waiter = task->pi_blocked_on;
+		lock = waiter->lock;
+		owner = rt_mutex_owner(waiter->lock);
+
+		if (owner->prio < task->prio) {
+			get_task_struct(owner);
+			raw_spin_unlock_irqrestore(&task->pi_lock, flags);
+			rt_mutex_adjust_prio_chain(owner, 0, lock, waiter, task);
+		}
+	}
+
+	if (unlikely(tsk_is_cond_waiter(task))) {
+		/*
+		 * Helper task is itself a waiter for some other condvar.
+		 * Its new prio may have to be propagated to its helpers.
+		 */
+		struct futex_q *waiter;
+		struct futex_hash_bucket *hb;
+		struct futex_h *this, *next;
+		struct plist_head *head;
+
+		waiter = task->cond_waiter;
+		hb = hash_futex_h(&waiter->key);
+		spin_lock(&hb->lock);
+		head = &hb->chain;
+
+		/**
+		 * Scan this task helpers list and check if they should be
+		 * boosted; propagate if necessary.
+		 */
+		raw_spin_unlock_irqrestore(&task->pi_lock, flags);
+		plist_for_each_entry_safe(this, next, head, list) {
+			if (match_futex (&this->key, &waiter->key) &&
+			    (this->task->prio < task->prio))
+				/**
+				 * Recursively adjust prio.
+				 */
+				helper_adjust_prio(this->task);
+		}
+	}
+}
+
+/**
+ * task_blocks_on_condvar() - before we sleep some work has to be done
+ *
+ * @q:	the futex_q of the to be queued task
+ * 
+ * 1) find helpers of the condvar I'm waiting for;
+ * 2) check their current (inherited) prio against (inherited) mine;
+ * 3) if my_prio > helper_prio => propagate (transitively)
+ *
+ */
+static void task_blocks_on_condvar(struct futex_q *q)
+{
+	struct futex_hash_bucket *hb;
+	struct futex_h *this, *next;
+	struct plist_head *head;
+	int waiter_prio;
+
+	/**
+	 * Use q->key to find the futex_helpers hash bucket containing
+	 * q->task helpers list.
+	 */
+	hb = hash_futex_h(&q->key);
+	spin_lock(&hb->lock);
+	head = &hb->chain;
+
+	/**
+	 * q->task could have inherited from someone else, in this case
+	 * we read the "boosted" prio.
+	 */
+	waiter_prio = q->task->prio;
+	
+
+	/**
+	 * Scan helpers list and check if they should be boosted;
+	 * propagate if necessary.
+	 */
+	plist_for_each_entry_safe(this, next, head, list) {
+		if (match_futex (&this->key, &q->key)) {
+			q->pi_list.prio = waiter_prio;
+			plist_add(&q->pi_list, &this->task->cv_waiters);
+			if (this->task->prio < waiter_prio) {
+				/**
+				 * Helper task will be boosted.
+				 */
+				helper_adjust_prio(this->task);
+			}
+		}
+	}
+}
+
+/**
+ * task_wakes_on_condvar() - check if any helper need to be deboosted
+ *
+ * @q:	the futex_q of we were queued with
+ * 
+ * 1) find helpers of the condvar I was waiting for;
+ * 2) transitively deboost (if needed);
+ *
+ */
+static void task_wakes_on_condvar(struct futex_q *q)
+{
+	struct futex_hash_bucket *hb;
+	struct futex_h *this, *next;
+	struct plist_head *head;
+	int waiter_prio;
+
+	/**
+	 * Use q->key to find the futex_helpers hash bucket containing
+	 * q->task helpers list.
+	 */
+	hb = hash_futex_h(&q->key);
+	spin_lock(&hb->lock);
+	head = &hb->chain;
+
+	/**
+	 * q->task could have inherited from someone else, in this case
+	 * we read the "boosted" prio.
+	 */
+	waiter_prio = q->task->prio;
+
+	/**
+	 * Scan helpers list and check if they should be boosted;
+	 * propagate if necessary.
+	 */
+	plist_for_each_entry_safe(this, next, head, list) {
+		if (match_futex (&this->key, &q->key)) {
+			plist_del(&q->pi_list, &this->task->cv_waiters);
+
+			/*
+			 * This helper is not boosted: nothing to do.
+			 */
+			if (this->task->prio == this->task->normal_prio)
+				continue;
+
+			/*
+			 * This helper is boosted holding an rt_mutex. We
+			 * do nothing here as its boosted priority comes
+			 * from an rt_mutex waiter. rt_mutex code is
+			 * responsible for deboosting.
+			 */
+			if (this->task->prio > waiter_prio &&
+			    !task_has_cv_waiters(this->task))
+				continue;
+
+			/*
+			 * This helper is boosted by this cond waiter.
+			 * Deboost it and check if an rt_mutexes chain
+			 * walk is needed (the helper holds some mutex)
+			 * or if it is also helping someone else and
+			 * a priority adjusting is needed.
+			 */
+			helper_adjust_prio(this->task);
+		}
+	}
+}
+
 /**
  * futex_wait_queue_me() - queue_me() and wait for wakeup, timeout, or signal
  * @hb:		the futex hash bucket, must be locked by the caller
@@ -1824,6 +2035,7 @@ static void futex_wait_queue_me(struct futex_hash_bucket *hb, struct futex_q *q,
 	 * access to the hash list and forcing another memory barrier.
 	 */
 	set_current_state(TASK_INTERRUPTIBLE);
+	task_blocks_on_condvar(q);
 	queue_me(q, hb);
 
 	/* Arm the timer */
@@ -1960,6 +2172,7 @@ retry:
 
 	/* queue_me and wait for wakeup, timeout, or a signal. */
 	futex_wait_queue_me(hb, &q, to);
+	task_wakes_on_condvar(&q);
 
 	/* If we were woken (and unqueued), we succeeded, whatever. */
 	ret = 0;

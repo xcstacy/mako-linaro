@@ -96,6 +96,7 @@ struct sched_param {
 struct exec_domain;
 struct futex_pi_state;
 struct robust_list_head;
+struct futex_q;
 struct bio_list;
 struct fs_struct;
 struct perf_event_context;
@@ -1472,6 +1473,16 @@ struct task_struct {
 	struct plist_head pi_waiters;
 	/* Deadlock detection and priority inheritance handling */
 	struct rt_mutex_waiter *pi_blocked_on;
+	/*
+	 * PI-CV handling
+	 *
+	 * cv_waiters: waiters on a condvar this task is helping
+	 *	       to happen
+	 * cond_waiter: pointer to the struct with which this
+	 *		task is queued in a condvar hash bucket
+	 */
+	struct plist_head cv_waiters;
+	struct futex_q *cond_waiter;
 #endif
 
 #ifdef CONFIG_DEBUG_MUTEXES
