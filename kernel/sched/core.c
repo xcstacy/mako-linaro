@@ -7540,6 +7540,7 @@ void __init sched_init(void)
 
 #ifdef CONFIG_RT_MUTEXES
 	plist_head_init(&init_task.pi_waiters);
+	plist_head_init(&init_task.cv_waiters);
 #endif
 
 	/*

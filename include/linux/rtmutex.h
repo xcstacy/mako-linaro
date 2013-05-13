@@ -101,6 +101,7 @@ extern void rt_mutex_unlock(struct rt_mutex *lock);
 #ifdef CONFIG_RT_MUTEXES
 # define INIT_RT_MUTEXES(tsk)						\
 	.pi_waiters	= PLIST_HEAD_INIT(tsk.pi_waiters),	\
+	.cv_waiters	= PLIST_HEAD_INIT(tsk.cv_waiters),	\
 	INIT_RT_MUTEX_DEBUG(tsk)
 #else
 # define INIT_RT_MUTEXES(tsk)

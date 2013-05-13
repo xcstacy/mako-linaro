@@ -116,6 +116,11 @@ extern int rt_mutex_finish_proxy_lock(struct rt_mutex *lock,
 				      struct hrtimer_sleeper *to,
 				      struct rt_mutex_waiter *waiter,
 				      int detect_deadlock);
+extern int rt_mutex_adjust_prio_chain(struct task_struct *task,
+				int deadlock_detect,
+				struct rt_mutex *orig_lock,
+				struct rt_mutex_waiter *orig_waiter,
+				struct task_struct *top_task);
 
 #ifdef CONFIG_DEBUG_RT_MUTEXES
 # include "rtmutex-debug.h"
