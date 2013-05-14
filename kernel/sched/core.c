@@ -3099,6 +3099,20 @@ void thread_group_times(struct task_struct *p, cputime_t *ut, cputime_t *st)
 # define nsecs_to_cputime(__nsecs)	nsecs_to_jiffies(__nsecs)
 #endif
 
+static cputime_t scale_utime(cputime_t utime, cputime_t rtime, cputime_t total)
+{
+	u64 temp = (__force u64) rtime;
+
+	temp *= (__force u64) utime;
+
+	if (sizeof(cputime_t) == 4)
+		do_div(temp, (__force u32) total);
+	else
+		temp = div64_u64(temp, (__force u64) total);
+
+	return (__force cputime_t) temp;
+}
+
 /*
  * Perform (stime * rtime) / total, but avoid multiplication overflow by
  * loosing precision when the numbers are big.
@@ -3186,7 +3200,7 @@ void thread_group_times(struct task_struct *p, cputime_t *ut, cputime_t *st)
 	 * time is bigger than already exported. Note that can happen, that we
 	 * provided bigger values due to scaling inaccuracy on big numbers.
 	 */
-	if (prev->stime + prev->utime >= rtime)
+	if (sig->prev_stime + sig->prev_utime >= rtime)
 		goto out;
 
 	if (total) {
