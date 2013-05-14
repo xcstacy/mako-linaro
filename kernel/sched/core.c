@@ -3178,7 +3178,8 @@ void thread_group_times(struct task_struct *p, cputime_t *ut, cputime_t *st)
 
 	thread_group_cputime(p, &cputime);
 
-	total = cputime.stime + cputime.utime;
+	stime = cputime.stime;
+	total = stime + cputime.utime;
 	rtime = nsecs_to_cputime(cputime.sum_exec_runtime);
 
 	/*
