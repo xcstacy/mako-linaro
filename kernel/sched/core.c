@@ -3099,20 +3099,6 @@ void thread_group_times(struct task_struct *p, cputime_t *ut, cputime_t *st)
 # define nsecs_to_cputime(__nsecs)	nsecs_to_jiffies(__nsecs)
 #endif
 
-static cputime_t scale_utime(cputime_t utime, cputime_t rtime, cputime_t total)
-{
-	u64 temp = (__force u64) rtime;
-
-	temp *= (__force u64) utime;
-
-	if (sizeof(cputime_t) == 4)
-		do_div(temp, (__force u32) total);
-	else
-		temp = div64_u64(temp, (__force u64) total);
-
-	return (__force cputime_t) temp;
-}
-
 /*
  * Perform (stime * rtime) / total, but avoid multiplication overflow by
  * loosing precision when the numbers are big.
@@ -3159,7 +3145,7 @@ drop_precision:
 
 void task_times(struct task_struct *p, cputime_t *ut, cputime_t *st)
 {
-	cputime_t rtime, utime = p->utime, total = utime + p->stime;
+	cputime_t rtime, stime = p->stime, total = stime + p->utime;
 
 	/*
 	 * Use CFS's precise accounting:
@@ -3167,15 +3153,15 @@ void task_times(struct task_struct *p, cputime_t *ut, cputime_t *st)
 	rtime = nsecs_to_cputime(p->se.sum_exec_runtime);
 
 	if (total)
-		utime = scale_utime(utime, rtime, total);
+		stime = scale_stime(stime, rtime, total);
 	else
-		utime = rtime;
+		stime = rtime;
 
 	/*
 	 * Compare with previous values, to keep monotonicity:
 	 */
-	p->prev_utime = max(p->prev_utime, utime);
-	p->prev_stime = max(p->prev_stime, rtime - p->prev_utime);
+	p->prev_stime = max(p->prev_stime, stime);
+	p->prev_utime = max(p->prev_utime, rtime - p->prev_stime);
 
 	*ut = p->prev_utime;
 	*st = p->prev_stime;
