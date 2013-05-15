@@ -1828,10 +1828,10 @@ task_top_cv_waiter(struct task_struct *p)
 }
 
 /**
- * helper_adjust_prio() - helper got a new waiter, adjust priority
+ * helper_adjust_prio() - something changed in the helper's waiters
+ *			  list, adjust priority and check for propagation
  *
  * @task:	the helper task
- * @prio:	new priority for it
  */
 static void helper_adjust_prio(struct task_struct *task)
 {
@@ -1854,22 +1854,12 @@ static void helper_adjust_prio(struct task_struct *task)
 	if (unlikely(tsk_is_pi_blocked(task))) {
 		/*
 		 * Helper task is blocked on a rt_mutex and its prio
-		 * got modified. Walk the pi_chain to propagate the
-		 * (de)boosting TODO.
+		 * got modified. Walk the pi_chain to check for
+		 * (de)boosting.
 		 */
-		struct rt_mutex_waiter *waiter;
-		struct task_struct *owner;
-		struct rt_mutex *lock;
-
-		waiter = task->pi_blocked_on;
-		lock = waiter->lock;
-		owner = rt_mutex_owner(waiter->lock);
-
-		if (owner->prio < task->prio) {
-			get_task_struct(owner);
-			raw_spin_unlock_irqrestore(&task->pi_lock, flags);
-			rt_mutex_adjust_prio_chain(owner, 0, lock, waiter, task);
-		}
+		raw_spin_unlock_irqrestore(&task->pi_lock, flags);
+		get_task_struct(task);
+		rt_mutex_adjust_prio_chain(task, 0, NULL, NULL, task);
 	}
 
 	if (unlikely(tsk_is_cond_waiter(task))) {
@@ -1900,6 +1890,8 @@ static void helper_adjust_prio(struct task_struct *task)
 				 */
 				helper_adjust_prio(this->task);
 		}
+	
+		spin_unlock(&hb->lock);
 	}
 }
 
@@ -1915,18 +1907,10 @@ static void helper_adjust_prio(struct task_struct *task)
  */
 static void task_blocks_on_condvar(struct futex_q *q)
 {
-	struct futex_hash_bucket *hb;
+	struct futex_hash_bucket *h_hb, *q_hb;
 	struct futex_h *this, *next;
-	struct plist_head *head;
-	int waiter_prio;
-
-	/**
-	 * Use q->key to find the futex_helpers hash bucket containing
-	 * q->task helpers list.
-	 */
-	hb = hash_futex_h(&q->key);
-	spin_lock(&hb->lock);
-	head = &hb->chain;
+	struct plist_head *h_head, *q_head;
+	int waiter_prio, first = 0;
 
 	/**
 	 * q->task could have inherited from someone else, in this case
@@ -1934,23 +1918,58 @@ static void task_blocks_on_condvar(struct futex_q *q)
 	 */
 	waiter_prio = q->task->prio;
 	
+	/*
+	 * Am I going to be the new head for this futex waiters list?
+	 */
+	q_hb = hash_futex(&q->key);
+	spin_lock(&q_hb->lock);
+	q_head = &q_hb->chain;
 
-	/**
+	if (plist_first(q_head)->prio < waiter_prio)
+		first = 1;
+
+	/*
+	 * Use q->key to find the futex_helpers hash bucket containing
+	 * q->task helpers list.
+	 */
+	h_hb = hash_futex_h(&q->key);
+	spin_lock(&h_hb->lock);
+	h_head = &h_hb->chain;
+
+	/*
 	 * Scan helpers list and check if they should be boosted;
 	 * propagate if necessary.
 	 */
-	plist_for_each_entry_safe(this, next, head, list) {
+	plist_for_each_entry_safe(this, next, h_head, list) {
 		if (match_futex (&this->key, &q->key)) {
-			q->pi_list.prio = waiter_prio;
-			plist_add(&q->pi_list, &this->task->cv_waiters);
+			/*
+			 * This waiter is a new top waiter for a condvar
+			 * this helper is working on.
+			 * Switch with the old one, associated to the same
+			 * condvar.
+			 */
+			if (first) {
+				plist_del(plist_first(q_head),
+					  &this->task->cv_waiters);
+				q->pi_list.prio = waiter_prio;
+				plist_add(&q->pi_list, &this->task->cv_waiters);
+			}
+
 			if (this->task->prio < waiter_prio) {
-				/**
+				/*
 				 * Helper task will be boosted.
+				 *
+				 * WARNING: this function grabs an helpers list
+				 * hash bucket lock, may deadlock in case of
+				 * an hash collision!!!
 				 */
 				helper_adjust_prio(this->task);
 			}
 		}
 	}
+
+	spin_unlock(&h_hb->lock);
+	spin_unlock(&q_hb->lock);
 }
 
 /**
@@ -1967,8 +1986,22 @@ static void task_wakes_on_condvar(struct futex_q *q)
 	struct futex_hash_bucket *hb;
 	struct futex_h *this, *next;
 	struct plist_head *head;
-	int waiter_prio;
+	int waiter_prio, chain_walk = 0;
 
+	/*
+	 * I'm not a top waiter for this condvar. I have
+	 * nothing to do with priority inheritance.
+	 */
+	hb = hash_futex(&q->key);
+	spin_lock(&hb->lock);
+	head = &hb->chain;
+
+	if (plist_first_entry(head, struct futex_q, list) != q) {
+		spin_unlock(&hb->lock);
+		return;
+	}
+	spin_unlock(&hb->lock);
+			
 	/**
 	 * Use q->key to find the futex_helpers hash bucket containing
 	 * q->task helpers list.
@@ -1984,13 +2017,11 @@ static void task_wakes_on_condvar(struct futex_q *q)
 	waiter_prio = q->task->prio;
 
 	/**
-	 * Scan helpers list and check if they should be boosted;
+	 * Scan helpers list and check if they should be deboosted;
 	 * propagate if necessary.
 	 */
 	plist_for_each_entry_safe(this, next, head, list) {
 		if (match_futex (&this->key, &q->key)) {
-			plist_del(&q->pi_list, &this->task->cv_waiters);
-
 			/*
 			 * This helper is not boosted: nothing to do.
 			 */
@@ -2003,18 +2034,21 @@ static void task_wakes_on_condvar(struct futex_q *q)
 			 * from an rt_mutex waiter. rt_mutex code is
 			 * responsible for deboosting.
 			 */
-			if (this->task->prio > waiter_prio &&
-			    !task_has_cv_waiters(this->task))
+			if (!task_has_cv_waiters(this->task))
 				continue;
 
 			/*
-			 * This helper is boosted by this cond waiter.
-			 * Deboost it and check if an rt_mutexes chain
-			 * walk is needed (the helper holds some mutex)
-			 * or if it is also helping someone else and
-			 * a priority adjusting is needed.
+			 * This helper could be boosted by this cond waiter.
+			 * Delete the waiter from helper's list and check if
+			 * deboosting and a chain walk are needed.
 			 */
-			helper_adjust_prio(this->task);
+			if (plist_first_entry(&this->task->cv_waiters,
+					      struct futex_q, pi_list) == q)
+				chain_walk = 1;
+
+			plist_del(&q->pi_list, &this->task->cv_waiters);
+			if (chain_walk)
+				helper_adjust_prio(this->task);
 		}
 	}
 }
