@@ -1577,8 +1577,8 @@ struct task_struct {
 	/*
 	 * PI-CV handling
 	 *
-	 * cv_waiters: waiters on a condvar this task is helping
-	 *	       to happen
+	 * cv_waiters: waiters for a condition this task is helping
+	 *	       to happen (only the top ones)
 	 * cond_waiter: pointer to the struct with which this
 	 *		task is queued in a condvar hash bucket
 	 */
