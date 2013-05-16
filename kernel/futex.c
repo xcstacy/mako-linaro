@@ -876,6 +876,8 @@ static void __unqueue_futex(struct futex_q *q)
 	plist_del(&q->list, &hb->chain);
 }
 
+static void task_wakes_on_condvar(struct futex_q *q);
+
 /*
  * The hash bucket lock must be held when this is called.
  * Afterwards, the futex_q must not be accessed.
@@ -896,6 +898,7 @@ static void wake_futex(struct futex_q *q)
 	 */
 	get_task_struct(p);
 
+	task_wakes_on_condvar(q);
 	__unqueue_futex(q);
 	/*
 	 * The waiting task can free the futex_q as soon as
@@ -1206,6 +1209,7 @@ void requeue_pi_wake_futex(struct futex_q *q, union futex_key *key,
 	get_futex_key_refs(key);
 	q->key = *key;
 
+	task_wakes_on_condvar(q);
 	__unqueue_futex(q);
 
 	WARN_ON(!q->rt_waiter);
@@ -1919,13 +1923,13 @@ static void task_blocks_on_condvar(struct futex_q *q)
 	waiter_prio = q->task->prio;
 	
 	/*
-	 * Am I going to be the new head for this futex waiters list?
+	 * Am I the top waiter?
 	 */
 	q_hb = hash_futex(&q->key);
 	spin_lock(&q_hb->lock);
 	q_head = &q_hb->chain;
 
-	if (plist_first(q_head)->prio < waiter_prio)
+	if (plist_first_entry(q_head, struct futex_q, list) == q)
 		first = 1;
 
 	/*
@@ -1935,6 +1939,15 @@ static void task_blocks_on_condvar(struct futex_q *q)
 	h_hb = hash_futex_h(&q->key);
 	spin_lock(&h_hb->lock);
 	h_head = &h_hb->chain;
+
+	if (plist_head_empty(h_head)) {
+		/*
+		 * No helpers for this condvar.
+		 */
+		spin_unlock(&q_hb->lock);
+		spin_unlock(&h_hb->lock);
+		return;
+	}
 
 	/*
 	 * Scan helpers list and check if they should be boosted;
@@ -1980,6 +1993,7 @@ static void task_blocks_on_condvar(struct futex_q *q)
  * 1) find helpers of the condvar I was waiting for;
  * 2) transitively deboost (if needed);
  *
+ * futex_queues hash bucket lock must be held by the caller.
  */
 static void task_wakes_on_condvar(struct futex_q *q)
 {
@@ -1993,14 +2007,10 @@ static void task_wakes_on_condvar(struct futex_q *q)
 	 * nothing to do with priority inheritance.
 	 */
 	hb = hash_futex(&q->key);
-	spin_lock(&hb->lock);
 	head = &hb->chain;
 
-	if (plist_first_entry(head, struct futex_q, list) != q) {
-		spin_unlock(&hb->lock);
+	if (plist_first_entry(head, struct futex_q, list) != q)
 		return;
-	}
-	spin_unlock(&hb->lock);
 			
 	/**
 	 * Use q->key to find the futex_helpers hash bucket containing
@@ -2051,6 +2061,8 @@ static void task_wakes_on_condvar(struct futex_q *q)
 				helper_adjust_prio(this->task);
 		}
 	}
+
+	spin_unlock(&hb->lock);
 }
 
 /**
@@ -2069,8 +2081,8 @@ static void futex_wait_queue_me(struct futex_hash_bucket *hb, struct futex_q *q,
 	 * access to the hash list and forcing another memory barrier.
 	 */
 	set_current_state(TASK_INTERRUPTIBLE);
-	task_blocks_on_condvar(q);
 	queue_me(q, hb);
+	task_blocks_on_condvar(q);
 
 	/* Arm the timer */
 	if (timeout) {
@@ -2206,7 +2218,6 @@ retry:
 
 	/* queue_me and wait for wakeup, timeout, or a signal. */
 	futex_wait_queue_me(hb, &q, to);
-	task_wakes_on_condvar(&q);
 
 	/* If we were woken (and unqueued), we succeeded, whatever. */
 	ret = 0;
@@ -3163,6 +3174,8 @@ static int __init futex_init(void)
 	for (i = 0; i < ARRAY_SIZE(futex_queues); i++) {
 		plist_head_init(&futex_queues[i].chain);
 		spin_lock_init(&futex_queues[i].lock);
+		plist_head_init(&futex_helpers[i].chain);
+		spin_lock_init(&futex_helpers[i].lock);
 	}
 
 	return 0;
