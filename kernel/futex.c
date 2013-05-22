@@ -555,6 +555,23 @@ static void free_pi_state(struct futex_pi_state *pi_state)
 	}
 }
 
+static struct futex_h *alloc_futex_h(void)
+{
+	struct futex_h *h;
+
+	h = kzalloc(sizeof(struct futex_h), GFP_KERNEL);
+
+	if (h)
+		*h = futex_h_init;
+
+	return h;
+}
+
+static void free_futex_h(struct futex_h *h)
+{
+	kfree(h);
+}
+
 /*
  * Look up the task based on what TID userspace gave us.
  * We dont trust it.
@@ -2756,6 +2773,7 @@ static void del_helper(struct futex_h *h)
 
 	hb = container_of(h->lock_ptr, struct futex_hash_bucket, lock);
 	plist_del(&h->list, &hb->chain);
+	free_futex_h(h);
 }
 
 /*
@@ -2767,17 +2785,18 @@ static void del_helper(struct futex_h *h)
  *  0 - On success;
  * <0 - On error
  */
-static int futex_helper_add(struct futex_hash_bucket *hb, int pid)
+static int futex_helper_add(struct futex_hash_bucket *hb, struct futex_h *helper, int pid)
 {
 	struct task_struct *p;
-	struct futex_h helper = futex_h_init;
 
 	p = futex_find_get_task(pid);
 	if (!p)
 		return -ESRCH;
 
-	helper.task = p;
-	add_helper(&helper, hb);
+	helper->task = p;
+	add_helper(helper, hb);
+
+	put_task_struct(p);
 
 	return 0;
 }
@@ -2793,10 +2812,10 @@ static int futex_helper_add(struct futex_hash_bucket *hb, int pid)
  */
 static int futex_helper_delete(struct plist_head *head, union futex_key *key, int pid)
 {
-	struct futex_h *this, *next;
+	struct futex_h *this;
 	int ret = 1;
 
-	plist_for_each_entry_safe(this, next, head, list) {
+	plist_for_each_entry(this, head, list) {
 		if (match_futex (&this->key, key) && (this->task->pid == pid)) {
 			del_helper(this);
 			ret = 0;
@@ -2811,18 +2830,26 @@ static int futex_helper_delete(struct plist_head *head, union futex_key *key, in
  * Manage an helper task of this futex (add/del).
  * @uaddr:	the futex
  * @pid:	PID of the helper task
- * @ad:		add or delete?
+ * @add:	add or delete?
  *
  * Return:
  *  0 - On success;
  * <0 - On error
  */
-static int futex_helper_manage(u32 __user *uaddr, unsigned int flags, int pid, int ad)
+static int futex_helper_manage(u32 __user *uaddr, unsigned int flags,
+			       int pid, int add)
 {
 	struct futex_hash_bucket *hb;
 	struct plist_head *head;
 	union futex_key key = FUTEX_KEY_INIT;
+	struct futex_h *helper = NULL;
 	int ret;
+
+	helper = alloc_futex_h();
+	if (unlikely(!helper)) {
+		ret = -ENOMEM;
+		goto out;
+	}
 
 	ret = get_futex_key(uaddr, flags & FLAGS_SHARED, &key, VERIFY_READ);
 	if (unlikely(ret != 0))
@@ -2831,11 +2858,16 @@ static int futex_helper_manage(u32 __user *uaddr, unsigned int flags, int pid, i
 	hb = hash_futex_h(&key);
 	spin_lock(&hb->lock);
 	head = &hb->chain;
+	helper->lock_ptr = &hb->lock;
+	helper->key = key;
 
-	if (ad)
-		ret = futex_helper_add(hb, pid);
-	else
+	if (add) {
+		ret = futex_helper_add(hb, helper, pid);
+	}
+	else {
 		ret = futex_helper_delete(head, &key, pid);
+		spin_unlock(&hb->lock);
+	}
 	
 	put_futex_key(&key);
 out:
@@ -3114,7 +3146,7 @@ long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
 	case FUTEX_CMP_REQUEUE_PI:
 		return futex_requeue(uaddr, flags, uaddr2, val, val2, &val3, 1);
 	case FUTEX_COND_HELPER_MAN:
-		return futex_helper_manage(uaddr, flags, val, val2);
+		return futex_helper_manage(uaddr, flags, val, val3);
 	}
 	return -ENOSYS;
 }
