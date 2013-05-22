@@ -948,26 +948,27 @@ static struct attribute_group interactive_attr_group = {
 
 void scale_above_hispeed_delay(unsigned int new_above_hispeed_delay)
 {
-	if (dynamic_scaling)
-		above_hispeed_delay_val = new_above_hispeed_delay * 1000;
+	if (dynamic_scaling && 
+		above_hispeed_delay_val != new_above_hispeed_delay)
+		above_hispeed_delay_val = new_above_hispeed_delay;
 }
 
 void scale_go_hispeed_load(unsigned int new_go_hispeed_load)
 {
-	if (dynamic_scaling)
+	if (dynamic_scaling && go_hispeed_load != new_go_hispeed_load)
 		go_hispeed_load = new_go_hispeed_load;
 }
 
 void scale_timer_rate(unsigned int new_timer_rate)
 {
-	if (dynamic_scaling)
-		timer_rate = new_timer_rate * 1000;
+	if (dynamic_scaling && timer_rate != new_timer_rate)
+		timer_rate = new_timer_rate;
 }
 
 void scale_min_sample_time(unsigned int new_min_sample_time)
 {
-	if (dynamic_scaling)
-		min_sample_time = new_min_sample_time * 1000;
+	if (dynamic_scaling && min_sample_time != new_min_sample_time)
+		min_sample_time = new_min_sample_time;
 }
 
 unsigned int get_input_boost_freq()
