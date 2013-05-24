@@ -27,7 +27,9 @@
 
 #include <mach/cpufreq.h>
 
-#define SEC_THRESHOLD 2000
+const int SEC_THRESHOLD = 2000;
+const int ONLINE_CPU_BOOST = 1026000;
+
 #define HISTORY_SIZE 10
 #define DEFAULT_FIRST_LEVEL 90
 #define DEFAULT_SECOND_LEVEL 50
@@ -80,6 +82,7 @@ static void scale_interactive_tunables(unsigned int above_hispeed_delay,
 static void first_level_work_check(unsigned long now)
 {
     unsigned int cpu = nr_cpu_ids;
+    struct cpufreq_policy policy;
     
     /* lets bail if all cores are online */
     if (stats.online_cpus == stats.total_cpus)
@@ -90,6 +93,16 @@ static void first_level_work_check(unsigned long now)
         if (cpu && likely(!cpu_online(cpu)))
         {
             cpu_up(cpu);
+
+            /* lets boost the onlined cpu to 1GHz (default).
+               stays there for at least a sample. If the CPU is
+               going online its because we need the power, so we
+               might save some ms boosting it up already in the
+               onlining process */
+            cpufreq_get_policy(&policy, cpu);
+            __cpufreq_driver_target(&policy, ONLINE_CPU_BOOST, 
+                CPUFREQ_RELATION_H);
+            
             pr_info("Hotplug: cpu%d is up - high load\n", cpu);
         }
     }
@@ -100,6 +113,7 @@ static void first_level_work_check(unsigned long now)
 static void second_level_work_check(unsigned long now)
 {
     unsigned int cpu = nr_cpu_ids;
+    struct cpufreq_policy policy;
 
     /* lets bail if all cores are online */
     if (stats.online_cpus == stats.total_cpus)
@@ -110,6 +124,11 @@ static void second_level_work_check(unsigned long now)
         if (cpu && likely(!cpu_online(cpu)))
         {
             cpu_up(cpu);
+
+            cpufreq_get_policy(&policy, cpu);
+            __cpufreq_driver_target(&policy, ONLINE_CPU_BOOST, 
+                CPUFREQ_RELATION_H);
+
             pr_info("Hotplug: cpu%d is up - medium load\n", cpu);
             break;
         }
