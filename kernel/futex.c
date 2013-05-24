@@ -188,6 +188,8 @@ static struct futex_hash_bucket *hash_futex(union futex_key *key)
 	u32 hash = jhash2((u32*)&key->both.word,
 			  (sizeof(key->both.word)+sizeof(key->both.ptr))/4,
 			  key->both.offset);
+	trace_printk("key for futex_q is word %lu ptr %p offset %d, which hashes to bucket %d\n",
+		     key->both.word, key->both.ptr, key->both.offset, (hash  & ((1 << FUTEX_HASHBITS)-1)));
 	return &futex_queues[hash & ((1 << FUTEX_HASHBITS)-1)];
 }
 
@@ -199,6 +201,8 @@ static struct futex_hash_bucket *hash_futex_h(union futex_key *key)
 	u32 hash = jhash2((u32*)&key->both.word,
 			  (sizeof(key->both.word)+sizeof(key->both.ptr))/4,
 			  key->both.offset);
+	trace_printk("key for futex_h is word %lu ptr %p offset %d, which hashes to bucket %d\n",
+		     key->both.word, key->both.ptr, key->both.offset, (hash & ((1 << FUTEX_HASHBITS)-1)));
 	return &futex_helpers[hash & ((1 << FUTEX_HASHBITS)-1)];
 }
 
@@ -287,6 +291,7 @@ get_futex_key(u32 __user *uaddr, int fshared, union futex_key *key, int rw)
 	if (unlikely((address % sizeof(u32)) != 0))
 		return -EINVAL;
 	address -= key->both.offset;
+	trace_printk("address %lu offset %d\n", address, key->both.offset);
 
 	/*
 	 * PROCESS_PRIVATE futexes are fast.
@@ -301,6 +306,7 @@ get_futex_key(u32 __user *uaddr, int fshared, union futex_key *key, int rw)
 		key->private.mm = mm;
 		key->private.address = address;
 		get_futex_key_refs(key);
+		trace_printk("private futex, return\n");
 		return 0;
 	}
 
@@ -1052,6 +1058,8 @@ futex_wake(u32 __user *uaddr, unsigned int flags, int nr_wake, u32 bitset)
 	ret = get_futex_key(uaddr, flags & FLAGS_SHARED, &key, VERIFY_READ);
 	if (unlikely(ret != 0))
 		goto out;
+
+	trace_printk("on cv %p (%lu, %d)\n", uaddr, key.private.address, key.private.offset);
 
 	hb = hash_futex(&key);
 	spin_lock(&hb->lock);
@@ -1926,7 +1934,7 @@ static void helper_adjust_prio(struct task_struct *task)
  * 3) if my_prio > helper_prio => propagate (transitively)
  *
  */
-static void task_blocks_on_condvar(struct futex_q *q)
+static void noinline task_blocks_on_condvar(struct futex_q *q)
 {
 	struct futex_hash_bucket *h_hb, *q_hb;
 	struct futex_h *this, *next;
@@ -1958,6 +1966,9 @@ static void task_blocks_on_condvar(struct futex_q *q)
 	h_head = &h_hb->chain;
 
 	if (plist_head_empty(h_head)) {
+		trace_printk("task %d blocks on cv (%lu, %d)"
+			     " with no helpers\n", q->task->pid,
+			     q->key.private.address, q->key.private.offset);
 		/*
 		 * No helpers for this condvar.
 		 */
@@ -1965,6 +1976,10 @@ static void task_blocks_on_condvar(struct futex_q *q)
 		spin_unlock(&h_hb->lock);
 		return;
 	}
+
+	trace_printk("task %d blocks on cv (%lu, %d)"
+		     " that has helpers\n", q->task->pid,
+		     q->key.private.address, q->key.private.offset);
 
 	/*
 	 * Scan helpers list and check if they should be boosted;
@@ -1981,7 +1996,9 @@ static void task_blocks_on_condvar(struct futex_q *q)
 			if (first) {
 				plist_del(plist_first(q_head),
 					  &this->task->cv_waiters);
-				q->pi_list.prio = waiter_prio;
+				plist_node_init(&q->pi_list, waiter_prio);
+				trace_printk("task %d is a new top waiter!\n",
+				       this->task->pid);
 				plist_add(&q->pi_list, &this->task->cv_waiters);
 			}
 
@@ -1993,6 +2010,10 @@ static void task_blocks_on_condvar(struct futex_q *q)
 				 * hash bucket lock, may deadlock in case of
 				 * an hash collision!!!
 				 */
+				printk("task %d boosts helper %d\n",
+					q->task->pid, this->task->pid);
+				trace_printk("task %d boosts helper %d\n",
+					q->task->pid, this->task->pid);
 				helper_adjust_prio(this->task);
 			}
 		}
@@ -2862,9 +2883,15 @@ static int futex_helper_manage(u32 __user *uaddr, unsigned int flags,
 	helper->key = key;
 
 	if (add) {
+		trace_printk("task %d is helper for cv %p "
+			     "(%lu, %d)\n", pid, uaddr, key.private.address,
+			     key.private.offset);
 		ret = futex_helper_add(hb, helper, pid);
 	}
 	else {
+		trace_printk("task %d removed as helper for cv %p "
+			     "(%lu, %d)\n", pid, uaddr, key.private.address,
+			     key.private.offset);
 		ret = futex_helper_delete(head, &key, pid);
 		spin_unlock(&hb->lock);
 	}
