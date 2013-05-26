@@ -28,10 +28,10 @@
 #include <mach/cpufreq.h>
 
 const int SEC_THRESHOLD = 2000;
-const int ONLINE_CPU_BOOST = 1026000;
 
+#define ONLINE_CPU_BOOST get_hispeed_freq()
 #define HISTORY_SIZE 10
-#define DEFAULT_FIRST_LEVEL 90
+#define DEFAULT_FIRST_LEVEL 80
 #define DEFAULT_SECOND_LEVEL 50
 #define DEFAULT_THIRD_LEVEL 30
 #define DEFAULT_FOURTH_LEVEL 10
@@ -86,7 +86,13 @@ static void first_level_work_check(unsigned long now)
     
     /* lets bail if all cores are online */
     if (stats.online_cpus == stats.total_cpus)
+    {
+        /* 5 seconds in high load to scale tunables up */
+        if (now - stats.time_stamp >= 5000)
+            scale_interactive_tunables(0, 80, 10000, 80000);
+
         return;
+    }
 
     for_each_possible_cpu(cpu)
     {
@@ -134,9 +140,6 @@ static void second_level_work_check(unsigned long now)
         }
     }
 
-    if (num_online_cpus() == 3) 
-        scale_interactive_tunables(0, 80, 10000, 80000);
-
     stats.time_stamp = now;
 }
 
@@ -173,7 +176,7 @@ static void third_level_work_check(unsigned int load, unsigned long now)
     }
 
     if (likely(num_online_cpus() < 3))
-        scale_interactive_tunables(15000, 99, 30000, 40000);
+        scale_interactive_tunables(10000, 95, 50000, 20000);
 
     stats.time_stamp = now;
 }
@@ -222,7 +225,6 @@ static void decide_hotplug_func(struct work_struct *work)
 
     if (load >= first_level)
     {
-        scale_interactive_tunables(0, 80, 10000, 80000);
         first_level_work_check(now);
         queue_delayed_work_on(0, wq, &decide_hotplug, msecs_to_jiffies(HZ));
         return;
@@ -235,7 +237,7 @@ static void decide_hotplug_func(struct work_struct *work)
         {
             /* only call scale function if dynamic_scaling is true */
             if (likely(get_dynamic_scaling()))
-                scale_min_sample_time(40000);
+                scale_min_sample_time(20000);
             is_touched = false;
         }
 
