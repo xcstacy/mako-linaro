@@ -70,6 +70,7 @@ static spinlock_t down_cpumask_lock;
 static struct mutex set_speed_lock;
 
 /* Hi speed to bump to from lo speed when load burst (default max) */
+#define DEFAULT_HISPEED_FREQ 1350000
 static u64 hispeed_freq;
 
 /* Go to hi speed when CPU load at or above this value. */
@@ -118,7 +119,7 @@ static int boost_val;
  * The CPU will be boosted to this frequency when the screen is
  * touched. input_boost needs to be enabled.
  */
-
+#define DEFAULT_INPUT_BOOST_FREQ 1188000 
 static int input_boost_freq;
 
 static bool io_is_busy = true;
@@ -986,6 +987,11 @@ bool get_dynamic_scaling()
 	return dynamic_scaling;
 }
 
+unsigned int get_hispeed_freq()
+{
+	return hispeed_freq;
+}
+
 static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		unsigned int event)
 {
@@ -1020,11 +1026,6 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			mod_timer(&pcpu->cpu_timer,
 				jiffies + usecs_to_jiffies(timer_rate));
 			smp_wmb();
-		}
-
-		if (!hispeed_freq) {
-			hispeed_freq = policy->max;
-			input_boost_freq = hispeed_freq;
 		}
 
 		/*
@@ -1114,6 +1115,8 @@ static int __init cpufreq_interactive_init(void)
 	min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
 	above_hispeed_delay_val = DEFAULT_ABOVE_HISPEED_DELAY;
 	timer_rate = DEFAULT_TIMER_RATE;
+	hispeed_freq = DEFAULT_HISPEED_FREQ;
+	input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
 
 	/* Initalize per-cpu timers */
 	for_each_possible_cpu(i) {
