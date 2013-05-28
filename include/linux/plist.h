@@ -252,4 +252,25 @@ static inline struct plist_node *plist_last(const struct plist_head *head)
 			  struct plist_node, node_list);
 }
 
+/**
+ * plist_next - return the next node of this node
+ * @node:	the &struct plist_node pointer
+ *
+ * Assumes this node has a next.
+ */
+static inline struct plist_node *plist_next(const struct plist_node *this)
+{
+	return container_of(this->node_list.next,
+			  struct plist_node, node_list);
+}
+
+/**
+ * plist_next_entry - get the struct for the next entry
+ * @node:	the &node plist_node pointer
+ * @type:	the type of the struct this is embedded in
+ * @member:	the name of the list_struct within the struct
+ */
+# define plist_next_entry(node, type, member)	\
+	container_of(plist_next(node), type, member)
+
 #endif
