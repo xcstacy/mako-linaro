@@ -5510,7 +5510,7 @@ void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask)
 
 	cpumask_copy(&p->cpus_allowed, new_mask);
 	p->rt.nr_cpus_allowed = cpumask_weight(new_mask);
-	p->nr_cpus_allowed = cpumask_weight(new_mask);
+	p->dl.nr_cpus_allowed = cpumask_weight(new_mask);
 }
 
 /*
