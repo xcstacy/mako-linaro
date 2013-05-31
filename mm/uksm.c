@@ -1331,10 +1331,10 @@ static inline u32 page_hash(struct page *page, unsigned long hash_strength,
 	u32 val;
 	unsigned long delta;
 
-	void *addr = kmap_atomic(page, KM_USER0);
+	void *addr = kmap_atomic(page);
 
 	val = random_sample_hash(addr, hash_strength);
-	kunmap_atomic(addr, KM_USER0);
+	kunmap_atomic(addr);
 
 	if (cost_accounting) {
 		if (HASH_STRENGTH_FULL > hash_strength)
@@ -1354,11 +1354,11 @@ static int memcmp_pages(struct page *page1, struct page *page2,
 	char *addr1, *addr2;
 	int ret;
 
-	addr1 = kmap_atomic(page1, KM_USER0);
-	addr2 = kmap_atomic(page2, KM_USER1);
+	addr1 = kmap_atomic(page1);
+	addr2 = kmap_atomic(page2);
 	ret = memcmp(addr1, addr2, PAGE_SIZE);
-	kunmap_atomic(addr2, KM_USER1);
-	kunmap_atomic(addr1, KM_USER0);
+	kunmap_atomic(addr2);
+	kunmap_atomic(addr1);
 
 	if (cost_accounting)
 		inc_rshash_neg(memcmp_cost);
@@ -1376,9 +1376,9 @@ static inline int is_page_full_zero(struct page *page)
 	char *addr;
 	int ret;
 
-	addr = kmap_atomic(page, KM_USER0);
+	addr = kmap_atomic(page);
 	ret = is_full_zero(addr, PAGE_SIZE);
-	kunmap_atomic(addr, KM_USER0);
+	kunmap_atomic(addr);
 
 	return ret;
 }
@@ -1392,15 +1392,22 @@ static int write_protect_page(struct vm_area_struct *vma, struct page *page,
 	spinlock_t *ptl;
 	int swapped;
 	int err = -EFAULT;
+	unsigned long mmun_start;	/* For mmu_notifiers */
+	unsigned long mmun_end;		/* For mmu_notifiers */
 
 	addr = page_address_in_vma(page, vma);
 	if (addr == -EFAULT)
 		goto out;
 
 	BUG_ON(PageTransCompound(page));
+
+	mmun_start = addr;
+	mmun_end   = addr + PAGE_SIZE;
+	mmu_notifier_invalidate_range_start(mm, mmun_start, mmun_end);
+
 	ptep = page_check_address(page, mm, addr, &ptl, 0);
 	if (!ptep)
-		goto out;
+		goto out_mn;
 
 	if (old_pte)
 		*old_pte = *ptep;
@@ -1438,6 +1445,8 @@ static int write_protect_page(struct vm_area_struct *vma, struct page *page,
 
 out_unlock:
 	pte_unmap_unlock(ptep, ptl);
+out_mn:
+	mmu_notifier_invalidate_range_end(mm, mmun_start, mmun_end);
 out:
 	return err;
 }
@@ -1470,6 +1479,8 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 
 	unsigned long addr;
 	int err = MERGE_ERR_PGERR;
+	unsigned long mmun_start;	/* For mmu_notifiers */
+	unsigned long mmun_end;		/* For mmu_notifiers */
 
 	addr = page_address_in_vma(page, vma);
 	if (addr == -EFAULT)
@@ -1488,10 +1499,14 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 	if (!pmd_present(*pmd))
 		goto out;
 
+	mmun_start = addr;
+	mmun_end   = addr + PAGE_SIZE;
+	mmu_notifier_invalidate_range_start(mm, mmun_start, mmun_end);
+
 	ptep = pte_offset_map_lock(mm, pmd, addr, &ptl);
 	if (!pte_same(*ptep, orig_pte)) {
 		pte_unmap_unlock(ptep, ptl);
-		goto out;
+		goto out_mn;
 	}
 
 	flush_cache_page(vma, addr, pte_pfn(*ptep));
@@ -1516,6 +1531,8 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 
 	pte_unmap_unlock(ptep, ptl);
 	err = 0;
+out_mn:
+	mmu_notifier_invalidate_range_end(mm, mmun_start, mmun_end);
 out:
 	return err;
 }
@@ -1536,11 +1553,11 @@ static inline u32 page_hash_max(struct page *page, u32 hash_old)
 	u32 hash_max = 0;
 	void *addr;
 
-	addr = kmap_atomic(page, KM_USER0);
+	addr = kmap_atomic(page);
 	hash_max = delta_hash(addr, hash_strength,
 			      HASH_STRENGTH_MAX, hash_old);
 
-	kunmap_atomic(addr, KM_USER0);
+	kunmap_atomic(addr);
 
 	if (!hash_max)
 		hash_max = 1;
@@ -3753,11 +3770,11 @@ static inline void stable_tree_delta_hash(u32 prev_hash_strength)
 		if (node->tree_node) {
 			hash = node->tree_node->hash;
 
-			addr = kmap_atomic(node_page, KM_USER0);
+			addr = kmap_atomic(node_page);
 
 			hash = delta_hash(addr, prev_hash_strength,
 					  hash_strength, hash);
-			kunmap_atomic(addr, KM_USER0);
+			kunmap_atomic(addr);
 		} else {
 			/*
 			 *it was not inserted to rbtree due to collision in last
@@ -4659,8 +4676,9 @@ again:
 			struct vm_area_struct *vma;
 
 			anon_vma_lock(anon_vma);
-			list_for_each_entry(vmac, &anon_vma->head,
-					    same_anon_vma) {
+			anon_vma_interval_tree_foreach(vmac, &anon_vma->rb_root,
+						       0, ULONG_MAX) {
+
 				vma = vmac->vma;
 				address = get_rmap_addr(rmap_item);
 
@@ -4725,8 +4743,8 @@ again:
 			struct vm_area_struct *vma;
 
 			anon_vma_lock(anon_vma);
-			list_for_each_entry(vmac, &anon_vma->head,
-					    same_anon_vma) {
+			anon_vma_interval_tree_foreach(vmac, &anon_vma->rb_root,
+						       0, ULONG_MAX) {
 				vma = vmac->vma;
 				address = get_rmap_addr(rmap_item);
 
@@ -4787,8 +4805,8 @@ again:
 			struct vm_area_struct *vma;
 
 			anon_vma_lock(anon_vma);
-			list_for_each_entry(vmac, &anon_vma->head,
-					    same_anon_vma) {
+			anon_vma_interval_tree_foreach(vmac, &anon_vma->rb_root,
+						       0, ULONG_MAX) {
 				vma = vmac->vma;
 				address = get_rmap_addr(rmap_item);
 
@@ -5369,15 +5387,15 @@ static inline int cal_positive_negative_costs(void)
 	if (!p2)
 		return -ENOMEM;
 
-	addr1 = kmap_atomic(p1, KM_USER0);
-	addr2 = kmap_atomic(p2, KM_USER1);
+	addr1 = kmap_atomic(p1);
+	addr2 = kmap_atomic(p2);
 	memset(addr1, random32(), PAGE_SIZE);
 	memcpy(addr2, addr1, PAGE_SIZE);
 
 	/* make sure that the two pages differ in last byte */
 	addr2[PAGE_SIZE-1] = ~addr2[PAGE_SIZE-1];
-	kunmap_atomic(addr2, KM_USER1);
-	kunmap_atomic(addr1, KM_USER0);
+	kunmap_atomic(addr2);
+	kunmap_atomic(addr1);
 
 	time_start = jiffies;
 	while (jiffies - time_start < 100) {
@@ -5411,9 +5429,9 @@ static int init_zeropage_hash_table(void)
 	if (!page)
 		return -ENOMEM;
 
-	addr = kmap_atomic(page, KM_USER0);
+	addr = kmap_atomic(page);
 	memset(addr, 0, PAGE_SIZE);
-	kunmap_atomic(addr, KM_USER0);
+	kunmap_atomic(addr);
 
 	zero_hash_table = kmalloc(HASH_STRENGTH_MAX * sizeof(u32),
 		GFP_KERNEL);
@@ -5543,7 +5561,7 @@ struct page *ksm_does_need_to_copy(struct page *page,
 		SetPageSwapBacked(new_page);
 		__set_page_locked(new_page);
 
-		if (page_evictable(new_page, vma))
+		if (!mlocked_vma_newpage(vma, new_page))
 			lru_cache_add_lru(new_page, LRU_ACTIVE_ANON);
 		else
 			add_page_to_unevictable_list(new_page);
@@ -5620,4 +5638,3 @@ module_init(uksm_init)
 #else
 late_initcall(uksm_init);
 #endif
-

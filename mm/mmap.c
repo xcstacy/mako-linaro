@@ -237,8 +237,8 @@ static struct vm_area_struct *remove_vma(struct vm_area_struct *vma)
 			removed_exe_file_vma(vma->vm_mm);
 	}
 	mpol_put(vma_policy(vma));
-	uksm_remove_vma(vma);
 	kmem_cache_free(vm_area_cachep, vma);
+	uksm_remove_vma(vma);
 	return next;
 }
 
