@@ -73,10 +73,11 @@ void *sradix_tree_next(struct sradix_tree_root *root,
 	unsigned long offset;
 	void *item;
 
+	offset = 0;
+	item = node->stores[offset];
 	if (unlikely(node == NULL)) {
 		node = root->rnode;
 		for (offset = 0; offset < root->stores_size; offset++) {
-			item = node->stores[offset];
 			if (item && (!iter || iter(item, node->height)))
 				break;
 		}
@@ -93,7 +94,6 @@ void *sradix_tree_next(struct sradix_tree_root *root,
 	while (node) {
 		offset = (index & root->mask) + 1;
 		for (;offset < root->stores_size; offset++) {
-			item = node->stores[offset];
 			if (item && (!iter || iter(item, node->height)))
 				break;
 		}
@@ -112,7 +112,6 @@ void *sradix_tree_next(struct sradix_tree_root *root,
 go_down:
 		node = item;
 		for (offset = 0; offset < root->stores_size; offset++) {
-			item = node->stores[offset];
 			if (item && (!iter || iter(item, node->height)))
 				break;
 		}
