@@ -298,15 +298,13 @@ static void cpufreq_interactive_timer(unsigned long data)
 	pcpu->target_set_time_in_idle = now_idle;
 	pcpu->target_set_time = pcpu->timer_run_time;
 
-	if (pcpu->policy->cur < pcpu->policy->max &&
-		new_freq > pcpu->target_freq) {
+	if (new_freq > pcpu->target_freq) {
 		pcpu->target_freq = new_freq;
 		spin_lock_irqsave(&up_cpumask_lock, flags);
 		cpumask_set_cpu(data, &up_cpumask);
 		spin_unlock_irqrestore(&up_cpumask_lock, flags);
 		wake_up_process(up_task);
-	} else if (pcpu->policy->cur > pcpu->policy->min &&
-		new_freq < pcpu->target_freq) {
+	} else if (new_freq < pcpu->target_freq) {
 		pcpu->target_freq = new_freq;
 		spin_lock_irqsave(&down_cpumask_lock, flags);
 		cpumask_set_cpu(data, &down_cpumask);
@@ -450,9 +448,6 @@ static int cpufreq_interactive_up_task(void *data)
 		spin_unlock_irqrestore(&up_cpumask_lock, flags);
 
 		for_each_cpu(cpu, &tmp_mask) {
-			unsigned int j;
-			unsigned int max_freq = 0;
-
 			pcpu = &per_cpu(cpuinfo, cpu);
 			smp_rmb();
 
@@ -461,18 +456,10 @@ static int cpufreq_interactive_up_task(void *data)
 
 			mutex_lock(&set_speed_lock);
 
-			for_each_cpu(j, pcpu->policy->cpus) {
-				struct cpufreq_interactive_cpuinfo *pjcpu =
-					&per_cpu(cpuinfo, j);
+			__cpufreq_driver_target(pcpu->policy,
+				pcpu->target_freq,
+				CPUFREQ_RELATION_H);
 
-				if (pjcpu->target_freq > max_freq)
-					max_freq = pjcpu->target_freq;
-			}
-
-			if (max_freq > pcpu->policy->cur)
-				__cpufreq_driver_target(pcpu->policy,
-							max_freq,
-							CPUFREQ_RELATION_H);
 			mutex_unlock(&set_speed_lock);
 		}
 	}
@@ -493,9 +480,6 @@ static void cpufreq_interactive_freq_down(struct work_struct *work)
 	spin_unlock_irqrestore(&down_cpumask_lock, flags);
 
 	for_each_cpu(cpu, &tmp_mask) {
-		unsigned int j;
-		unsigned int max_freq = 0;
-
 		pcpu = &per_cpu(cpuinfo, cpu);
 		smp_rmb();
 
@@ -504,17 +488,9 @@ static void cpufreq_interactive_freq_down(struct work_struct *work)
 
 		mutex_lock(&set_speed_lock);
 
-		for_each_cpu(j, pcpu->policy->cpus) {
-			struct cpufreq_interactive_cpuinfo *pjcpu =
-				&per_cpu(cpuinfo, j);
-
-			if (pjcpu->target_freq < max_freq)
-				max_freq = pjcpu->target_freq;
-		}
-
-		if (max_freq < pcpu->policy->cur)
-			__cpufreq_driver_target(pcpu->policy, max_freq,
-						CPUFREQ_RELATION_H);
+		__cpufreq_driver_target(pcpu->policy, 
+			pcpu->target_freq,
+			CPUFREQ_RELATION_H);
 
 		mutex_unlock(&set_speed_lock);
 	}
