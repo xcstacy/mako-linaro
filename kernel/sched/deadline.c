@@ -1574,6 +1574,11 @@ static void prio_changed_dl(struct rq *rq, struct task_struct *p,
 		switched_to_dl(rq, p);
 }
 
+void print_scheduler_version(void)
+{
+printk(KERN_INFO "SCHED_DEADLINE v7 by Juri Lelli & Dario Faggioli.\n");
+}
+
 const struct sched_class dl_sched_class = {
 	.next			= &rt_sched_class,
 	.enqueue_task		= enqueue_task_dl,

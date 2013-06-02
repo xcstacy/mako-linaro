@@ -1730,6 +1730,8 @@ struct task_struct {
 #endif
 };
 
+void print_scheduler_version(void);
+
 /* Future-safe accessor for struct task_struct's cpus_allowed. */
 #define tsk_cpus_allowed(tsk) (&(tsk)->cpus_allowed)
 
