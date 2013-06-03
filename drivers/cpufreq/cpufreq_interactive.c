@@ -298,15 +298,13 @@ static void cpufreq_interactive_timer(unsigned long data)
 	pcpu->target_set_time_in_idle = now_idle;
 	pcpu->target_set_time = pcpu->timer_run_time;
 
-	if (pcpu->policy->cur < pcpu->policy->max &&
-		new_freq > pcpu->target_freq) {
+	if (new_freq > pcpu->target_freq) {
 		pcpu->target_freq = new_freq;
 		spin_lock_irqsave(&up_cpumask_lock, flags);
 		cpumask_set_cpu(data, &up_cpumask);
 		spin_unlock_irqrestore(&up_cpumask_lock, flags);
 		wake_up_process(up_task);
-	} else if (pcpu->policy->cur > pcpu->policy->min &&
-		new_freq < pcpu->target_freq) {
+	} else if (new_freq < pcpu->target_freq) {
 		pcpu->target_freq = new_freq;
 		spin_lock_irqsave(&down_cpumask_lock, flags);
 		cpumask_set_cpu(data, &down_cpumask);
