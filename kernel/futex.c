@@ -1831,23 +1831,6 @@ out:
 	return ret ? ret : locked;
 }
 
-static inline bool tsk_is_cond_waiter(struct task_struct *tsk)
-{
-	return tsk->cond_waiter != NULL;
-}
-
-static inline int task_has_cv_waiters(struct task_struct *p)
-{
-	return !plist_head_empty(&p->cv_waiters);
-}
-
-static inline struct futex_q *
-task_top_cv_waiter(struct task_struct *p)
-{
-	return plist_first_entry(&p->cv_waiters, struct futex_q,
-				 pi_list);
-}
-
 /**
  * helper_adjust_prio() - something changed in the helper's waiters
  *			  list, adjust priority and check for propagation
