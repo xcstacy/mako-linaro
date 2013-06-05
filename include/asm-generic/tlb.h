@@ -95,9 +95,8 @@ struct mmu_gather {
 	struct mmu_table_batch	*batch;
 #endif
 	unsigned int		need_flush : 1,	/* Did free PTEs */
-				fast_mode  : 1; /* No batching   */
 
-	unsigned int		fullmm;
+				fullmm;
 
 	struct mmu_gather_batch *active;
 	struct mmu_gather_batch	local;
@@ -106,19 +105,6 @@ struct mmu_gather {
 };
 
 #define HAVE_GENERIC_MMU_GATHER
-
-static inline int tlb_fast_mode(struct mmu_gather *tlb)
-{
-#ifdef CONFIG_SMP
-	return tlb->fast_mode;
-#else
-	/*
-	 * For UP we don't need to worry about TLB flush
-	 * and page free order so much..
-	 */
-	return 1;
-#endif
-}
 
 void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, bool fullmm);
 void tlb_flush_mmu(struct mmu_gather *tlb);
