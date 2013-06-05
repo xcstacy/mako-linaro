@@ -1258,8 +1258,11 @@ static int futex_proxy_trylock_atomic(u32 __user *pifutex,
 	 */
 	ret = futex_lock_pi_atomic(pifutex, hb2, key2, ps, top_waiter->task,
 				   set_waiters);
-	if (ret == 1)
+
+	if (ret == 1) {
+		task_wakes_on_condvar(top_waiter);
 		requeue_pi_wake_futex(top_waiter, key2, hb2);
+	}
 
 	return ret;
 }
