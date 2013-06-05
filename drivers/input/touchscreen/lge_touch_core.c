@@ -37,8 +37,6 @@
 
 #include <linux/input/lge_touch_core.h>
 
-//void hotplug_boostpulse(void);
-
 struct touch_device_driver*     touch_device_func;
 struct workqueue_struct*        touch_wq;
 
@@ -53,6 +51,10 @@ static int is_pressure;
 static int is_width_major;
 static int is_width_minor;
 static bool is_screen_locked;
+
+/* extern vars */
+bool is_touching;
+unsigned int freq_boosted_time;
 
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)               \
 	struct lge_touch_attribute lge_touch_attr_##_name =       \
@@ -797,7 +799,6 @@ static void touch_input_report(struct lge_touch_data *ts)
 
 #define TOUCH_BOOST_FREQ get_input_boost_freq()
 #define SWIPE_BOOST_FREQ 702000
-#define BOOSTED_TIME_MS 500000
 static struct cpufreq_policy *policy;
 
 /*
@@ -810,10 +811,9 @@ static void touch_work_func(struct work_struct *work)
 	int int_pin = 0;
 	int next_work = 0;
 	int ret;
-	static unsigned int x = 0;
-	static unsigned int y = 0;
-	static bool xy_lock = false;
-	unsigned long now = ktime_to_ms(ktime_get());
+	//static unsigned int x = 0;
+	//static unsigned int y = 0;
+	//static bool xy_lock = false;
 
 	atomic_dec(&ts->next_work);
 	ts->ts_data.total_num = 0;
@@ -852,6 +852,19 @@ static void touch_work_func(struct work_struct *work)
 
 	touch_input_report(ts);
 
+	if (!is_touching)
+	{
+		if (policy->cur < TOUCH_BOOST_FREQ)
+		{
+			__cpufreq_driver_target(policy, TOUCH_BOOST_FREQ, 
+					CPUFREQ_RELATION_H);
+		}
+	}
+
+	is_touching = true;
+	freq_boosted_time = ktime_to_us(ktime_get());
+
+/*
 	if (likely(ts->ts_data.curr_data[0].state == ABS_PRESS)) 
 	{
 		if (!xy_lock) 
@@ -869,21 +882,15 @@ static void touch_work_func(struct work_struct *work)
 			if (policy->cur < SWIPE_BOOST_FREQ)
 				__cpufreq_driver_target(policy, SWIPE_BOOST_FREQ, 
 					CPUFREQ_RELATION_H);
-
-			is_touching(true, now, false);
 		}
 
 		else if (policy->cur < TOUCH_BOOST_FREQ && num_online_cpus() < 2)
 		{
 			__cpufreq_driver_target(policy, TOUCH_BOOST_FREQ, 
 				CPUFREQ_RELATION_H);
-
-			is_touching(true, now, true);
 		}
 
-		if (get_min_sample_time() < BOOSTED_TIME_MS && 
-			likely(get_dynamic_scaling()))
-				scale_min_sample_time(BOOSTED_TIME_MS);
+		
 	} 
 
 	else 
@@ -895,6 +902,8 @@ static void touch_work_func(struct work_struct *work)
 		if (xy_lock)
 			xy_lock = false;
 	}
+*/
+
 out:
 	if (likely(ts->pdata->role->operation_mode == INTERRUPT_MODE)) {
 		next_work = atomic_read(&ts->next_work);
