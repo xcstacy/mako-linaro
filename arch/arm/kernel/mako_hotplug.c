@@ -202,6 +202,7 @@ int __init mako_hotplug_init(void)
     
     /* init everything here */
     stats.total_cpus = num_present_cpus();
+    stats.default_first_level = DEFAULT_FIRST_LEVEL;
     stats.suspend_frequency = DEFAULT_SUSPEND_FREQ;
     stats.cores_on_touch = DEFAULT_CORES_ON_TOUCH;
     

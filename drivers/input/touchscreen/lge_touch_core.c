@@ -798,7 +798,6 @@ static void touch_input_report(struct lge_touch_data *ts)
 }
 
 #define TOUCH_BOOST_FREQ get_input_boost_freq()
-#define SWIPE_BOOST_FREQ 702000
 static struct cpufreq_policy *policy;
 
 /*
@@ -814,6 +813,15 @@ static void touch_work_func(struct work_struct *work)
 	//static unsigned int x = 0;
 	//static unsigned int y = 0;
 	//static bool xy_lock = false;
+
+	if (policy->cur < TOUCH_BOOST_FREQ)
+	{
+		__cpufreq_driver_target(policy, TOUCH_BOOST_FREQ, 
+				CPUFREQ_RELATION_H);
+	}
+
+	is_touching = true;
+	freq_boosted_time = ktime_to_us(ktime_get());
 
 	atomic_dec(&ts->next_work);
 	ts->ts_data.total_num = 0;
@@ -851,18 +859,6 @@ static void touch_work_func(struct work_struct *work)
 	}
 
 	touch_input_report(ts);
-
-	if (!is_touching)
-	{
-		if (policy->cur < TOUCH_BOOST_FREQ)
-		{
-			__cpufreq_driver_target(policy, TOUCH_BOOST_FREQ, 
-					CPUFREQ_RELATION_H);
-		}
-	}
-
-	is_touching = true;
-	freq_boosted_time = ktime_to_us(ktime_get());
 
 /*
 	if (likely(ts->ts_data.curr_data[0].state == ABS_PRESS)) 
