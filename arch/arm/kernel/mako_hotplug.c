@@ -29,6 +29,7 @@
 
 #define DEFAULT_FIRST_LEVEL 70
 #define DEFAULT_SUSPEND_FREQ 702000
+#define DEFAULT_CORE_ONLINE_BOOST get_hispeed_freq()
 #define DEFAULT_CORES_ON_TOUCH 2
 
 struct cpu_stats
@@ -58,6 +59,8 @@ static void scale_interactive_tunables(unsigned int above_hispeed_delay,
 static void decide_hotplug_func(struct work_struct *work)
 {
     int cpu;
+    int cpu_boost;
+    struct cpufreq_policy policy;
 
     if (report_load_at_max_freq() >= stats.default_first_level)
     {
@@ -73,8 +76,18 @@ static void decide_hotplug_func(struct work_struct *work)
 
     if (is_touching)
     {
-        if (!cpu_online(1))
-            cpu_up(1);
+        for_each_possible_cpu(cpu_boost)
+        {
+            if (!cpu_online(cpu_boost) && cpu_boost < stats.cores_on_touch) 
+            {
+                cpu_up(cpu_boost);
+                /* we're interacting with the device, online cores are boosted
+                   to hispeed_freq at least for a sample */
+                cpufreq_get_policy(&policy, cpu_boost);
+                __cpufreq_driver_target(&policy, DEFAULT_CORE_ONLINE_BOOST,
+                    CPUFREQ_RELATION_H);
+            }
+        }
     }
 
     if (counter >= 10) 
@@ -205,7 +218,7 @@ int __init mako_hotplug_init(void)
     stats.default_first_level = DEFAULT_FIRST_LEVEL;
     stats.suspend_frequency = DEFAULT_SUSPEND_FREQ;
     stats.cores_on_touch = DEFAULT_CORES_ON_TOUCH;
-    
+
     wq = alloc_workqueue("mako_hotplug_workqueue", 
                     WQ_UNBOUND | WQ_RESCUER | WQ_FREEZABLE, 1);
     
