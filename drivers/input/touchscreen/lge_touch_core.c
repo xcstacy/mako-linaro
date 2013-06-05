@@ -54,7 +54,7 @@ static bool is_screen_locked;
 
 /* extern vars */
 bool is_touching;
-unsigned int freq_boosted_time;
+unsigned long freq_boosted_time;
 
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)               \
 	struct lge_touch_attribute lge_touch_attr_##_name =       \
