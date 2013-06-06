@@ -54,7 +54,7 @@ static bool is_screen_locked;
 
 /* extern vars */
 bool is_touching;
-unsigned long freq_boosted_time;
+u64 freq_boosted_time;
 
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)               \
 	struct lge_touch_attribute lge_touch_attr_##_name =       \
@@ -821,7 +821,7 @@ static void touch_work_func(struct work_struct *work)
 	}
 
 	is_touching = true;
-	freq_boosted_time = ktime_to_us(ktime_get());
+	freq_boosted_time = ktime_to_ms(ktime_get());
 
 	atomic_dec(&ts->next_work);
 	ts->ts_data.total_num = 0;
