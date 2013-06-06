@@ -821,7 +821,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 	   we are touching the screen for UI interaction */
 	if (is_touching && policy->cpu == 0) 
 	{
-		if (ktime_to_us(ktime_get()) - freq_boosted_time >= 1000000)
+		if (ktime_to_ms(ktime_get()) - freq_boosted_time >= 1000)
 			is_touching = false;
 		return;
 	}
