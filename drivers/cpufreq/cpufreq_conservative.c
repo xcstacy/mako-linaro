@@ -23,6 +23,7 @@
 #include <linux/tick.h>
 #include <linux/ktime.h>
 #include <linux/sched.h>
+#include <linux/hotplug.h>
 
 /*
  * dbs is used in this file as a shortform for demandbased switching
@@ -384,6 +385,15 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 		if (load > max_load)
 			max_load = load;
+	}
+
+	/* we want cpu0 to be the only core blocked for freq changes while
+	   we are touching the screen for UI interaction */
+	if (is_touching && policy->cpu == 0) 
+	{
+		if (ktime_to_ms(ktime_get()) - freq_boosted_time >= 1000)
+			is_touching = false;
+		return;
 	}
 
 	/*
