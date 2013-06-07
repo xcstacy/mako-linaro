@@ -59,12 +59,10 @@ static void scale_interactive_tunables(unsigned int above_hispeed_delay,
 static void decide_hotplug_func(struct work_struct *work)
 {
     int cpu;
-    int cpu_boost;
-    struct cpufreq_policy policy;
 
     if (report_load_at_max_freq() >= stats.default_first_level)
     {
-        if (likely(counter) <= 50)    
+        if (likely(counter < 50))    
             counter++;
     }
 
@@ -74,27 +72,11 @@ static void decide_hotplug_func(struct work_struct *work)
             counter--;
     }
 
-    if (is_touching)
-    {
-        for_each_possible_cpu(cpu_boost)
-        {
-            if (!cpu_online(cpu_boost) && cpu_boost < stats.cores_on_touch) 
-            {
-                cpu_up(cpu_boost);
-                /* we're interacting with the device, online cores are boosted
-                   to hispeed_freq at least for a sample */
-                cpufreq_get_policy(&policy, cpu_boost);
-                __cpufreq_driver_target(&policy, DEFAULT_CORE_ONLINE_BOOST,
-                    CPUFREQ_RELATION_H);
-            }
-        }
-    }
-
     if (counter >= 10) 
     {
         for_each_possible_cpu(cpu) 
         {
-            if (cpu && !cpu_online(cpu)) 
+            if (!cpu_online(cpu)) 
             {
                 cpu_up(cpu);
             }
@@ -105,11 +87,11 @@ static void decide_hotplug_func(struct work_struct *work)
 
     else
     {
-        if (num_online_cpus() > 1 && !is_touching)
+        if (num_online_cpus() > 2)
         {
             for_each_online_cpu(cpu) 
             {
-                if (cpu) 
+                if (cpu > 1) 
                 {
                     cpu_down(cpu);
                 }
@@ -119,7 +101,7 @@ static void decide_hotplug_func(struct work_struct *work)
         } 
     }
 
-    queue_delayed_work_on(0, wq, &decide_hotplug, msecs_to_jiffies(timer));
+    queue_delayed_work(wq, &decide_hotplug, msecs_to_jiffies(timer));
 }
 
 static void mako_hotplug_early_suspend(struct early_suspend *handler)
@@ -129,6 +111,7 @@ static void mako_hotplug_early_suspend(struct early_suspend *handler)
     /* cancel the hotplug work when the screen is off and flush the WQ */
     cancel_delayed_work_sync(&decide_hotplug);
     flush_workqueue(wq);
+
     pr_info("Early Suspend stopping Hotplug work...\n");
     
     for_each_online_cpu(cpu) 
@@ -167,7 +150,7 @@ static void mako_hotplug_late_resume(struct early_suspend *handler)
     pr_info("Cpulimit: Late resume - restore cpu%d max frequency.\n", 0);
     
     pr_info("Late Resume starting Hotplug work...\n");
-    queue_delayed_work_on(0, wq, &decide_hotplug, HZ);
+    queue_delayed_work(wq, &decide_hotplug, HZ);
 }
 
 static struct early_suspend mako_hotplug_suspend =
@@ -226,7 +209,7 @@ int __init mako_hotplug_init(void)
         return -ENOMEM;
     
     INIT_DELAYED_WORK(&decide_hotplug, decide_hotplug_func);
-    queue_delayed_work_on(0, wq, &decide_hotplug, HZ*25);
+    queue_delayed_work(wq, &decide_hotplug, HZ*25);
     
     register_early_suspend(&mako_hotplug_suspend);
     
