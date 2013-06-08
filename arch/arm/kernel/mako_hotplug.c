@@ -59,6 +59,7 @@ static void scale_interactive_tunables(unsigned int above_hispeed_delay,
 static void decide_hotplug_func(struct work_struct *work)
 {
     int cpu;
+    int cpu_boost;
 
     if (report_load_at_max_freq() >= stats.default_first_level)
     {
@@ -72,6 +73,17 @@ static void decide_hotplug_func(struct work_struct *work)
             counter--;
     }
 
+    if (is_touching && num_online_cpus() < stats.cores_on_touch)
+    {
+        for_each_possible_cpu(cpu_boost)
+        {
+            if (!cpu_online(cpu_boost) && cpu_boost < stats.cores_on_touch) 
+            {
+                cpu_up(cpu_boost);
+            }
+        }
+    }
+    
     if (counter >= 10) 
     {
         for_each_possible_cpu(cpu) 
@@ -87,7 +99,7 @@ static void decide_hotplug_func(struct work_struct *work)
 
     else
     {
-        if (num_online_cpus() > 2)
+        if (num_online_cpus() > 2 && !is_touching)
         {
             for_each_online_cpu(cpu) 
             {
@@ -97,7 +109,7 @@ static void decide_hotplug_func(struct work_struct *work)
                 }
             }
             timer = HZ;
-            scale_interactive_tunables(20000, 30000, 20000);
+            scale_interactive_tunables(20000, 40000, 20000);
         } 
     }
 
