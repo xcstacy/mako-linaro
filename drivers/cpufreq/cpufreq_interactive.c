@@ -234,6 +234,15 @@ static void cpufreq_interactive_timer(unsigned long data)
 	if (load_since_change > cpu_load)
 		cpu_load = load_since_change;
 
+	/* we want cpu0 to be the only core blocked for freq changes while
+	   we are touching the screen for UI interaction */
+	if (is_touching && pcpu->policy->cpu == 0) 
+	{
+		if (ktime_to_ms(ktime_get()) - freq_boosted_time >= 1000)
+			is_touching = false;
+		return;
+	}
+
 	if (cpu_load > up_threshold)
 		new_freq = pcpu->policy->max;
 	else
@@ -241,19 +250,6 @@ static void cpufreq_interactive_timer(unsigned long data)
 
 	if (new_freq <= hispeed_freq)
 		pcpu->hispeed_validate_time = pcpu->timer_run_time;
-
-	/* we want cpu0 and cpu1 to be blocked against lower freqs,
-	   we are touching the screen for UI interaction */
-	if (is_touching && (pcpu->policy->cpu == 0 || pcpu->policy->cpu == 1)) 
-	{
-		if (ktime_to_ms(ktime_get()) - freq_boosted_time >= 1000)
-				is_touching = false;
-
-		if (pcpu->policy->cur > new_freq)
-		{
-			return;
-		}
-	}
 
 	if (cpufreq_frequency_table_target(pcpu->policy, pcpu->freq_table,
 					   new_freq, CPUFREQ_RELATION_H,
