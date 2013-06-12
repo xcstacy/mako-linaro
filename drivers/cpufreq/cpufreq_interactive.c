@@ -234,15 +234,6 @@ static void cpufreq_interactive_timer(unsigned long data)
 	if (load_since_change > cpu_load)
 		cpu_load = load_since_change;
 
-	/* we want cpu0 to be the only core blocked for freq changes while
-	   we are touching the screen for UI interaction */
-	if (is_touching && pcpu->policy->cpu == 0) 
-	{
-		if (ktime_to_ms(ktime_get()) - freq_boosted_time >= 1000)
-			is_touching = false;
-		return;
-	}
-
 	if (cpu_load > up_threshold)
 		new_freq = pcpu->policy->max;
 	else
@@ -260,6 +251,17 @@ static void cpufreq_interactive_timer(unsigned long data)
 	}
 
 	new_freq = pcpu->freq_table[index].frequency;
+
+	/* we want cpu0 to be the only core blocked for freq changes while
+	   we are touching the screen for UI interaction */
+	if (is_touching && pcpu->policy->cpu == 0) 
+	{
+		if (ktime_to_ms(ktime_get()) - freq_boosted_time >= 1000)
+			is_touching = false;
+
+		if (new_freq < input_boost_freq)
+			return;
+	}
 
 	/*
 	 * Do not scale below floor_freq unless we have been at or above the
