@@ -658,14 +658,14 @@ static int __init wakelocks_init(void)
 
 	INIT_COMPLETION(suspend_sys_sync_comp);
 	suspend_sys_sync_work_queue =
-		create_singlethread_workqueue("suspend_sys_sync");
-	if (suspend_sys_sync_work_queue == NULL) {
+		alloc_workqueue("suspend_sys_sync", 0, 1);
+	if (!suspend_sys_sync_work_queue) {
 		ret = -ENOMEM;
 		goto err_suspend_sys_sync_work_queue;
 	}
 
-	suspend_work_queue = create_singlethread_workqueue("suspend");
-	if (suspend_work_queue == NULL) {
+	suspend_work_queue = alloc_workqueue("suspend", 0, 1);
+	if (!suspend_work_queue) {
 		ret = -ENOMEM;
 		goto err_suspend_work_queue;
 	}
