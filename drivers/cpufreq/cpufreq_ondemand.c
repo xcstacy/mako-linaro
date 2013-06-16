@@ -819,11 +819,10 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 	/* we want cpu0 to be the only core blocked for freq changes while
 	   we are touching the screen for UI interaction */
-	if (is_touching && policy->cpu == 0) 
+	if (is_touching) 
 	{
 		if (ktime_to_ms(ktime_get()) - freq_boosted_time >= 1000)
 			is_touching = false;
-		return;
 	}
 
 	/* Check for frequency increase */
@@ -854,6 +853,14 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			return;
 		}
 	}
+
+	/* if the there is a input detected we want to go through this check so 
+	   that the frequency stays >= input_boost_freq and doesn't go down */
+	if (is_touching && policy->cpu == 0) 
+	{
+		if (policy->cur >= get_input_boost_freq())
+			return;
+	} 
 
 	/* Check for frequency decrease */
 	/* if we cannot reduce the frequency anymore, break out early */
