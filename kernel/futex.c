@@ -536,6 +536,23 @@ static void free_futex_h(struct futex_h *h)
 	kfree(h);
 }
 
+
+static struct waiter_node *alloc_waiter_node(void)
+{
+	struct waiter_node *w;
+
+	/**
+	 * We cannot sleep while holding hash bucket locks.
+	 */
+	w = kzalloc(sizeof(struct waiter_node), GFP_ATOMIC);
+
+	return w;
+}
+
+static void free_waiter_node(struct waiter_node *w)
+{
+	kfree(w);
+}
 /*
  * Look up the task based on what TID userspace gave us.
  * We dont trust it.
@@ -1887,7 +1904,7 @@ static void noinline task_blocks_on_condvar(struct futex_q *q,
 {
 	struct futex_hash_bucket *h_hb;
 	struct futex_h *this, *next;
-	struct futex_q *old_top;
+	struct waiter_node *old_top, *waiter;
 	struct plist_head *h_head, *q_head, *waiters_head;
 	int waiter_prio;
 
@@ -1926,24 +1943,31 @@ static void noinline task_blocks_on_condvar(struct futex_q *q,
 	 */
 	plist_for_each_entry_safe(this, next, h_head, list) {
 		if (match_futex (&this->key, &q->key)) {
-			/*
-			 * This waiter is a new top waiter for a condvar
-			 * this helper is working on.
-			 * Switch with the old one, associated to the same
-			 * condvar.
-			 */
 			old_top = NULL;
 			waiters_head = &this->task->cv_waiters;
 
 			if (!plist_head_empty(waiters_head))
 				old_top = task_top_cv_waiter(this->task);
 
+			/*
+			 * This waiter is a new top waiter for a condvar
+			 * this helper is working on.
+			 * Switch with the old one, associated to the same
+			 * condvar.
+			 */
 			if (old_top != NULL &&
-			    (old_top->task->prio > q->task->prio))
+			    (old_top->prio > q->task->prio)) {
 				plist_del(&old_top->pi_list, waiters_head);
+				free_waiter_node(old_top);
+			}
 
-			plist_node_init(&q->pi_list, waiter_prio);
-			plist_add(&q->pi_list, waiters_head);
+			waiter = alloc_waiter_node();
+			BUG_ON(!waiter);
+			waiter->task = q->task;
+			waiter->prio = q->task->prio;
+			waiter->futex_qp = q;
+			plist_node_init(&waiter->pi_list, waiter_prio);
+			plist_add(&waiter->pi_list, waiters_head);
 
 			if (this->task->prio > waiter_prio) {
 				/*
@@ -1978,6 +2002,9 @@ static void task_wakes_on_condvar(struct futex_q *q)
 	struct futex_hash_bucket *hb;
 	struct futex_h *this, *next;
 	struct plist_head *head;
+	struct waiter_node *first_waiter;
+	struct waiter_node *this_w, *next_w;
+	struct plist_head *waiters_head;
 	int waiter_prio, chain_walk = 0;
 
 	/**
@@ -2020,11 +2047,20 @@ static void task_wakes_on_condvar(struct futex_q *q)
 			 * Delete the waiter from helper's list and check if
 			 * deboosting and a chain walk are needed.
 			 */
-			if (plist_first_entry(&this->task->cv_waiters,
-					      struct futex_q, pi_list) == q)
+			waiters_head = &this->task->cv_waiters;
+			first_waiter = plist_first_entry(waiters_head,
+							 struct waiter_node,
+							 pi_list);
+			if (first_waiter->futex_qp == q)
 				chain_walk = 1;
 
-			plist_del(&q->pi_list, &this->task->cv_waiters);
+			plist_for_each_entry_safe(this_w, next_w,
+						  waiters_head, pi_list)
+				if (this_w->futex_qp == q)
+					break;
+				
+			plist_del(&this_w->pi_list, &this->task->cv_waiters);
+			free_waiter_node(this_w);
 			if (chain_walk)
 				helper_adjust_prio(this->task, q);
 		}
