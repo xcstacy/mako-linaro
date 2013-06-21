@@ -162,6 +162,24 @@ struct futex_q {
 	u32 bitset;
 };
 
+/**
+ * struct waiter_node - A node corresponding to a condvar waiter, it gets
+ *			queueud on helper's waiters list on inheritance.
+ * @pi-list:		priority-sorted list of tasks boosting this helper
+ * @task:		the task boosting this helper
+ * @prio:		the task priority
+ * @futex_qp:		pointer to the futex_q struct with which the task
+ *			is enqueued in the futex hash bucket
+ */
+struct waiter_node {
+	/* Queued up on helper tasks cv_waiters list */
+	struct plist_node pi_list;
+
+	struct task_struct *task;
+	int prio;
+	struct futex_q *futex_qp;
+};
+
 /*
  * Various helpers to access the cv-waiters-plist:
  */
@@ -175,10 +193,10 @@ static inline int task_has_cv_waiters(struct task_struct *p)
 	return !plist_head_empty(&p->cv_waiters);
 }
 
-static inline struct futex_q *
+static inline struct waiter_node *
 task_top_cv_waiter(struct task_struct *p)
 {
-	return plist_first_entry(&p->cv_waiters, struct futex_q,
+	return plist_first_entry(&p->cv_waiters, struct waiter_node,
 				 pi_list);
 }
 
