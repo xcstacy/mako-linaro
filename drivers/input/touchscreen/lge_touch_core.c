@@ -798,8 +798,6 @@ static void touch_input_report(struct lge_touch_data *ts)
 	input_sync(ts->input_dev);
 }
 
-static struct cpufreq_policy *policy;
-#define TOUCH_BOOST_FREQ get_input_boost_freq()
 
 /*
  * Touch work function
@@ -811,29 +809,9 @@ static void touch_work_func(struct work_struct *work)
 	int int_pin = 0;
 	int next_work = 0;
 	int ret;
-	int cpu;
 	//static unsigned int x = 0;
 	//static unsigned int y = 0;
 	//static bool xy_lock = false;
-
-	for_each_possible_cpu(cpu)
-	{
-		if (cpu >= 2)
-			break;
-
-		ret = cpufreq_get_policy(policy, cpu);
-		if (ret) 
-		{
-			pr_info(KERN_WARNING "CPU%d - val%d", cpu, ret);
-			break;
-		}
-
-		if (policy->cur < TOUCH_BOOST_FREQ)
-		{
-			__cpufreq_driver_target(policy, TOUCH_BOOST_FREQ, 
-					CPUFREQ_RELATION_H);
-		}	
-	}
 
 	is_touching = true;
 	freq_boosted_time = ktime_to_ms(ktime_get());
