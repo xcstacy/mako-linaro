@@ -1848,6 +1848,7 @@ static void helper_adjust_prio(struct task_struct *task, struct futex_q *top)
 		raw_spin_unlock_irqrestore(&task->pi_lock, flags);
 		get_task_struct(task);
 		rt_mutex_adjust_prio_chain(task, 0, NULL, NULL, task);
+		goto out;
 	}
 
 	if (unlikely(tsk_is_cond_waiter(task))) {
