@@ -20,11 +20,10 @@
 #include <linux/sched.h>
 #include <linux/timer.h>
 #include <linux/earlysuspend.h>
-#include <linux/rq_stats.h>
 #include <linux/cpufreq.h>
 #include <linux/delay.h>
 #include <linux/hotplug.h>
-
+ 
 #include <mach/cpufreq.h>
 
 #define DEFAULT_FIRST_LEVEL 70
