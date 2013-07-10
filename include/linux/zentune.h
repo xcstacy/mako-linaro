@@ -16,8 +16,8 @@
 #  define sysctl_sched_cfs_bandwidth_slice_custom           3000UL;
 
 /* MM Related */
-#define vm_dirty_ratio_custom 50;
-#define dirty_background_ratio_custom 20;
+#define vm_dirty_ratio_custom 5;
+#define dirty_background_ratio_custom 5;
 
 /* CPUFreq Related */
 #define DEF_SAMPLING_DOWN_FACTOR_CUSTOM          (10)

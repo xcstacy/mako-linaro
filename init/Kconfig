@@ -88,8 +88,8 @@ config ZEN_CUSTOM
 	  Tunes the kernel for responsiveness at the cost of throughput and power usage.
 	  These values can be adjusted in include/linux/zentune.h
 
-	  VM dirty ratio: 50
-	  VM dirty background ratio: 20
+	  VM dirty ratio: 5
+	  VM dirty background ratio: 5
 	  Ondemand downsample factor: 10
 
 	  Scheduling latency: 3 ms
