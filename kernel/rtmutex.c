@@ -98,11 +98,29 @@ static inline void mark_rt_mutex_waiters(struct rt_mutex *lock)
  */
 int rt_mutex_getprio(struct task_struct *task)
 {
-	if (likely(!task_has_pi_waiters(task)))
+	if (likely(!task_has_pi_waiters(task) &&
+		   !task_has_cv_waiters(task)))
 		return task->normal_prio;
 
-	return min(task_top_pi_waiter(task)->pi_list_entry.prio,
-		   task->normal_prio);
+	if (task_has_pi_waiters(task) && !task_has_cv_waiters(task))
+		return min(task_top_pi_waiter(task)->pi_list_entry.prio,
+			   task->normal_prio);
+
+	if (task_has_cv_waiters(task) && !task_has_pi_waiters(task))
+		return min(task_top_cv_waiter(task)->task->prio,
+			   task->normal_prio);
+
+	return min3(task_top_pi_waiter(task)->pi_list_entry.prio,
+		    task_top_cv_waiter(task)->task->prio,
+		    task->normal_prio);
+}
+
+struct task_struct *rt_mutex_get_top_task(struct task_struct *task)
+{
+	if (likely(!task_has_pi_waiters(task)))
+		return NULL;
+
+	return task_top_pi_waiter(task)->task;
 }
 
 /*
@@ -114,7 +132,7 @@ static void __rt_mutex_adjust_prio(struct task_struct *task)
 {
 	int prio = rt_mutex_getprio(task);
 
-	if (task->prio != prio)
+	if (task->prio != prio || dl_prio(prio))
 		rt_mutex_setprio(task, prio);
 }
 
@@ -146,7 +164,7 @@ int max_lock_depth = 1024;
  * Decreases task's usage by one - may thus free the task.
  * Returns 0 or -EDEADLK.
  */
-static int rt_mutex_adjust_prio_chain(struct task_struct *task,
+int rt_mutex_adjust_prio_chain(struct task_struct *task,
 				      int deadlock_detect,
 				      struct rt_mutex *orig_lock,
 				      struct rt_mutex_waiter *orig_waiter,
@@ -551,7 +569,8 @@ void rt_mutex_adjust_pi(struct task_struct *task)
 	raw_spin_lock_irqsave(&task->pi_lock, flags);
 
 	waiter = task->pi_blocked_on;
-	if (!waiter || waiter->list_entry.prio == task->prio) {
+	if (!waiter || (waiter->list_entry.prio == task->prio &&
+			!dl_prio(task->prio))) {
 		raw_spin_unlock_irqrestore(&task->pi_lock, flags);
 		return;
 	}

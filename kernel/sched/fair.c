@@ -31,6 +31,8 @@
 
 #include "sched.h"
 
+#include <linux/zentune.h>
+
 /*
  * Targeted preemption latency for CPU-bound tasks:
  * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
@@ -43,8 +45,13 @@
  * (to see the precise effective timeslice length of your workload,
  *  run vmstat and monitor the context-switches (cs) field)
  */
+#if defined(CONFIG_ZEN_DEFAULT)
 unsigned int sysctl_sched_latency = 6000000ULL;
 unsigned int normalized_sysctl_sched_latency = 6000000ULL;
+#elif defined(CONFIG_ZEN_CUSTOM)
+unsigned int sysctl_sched_latency = sysctl_sched_latency_custom;
+unsigned int normalized_sysctl_sched_latency = normalized_sysctl_sched_latency_custom;
+#endif
 
 /*
  * The initial- and re-scaling of tunables is configurable
@@ -62,13 +69,23 @@ enum sched_tunable_scaling sysctl_sched_tunable_scaling
  * Minimal preemption granularity for CPU-bound tasks:
  * (default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
  */
+#if defined(CONFIG_ZEN_DEFAULT)
 unsigned int sysctl_sched_min_granularity = 750000ULL;
 unsigned int normalized_sysctl_sched_min_granularity = 750000ULL;
+#elif defined(CONFIG_ZEN_CUSTOM)
+unsigned int sysctl_sched_min_granularity = sysctl_sched_min_granularity_custom;
+unsigned int normalized_sysctl_sched_min_granularity = normalized_sysctl_sched_min_granularity_custom;
+#endif
 
 /*
  * is kept at sysctl_sched_latency / sysctl_sched_min_granularity
  */
+
+#if defined(CONFIG_ZEN_DEFAULT)
 static unsigned int sched_nr_latency = 8;
+#elif defined(CONFIG_ZEN_CUSTOM)
+static unsigned int sched_nr_latency = sched_nr_latency_custom;
+#endif
 
 /*
  * After fork, child runs first. If set to 0 (default) then
@@ -92,10 +109,16 @@ unsigned int __read_mostly sysctl_sched_wake_to_idle;
  * and reduces their over-scheduling. Synchronous workloads will still
  * have immediate wakeup/sleep latencies.
  */
+#if defined(CONFIG_ZEN_DEFAULT)
 unsigned int sysctl_sched_wakeup_granularity = 1000000UL;
 unsigned int normalized_sysctl_sched_wakeup_granularity = 1000000UL;
-
 const_debug unsigned int sysctl_sched_migration_cost = 500000UL;
+#elif defined(CONFIG_ZEN_CUSTOM)
+unsigned int sysctl_sched_wakeup_granularity = sysctl_sched_wakeup_granularity_custom;
+unsigned int normalized_sysctl_sched_wakeup_granularity = normalized_sysctl_sched_wakeup_granularity_custom;
+const_debug unsigned int sysctl_sched_migration_cost = sysctl_sched_migration_cost_custom;
+#endif
+
 
 /*
  * The exponential sliding  window over which load is averaged for shares
@@ -115,7 +138,12 @@ unsigned int __read_mostly sysctl_sched_shares_window = 10000000UL;
  *
  * default: 5 msec, units: microseconds
   */
+#if defined(CONFIG_ZEN_DEFAULT)
 unsigned int sysctl_sched_cfs_bandwidth_slice = 5000UL;
+#elif defined(CONFIG_ZEN_CUSTOM)
+unsigned int sysctl_sched_cfs_bandwidth_slice = sysctl_sched_cfs_bandwidth_slice_custom;
+
+#endif
 #endif
 
 /*
@@ -431,13 +459,13 @@ void account_cfs_rq_runtime(struct cfs_rq *cfs_rq, unsigned long delta_exec);
  * Scheduling class tree data structure manipulation methods:
  */
 
-static inline u64 max_vruntime(u64 min_vruntime, u64 vruntime)
+static inline u64 max_vruntime(u64 max_vruntime, u64 vruntime)
 {
-	s64 delta = (s64)(vruntime - min_vruntime);
+	s64 delta = (s64)(vruntime - max_vruntime);
 	if (delta > 0)
-		min_vruntime = vruntime;
+		max_vruntime = vruntime;
 
-	return min_vruntime;
+	return max_vruntime;
 }
 
 static inline u64 min_vruntime(u64 min_vruntime, u64 vruntime)
@@ -473,6 +501,7 @@ static void update_min_vruntime(struct cfs_rq *cfs_rq)
 			vruntime = min_vruntime(vruntime, se->vruntime);
 	}
 
+	/* ensure we never gain time by being placed backwards. */
 	cfs_rq->min_vruntime = max_vruntime(cfs_rq->min_vruntime, vruntime);
 #ifndef CONFIG_64BIT
 	smp_wmb();
@@ -3101,6 +3130,8 @@ struct lb_env {
 	unsigned int		loop_max;
 };
 
+static DEFINE_PER_CPU(bool, dbs_boost_needed);
+
 /*
  * move_task - move a task from one runqueue to another runqueue.
  * Both runqueues must be locked.
@@ -3111,6 +3142,8 @@ static void move_task(struct task_struct *p, struct lb_env *env)
 	set_task_cpu(p, env->dst_cpu);
 	activate_task(env->dst_rq, p, 0);
 	check_preempt_curr(env->dst_rq, p, 0);
+	if (task_notify_on_migrate(p))
+		per_cpu(dbs_boost_needed, env->dst_cpu) = true;
 }
 
 /*
@@ -3178,20 +3211,17 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 	tsk_cache_hot = task_hot(p, env->src_rq->clock_task, env->sd);
 	if (!tsk_cache_hot ||
 		env->sd->nr_balance_failed > env->sd->cache_nice_tries) {
-#ifdef CONFIG_SCHEDSTATS
+
 		if (tsk_cache_hot) {
 			schedstat_inc(env->sd, lb_hot_gained[env->idle]);
 			schedstat_inc(p, se.statistics.nr_forced_migrations);
 		}
-#endif
+
 		return 1;
 	}
 
-	if (tsk_cache_hot) {
-		schedstat_inc(p, se.statistics.nr_failed_migrations_hot);
-		return 0;
-	}
-	return 1;
+	schedstat_inc(p, se.statistics.nr_failed_migrations_hot);
+	return 0;
 }
 
 /*
@@ -4541,9 +4571,15 @@ more_balance:
 			 */
 			sd->nr_balance_failed = sd->cache_nice_tries+1;
 		}
-	} else
+	} else {
 		sd->nr_balance_failed = 0;
-
+		if (per_cpu(dbs_boost_needed, this_cpu)) {
+			per_cpu(dbs_boost_needed, this_cpu) = false;
+			atomic_notifier_call_chain(&migration_notifier_head,
+						   this_cpu,
+						   (void *)cpu_of(busiest));
+		}
+	}
 	if (likely(!active_balance)) {
 		/* We were unbalanced, so reset the balancing interval */
 		sd->balance_interval = sd->min_interval;
@@ -4698,6 +4734,12 @@ static int active_load_balance_cpu_stop(void *data)
 out_unlock:
 	busiest_rq->active_balance = 0;
 	raw_spin_unlock_irq(&busiest_rq->lock);
+	if (per_cpu(dbs_boost_needed, target_cpu)) {
+		per_cpu(dbs_boost_needed, target_cpu) = false;
+		atomic_notifier_call_chain(&migration_notifier_head,
+					   target_cpu,
+					   (void *)cpu_of(busiest_rq));
+	}
 	return 0;
 }
 

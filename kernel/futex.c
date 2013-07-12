@@ -99,44 +99,30 @@ struct futex_pi_state {
 	union futex_key key;
 };
 
+static const struct futex_q futex_q_init = {
+	/* list gets initialized in queue_me()*/
+	.key = FUTEX_KEY_INIT,
+	.bitset = FUTEX_BITSET_MATCH_ANY
+};
+
 /**
- * struct futex_q - The hashed futex queue entry, one per waiting task
- * @list:		priority-sorted list of tasks waiting on this futex
- * @task:		the task waiting on the futex
+ * struct futex_h - The hashed condvar helper entry, one per helping task
+ * @list:		priority-sorted list of tasks helping on this condvar
+ * @task:		the task helping the condvar
  * @lock_ptr:		the hash bucket lock
  * @key:		the key the futex is hashed on
- * @pi_state:		optional priority inheritance state
- * @rt_waiter:		rt_waiter storage for use with requeue_pi
- * @requeue_pi_key:	the requeue_pi target futex key
- * @bitset:		bitset for the optional bitmasked wakeup
- *
- * We use this hashed waitqueue, instead of a normal wait_queue_t, so
- * we can wake only the relevant ones (hashed queues may be shared).
- *
- * A futex_q has a woken state, just like tasks have TASK_RUNNING.
- * It is considered woken when plist_node_empty(&q->list) || q->lock_ptr == 0.
- * The order of wakeup is always to make the first condition true, then
- * the second.
- *
- * PI futexes are typically woken before they are removed from the hash list via
- * the rt_mutex code. See unqueue_me_pi().
  */
-struct futex_q {
+struct futex_h {
 	struct plist_node list;
 
 	struct task_struct *task;
 	spinlock_t *lock_ptr;
 	union futex_key key;
-	struct futex_pi_state *pi_state;
-	struct rt_mutex_waiter *rt_waiter;
-	union futex_key *requeue_pi_key;
-	u32 bitset;
 };
 
-static const struct futex_q futex_q_init = {
-	/* list gets initialized in queue_me()*/
+static const struct futex_h futex_h_init = {
+	/* list gets initialized in add_helper() */
 	.key = FUTEX_KEY_INIT,
-	.bitset = FUTEX_BITSET_MATCH_ANY
 };
 
 /*
@@ -152,6 +138,13 @@ struct futex_hash_bucket {
 static struct futex_hash_bucket futex_queues[1<<FUTEX_HASHBITS];
 
 /*
+ * Helper tasks for a certain condvar. Same as above, hash buckets may
+ * contain futex_h structures "helping" different condvars. Each futex_h
+ * is associated with a single helper task.
+ */
+static struct futex_hash_bucket futex_helpers[1<<FUTEX_HASHBITS];
+
+/*
  * We hash on the keys returned from get_futex_key (see below).
  */
 static struct futex_hash_bucket *hash_futex(union futex_key *key)
@@ -160,6 +153,17 @@ static struct futex_hash_bucket *hash_futex(union futex_key *key)
 			  (sizeof(key->both.word)+sizeof(key->both.ptr))/4,
 			  key->both.offset);
 	return &futex_queues[hash & ((1 << FUTEX_HASHBITS)-1)];
+}
+
+/*
+ * We hash on the keys returned from get_futex_key (same as above).
+ */
+static struct futex_hash_bucket *hash_futex_h(union futex_key *key)
+{
+	u32 hash = jhash2((u32*)&key->both.word,
+			  (sizeof(key->both.word)+sizeof(key->both.ptr))/4,
+			  key->both.offset);
+	return &futex_helpers[hash & ((1 << FUTEX_HASHBITS)-1)];
 }
 
 /*
@@ -515,6 +519,40 @@ static void free_pi_state(struct futex_pi_state *pi_state)
 	}
 }
 
+static struct futex_h *alloc_futex_h(void)
+{
+	struct futex_h *h;
+
+	h = kzalloc(sizeof(struct futex_h), GFP_KERNEL);
+
+	if (h)
+		*h = futex_h_init;
+
+	return h;
+}
+
+static void free_futex_h(struct futex_h *h)
+{
+	kfree(h);
+}
+
+
+static struct waiter_node *alloc_waiter_node(void)
+{
+	struct waiter_node *w;
+
+	/**
+	 * We cannot sleep while holding hash bucket locks.
+	 */
+	w = kzalloc(sizeof(struct waiter_node), GFP_ATOMIC);
+
+	return w;
+}
+
+static void free_waiter_node(struct waiter_node *w)
+{
+	kfree(w);
+}
 /*
  * Look up the task based on what TID userspace gave us.
  * We dont trust it.
@@ -836,6 +874,8 @@ static void __unqueue_futex(struct futex_q *q)
 	plist_del(&q->list, &hb->chain);
 }
 
+static void task_wakes_on_condvar(struct futex_q *q);
+
 /*
  * The hash bucket lock must be held when this is called.
  * Afterwards, the futex_q must not be accessed.
@@ -856,6 +896,7 @@ static void wake_futex(struct futex_q *q)
 	 */
 	get_task_struct(p);
 
+	task_wakes_on_condvar(q);
 	__unqueue_futex(q);
 	/*
 	 * The waiting task can free the futex_q as soon as
@@ -1234,8 +1275,11 @@ static int futex_proxy_trylock_atomic(u32 __user *pifutex,
 	 */
 	ret = futex_lock_pi_atomic(pifutex, hb2, key2, ps, top_waiter->task,
 				   set_waiters);
-	if (ret == 1)
+
+	if (ret == 1) {
+		task_wakes_on_condvar(top_waiter);
 		requeue_pi_wake_futex(top_waiter, key2, hb2);
+	}
 
 	return ret;
 }
@@ -1435,6 +1479,7 @@ retry_private:
 			/* Prepare the waiter to take the rt_mutex. */
 			atomic_inc(&pi_state->refcount);
 			this->pi_state = pi_state;
+			task_wakes_on_condvar(this);
 			ret = rt_mutex_start_proxy_lock(&pi_state->pi_mutex,
 							this->rt_waiter,
 							this->task, 1);
@@ -1771,6 +1816,261 @@ out:
 }
 
 /**
+ * helper_adjust_prio() - something changed in the helper's waiters
+ *			  list, adjust priority and check for propagation
+ *
+ * @task:	the helper task
+ */
+static void helper_adjust_prio(struct task_struct *task, struct futex_q *top)
+{
+	unsigned long flags;
+	int prio, rt_prio = MAX_PRIO, cv_prio = MAX_PRIO;
+
+	if (task_has_pi_waiters(task))
+		rt_prio = task_top_pi_waiter(task)->task->prio;
+	
+	if (task_has_cv_waiters(task))
+		cv_prio = task_top_cv_waiter(task)->task->prio;
+	
+	prio = (rt_prio < cv_prio) ? rt_prio : cv_prio;
+	prio = (task->normal_prio > prio) ? prio : task->normal_prio;
+
+	raw_spin_lock_irqsave(&task->pi_lock, flags);
+
+	rt_mutex_setprio(task, prio);
+
+	if (unlikely(tsk_is_pi_blocked(task))) {
+		/*
+		 * Helper task is blocked on a rt_mutex and its prio
+		 * got modified. Walk the pi_chain to check for
+		 * (de)boosting.
+		 */
+		raw_spin_unlock_irqrestore(&task->pi_lock, flags);
+		get_task_struct(task);
+		rt_mutex_adjust_prio_chain(task, 0, NULL, NULL, task);
+		goto out;
+	}
+
+	if (unlikely(tsk_is_cond_waiter(task))) {
+		/*
+		 * Helper task is itself a waiter for some other condvar.
+		 * Its new prio may have to be propagated to its helpers.
+		 */
+		struct futex_q *waiter;
+		struct futex_hash_bucket *hb;
+		struct futex_h *this, *next;
+		struct plist_head *head;
+
+		waiter = task->cond_waiter;
+		hb = hash_futex_h(&waiter->key);
+		spin_lock(&hb->lock);
+		head = &hb->chain;
+
+		/**
+		 * Scan this task helpers list and check if they should be
+		 * boosted; propagate if necessary.
+		 */
+		raw_spin_unlock_irqrestore(&task->pi_lock, flags);
+		plist_for_each_entry_safe(this, next, head, list) {
+			if (match_futex (&this->key, &waiter->key) &&
+			    (this->task->prio < task->prio))
+				/**
+				 * Recursively adjust prio.
+				 */
+				//helper_adjust_prio(this->task);
+				;
+		}
+	
+		spin_unlock(&hb->lock);
+		goto out;
+	}
+
+	raw_spin_unlock_irqrestore(&task->pi_lock, flags);
+out:
+	return;
+}
+
+/**
+ * task_blocks_on_condvar() - before we sleep some work has to be done
+ *
+ * @q:	the futex_q of the to be queued task
+ * 
+ * 1) find helpers of the condvar I'm waiting for;
+ * 2) check their current (inherited) prio against (inherited) mine;
+ * 3) if my_prio > helper_prio => propagate (transitively)
+ *
+ */
+static void noinline task_blocks_on_condvar(struct futex_q *q,
+					    struct futex_hash_bucket *q_hb)
+{
+	struct futex_hash_bucket *h_hb;
+	struct futex_h *this, *next;
+	struct waiter_node *old_top, *waiter;
+	struct plist_head *h_head, *q_head, *waiters_head;
+	int waiter_prio;
+
+	/**
+	 * q->task could have inherited from someone else, in this case
+	 * we read the "boosted" prio.
+	 */
+	waiter_prio = q->task->prio;
+	
+	/*
+	 * Lock q_hb here to prevent deadlocks.
+	 */
+	spin_lock(&q_hb->lock);
+	q_head = &q_hb->chain;
+
+	/*
+	 * Use q->key to find the futex_helpers hash bucket containing
+	 * q->task helpers list.
+	 */
+	h_hb = hash_futex_h(&q->key);
+	spin_lock(&h_hb->lock);
+	h_head = &h_hb->chain;
+
+	if (plist_head_empty(h_head)) {
+		/*
+		 * No helpers for this condvar. Nothing to do.
+		 */
+		spin_unlock(&q_hb->lock);
+		spin_unlock(&h_hb->lock);
+		return;
+	}
+
+	/*
+	 * Scan helpers list and check if they should be boosted;
+	 * propagate if necessary.
+	 */
+	plist_for_each_entry_safe(this, next, h_head, list) {
+		if (match_futex (&this->key, &q->key)) {
+			old_top = NULL;
+			waiters_head = &this->task->cv_waiters;
+
+			if (!plist_head_empty(waiters_head))
+				old_top = task_top_cv_waiter(this->task);
+
+			/*
+			 * This waiter is a new top waiter for a condvar
+			 * this helper is working on.
+			 * Switch with the old one, associated to the same
+			 * condvar.
+			 */
+			if (old_top != NULL &&
+			    (old_top->prio > q->task->prio)) {
+				plist_del(&old_top->pi_list, waiters_head);
+				free_waiter_node(old_top);
+			}
+
+			waiter = alloc_waiter_node();
+			BUG_ON(!waiter);
+			waiter->task = q->task;
+			waiter->prio = q->task->prio;
+			waiter->futex_qp = q;
+			plist_node_init(&waiter->pi_list, waiter_prio);
+			plist_add(&waiter->pi_list, waiters_head);
+
+			if (this->task->prio > waiter_prio) {
+				/*
+				 * Helper task will be boosted.
+				 *
+				 * WARNING: this function grabs an helpers list
+				 * hash bucket lock, may deadlock in case of
+				 * an hash collision!!!
+				 */
+				helper_adjust_prio(this->task, q);
+			} else
+				break;
+		}
+	}
+
+	spin_unlock(&h_hb->lock);
+	spin_unlock(&q_hb->lock);
+}
+
+/**
+ * task_wakes_on_condvar() - check if any helper need to be deboosted
+ *
+ * @q:	the futex_q of we were queued with
+ * 
+ * 1) find helpers of the condvar I was waiting for;
+ * 2) transitively deboost (if needed);
+ *
+ * futex_queues hash bucket lock must be held by the caller.
+ */
+static void task_wakes_on_condvar(struct futex_q *q)
+{
+	struct futex_hash_bucket *hb;
+	struct futex_h *this, *next;
+	struct plist_head *head;
+	struct waiter_node *first_waiter;
+	struct waiter_node *this_w, *next_w;
+	struct plist_head *waiters_head;
+	int waiter_prio, chain_walk = 0;
+
+	/**
+	 * Use q->key to find the futex_helpers hash bucket containing
+	 * q->task helpers list.
+	 */
+	hb = hash_futex_h(&q->key);
+	spin_lock(&hb->lock);
+	head = &hb->chain;
+
+	/**
+	 * q->task could have inherited from someone else, in this case
+	 * we read the "boosted" prio.
+	 */
+	waiter_prio = q->task->prio;
+
+	/**
+	 * Scan helpers list and check if they should be deboosted;
+	 * propagate if necessary.
+	 */
+	plist_for_each_entry_safe(this, next, head, list) {
+		if (match_futex (&this->key, &q->key)) {
+			/*
+			 * This helper is not boosted: nothing to do.
+			 */
+			if (this->task->prio == this->task->normal_prio)
+				continue;
+
+			/*
+			 * This helper is boosted holding an rt_mutex. We
+			 * do nothing here as its boosted priority comes
+			 * from an rt_mutex waiter. rt_mutex code is
+			 * responsible for deboosting.
+			 */
+			if (!task_has_cv_waiters(this->task))
+				continue;
+
+			/*
+			 * This helper could be boosted by this cond waiter.
+			 * Delete the waiter from helper's list and check if
+			 * deboosting and a chain walk are needed.
+			 */
+			waiters_head = &this->task->cv_waiters;
+			first_waiter = plist_first_entry(waiters_head,
+							 struct waiter_node,
+							 pi_list);
+			if (first_waiter->futex_qp == q)
+				chain_walk = 1;
+
+			plist_for_each_entry_safe(this_w, next_w,
+						  waiters_head, pi_list)
+				if (this_w->futex_qp == q)
+					break;
+				
+			plist_del(&this_w->pi_list, &this->task->cv_waiters);
+			free_waiter_node(this_w);
+			if (chain_walk)
+				helper_adjust_prio(this->task, q);
+		}
+	}
+
+	spin_unlock(&hb->lock);
+}
+
+/**
  * futex_wait_queue_me() - queue_me() and wait for wakeup, timeout, or signal
  * @hb:		the futex hash bucket, must be locked by the caller
  * @q:		the futex_q to queue up on
@@ -1787,6 +2087,7 @@ static void futex_wait_queue_me(struct futex_hash_bucket *hb, struct futex_q *q,
 	 */
 	set_current_state(TASK_INTERRUPTIBLE);
 	queue_me(q, hb);
+	task_blocks_on_condvar(q, hb);
 
 	/* Arm the timer */
 	if (timeout) {
@@ -2419,6 +2720,148 @@ out:
 	return ret;
 }
 
+/**
+ * add_helper() - Add the futex_h to the futex_hash_bucket
+ * @h:	The futex_h to enqueue
+ * @hb:	The destination hash bucket
+ *
+ * The hb->lock must be held by the caller, and is released here. 
+ */
+static inline void add_helper(struct futex_h *h, struct futex_hash_bucket *hb)
+	__releases(&hb->lock)
+{
+	int prio;
+
+	/*
+	 * The priority used to register this element is
+	 * - either the real thread-priority for the real-time threads
+	 * (i.e. threads with a priority lower than MAX_RT_PRIO)
+	 * - or MAX_RT_PRIO for non-RT threads.
+	 */
+	prio = min(current->normal_prio, MAX_RT_PRIO);
+
+	plist_node_init(&h->list, prio);
+	plist_add(&h->list, &hb->chain);
+	spin_unlock(&hb->lock);
+}
+
+/**
+ * del_helper() - Remove the futex_h from its futex_hash_bucket
+ * @h:	The futex_h to unqueue
+ *
+ * The h->lock_ptr must not be NULL and must be held by the caller.
+ */
+static void del_helper(struct futex_h *h)
+{
+	struct futex_hash_bucket *hb;
+
+	if (WARN_ON_SMP(!h->lock_ptr || !spin_is_locked(h->lock_ptr))
+	    || WARN_ON(plist_node_empty(&h->list)))
+		return;
+
+	hb = container_of(h->lock_ptr, struct futex_hash_bucket, lock);
+	plist_del(&h->list, &hb->chain);
+	free_futex_h(h);
+}
+
+/*
+ * Associate an helper task to this futex.
+ * @uaddr:	the futex
+ * @pid:	PID of the helper task
+ *
+ * Return:
+ *  0 - On success;
+ * <0 - On error
+ */
+static int futex_helper_add(struct futex_hash_bucket *hb, struct futex_h *helper, int pid)
+{
+	struct task_struct *p;
+
+	p = futex_find_get_task(pid);
+	if (!p)
+		return -ESRCH;
+
+	helper->task = p;
+	add_helper(helper, hb);
+
+	put_task_struct(p);
+
+	return 0;
+}
+
+/*
+ * Delete an helper task of this futex.
+ * @uaddr:	the futex
+ * @pid:	PID of the helper task
+ *
+ * Return:
+ *  0 - On success;
+ * <0 - On error
+ */
+static int futex_helper_delete(struct plist_head *head, union futex_key *key, int pid)
+{
+	struct futex_h *this;
+	int ret = 1;
+
+	plist_for_each_entry(this, head, list) {
+		if (match_futex (&this->key, key) && (this->task->pid == pid)) {
+			del_helper(this);
+			ret = 0;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+/*
+ * Manage an helper task of this futex (add/del).
+ * @uaddr:	the futex
+ * @pid:	PID of the helper task
+ * @add:	add or delete?
+ *
+ * Return:
+ *  0 - On success;
+ * <0 - On error
+ */
+static int futex_helper_manage(u32 __user *uaddr, unsigned int flags,
+			       int pid, int add)
+{
+	struct futex_hash_bucket *hb;
+	struct plist_head *head;
+	union futex_key key = FUTEX_KEY_INIT;
+	struct futex_h *helper = NULL;
+	int ret;
+
+	helper = alloc_futex_h();
+	if (unlikely(!helper)) {
+		ret = -ENOMEM;
+		goto out;
+	}
+
+	ret = get_futex_key(uaddr, flags & FLAGS_SHARED, &key, VERIFY_READ);
+	if (unlikely(ret != 0))
+		goto out;
+
+	hb = hash_futex_h(&key);
+	spin_lock(&hb->lock);
+	head = &hb->chain;
+	helper->lock_ptr = &hb->lock;
+	helper->key = key;
+
+	if (add) {
+		ret = futex_helper_add(hb, helper, pid);
+	}
+	else {
+		ret = futex_helper_delete(head, &key, pid);
+		spin_unlock(&hb->lock);
+	}
+	
+	put_futex_key(&key);
+out:
+	return ret;
+}
+
 /*
  * Support for robust futexes: the kernel cleans up held futexes at
  * thread exit time.
@@ -2690,6 +3133,8 @@ long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
 					     uaddr2);
 	case FUTEX_CMP_REQUEUE_PI:
 		return futex_requeue(uaddr, flags, uaddr2, val, val2, &val3, 1);
+	case FUTEX_COND_HELPER_MAN:
+		return futex_helper_manage(uaddr, flags, val, val3);
 	}
 	return -ENOSYS;
 }
@@ -2749,6 +3194,8 @@ static int __init futex_init(void)
 	for (i = 0; i < ARRAY_SIZE(futex_queues); i++) {
 		plist_head_init(&futex_queues[i].chain);
 		spin_lock_init(&futex_queues[i].lock);
+		plist_head_init(&futex_helpers[i].chain);
+		spin_lock_init(&futex_helpers[i].lock);
 	}
 
 	return 0;

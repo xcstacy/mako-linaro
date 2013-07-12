@@ -397,12 +397,12 @@ static void decrease_vdd(int cpu, struct vdd_data *data,
 	}
 }
 
-static int calculate_vdd_mem(const struct acpu_level *tgt)
+static inline int calculate_vdd_mem(const struct acpu_level *tgt)
 {
 	return drv.l2_freq_tbl[tgt->l2_level].vdd_mem;
 }
 
-static int get_src_dig(const struct core_speed *s)
+static inline int get_src_dig(const struct core_speed *s)
 {
 	const int *hfpll_vdd = drv.hfpll_data->vdd;
 	const u32 low_vdd_l_max = drv.hfpll_data->low_vdd_l_max;
@@ -418,7 +418,7 @@ static int get_src_dig(const struct core_speed *s)
 		return hfpll_vdd[HFPLL_VDD_LOW];
 }
 
-static int calculate_vdd_dig(const struct acpu_level *tgt)
+static inline int calculate_vdd_dig(const struct acpu_level *tgt)
 {
 	int l2_pll_vdd_dig, cpu_pll_vdd_dig;
 
@@ -432,7 +432,7 @@ static int calculate_vdd_dig(const struct acpu_level *tgt)
 static bool enable_boost = true;
 module_param_named(boost, enable_boost, bool, S_IRUGO | S_IWUSR);
 
-static int calculate_vdd_core(const struct acpu_level *tgt)
+static inline int calculate_vdd_core(const struct acpu_level *tgt)
 {
 	return tgt->vdd_core + (enable_boost ? drv.boost_uv : 0);
 }
@@ -925,6 +925,58 @@ static void __init bus_init(const struct l2_level *l2_level)
 		dev_err(drv.dev, "initial bandwidth req failed (%d)\n", ret);
 }
 
+#ifdef CONFIG_USERSPACE_VOLTAGE_CONTROL
+
+#define HFPLL_MIN_VDD		 600000
+#define HFPLL_MAX_VDD		1300000
+
+ssize_t acpuclk_get_vdd_levels_str(char *buf) {
+
+	int i, len = 0;
+
+	if (buf) {
+		mutex_lock(&driver_lock);
+
+		for (i = 0; drv.acpu_freq_tbl[i].speed.khz; i++) {
+			if (drv.acpu_freq_tbl[i].use_for_scaling) {
+				/* updated to use uv required by 8x60 architecture - faux123 */
+				len += sprintf(buf + len, "%8lu: %8d\n", drv.acpu_freq_tbl[i].speed.khz,
+						drv.acpu_freq_tbl[i].vdd_core );
+			}
+		}
+
+		mutex_unlock(&driver_lock);
+	}
+	return len;
+}
+
+/* updated to use uv required by 8x60 architecture - faux123 */
+void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
+
+	int i;
+	unsigned int new_vdd_uv;
+
+	mutex_lock(&driver_lock);
+
+	for (i = 0; drv.acpu_freq_tbl[i].speed.khz; i++) {
+		if (drv.acpu_freq_tbl[i].use_for_scaling) {
+			if (khz == 0)
+				new_vdd_uv = min(max((unsigned int)(drv.acpu_freq_tbl[i].vdd_core + vdd_uv),
+					(unsigned int)HFPLL_MIN_VDD), (unsigned int)HFPLL_MAX_VDD);
+			else if ( drv.acpu_freq_tbl[i].speed.khz == khz)
+				new_vdd_uv = min(max((unsigned int)vdd_uv,
+					(unsigned int)HFPLL_MIN_VDD), (unsigned int)HFPLL_MAX_VDD);
+			else
+				continue;
+
+			drv.acpu_freq_tbl[i].vdd_core = new_vdd_uv;
+		}
+	}
+	pr_warn("User voltage table modified!\n");
+	mutex_unlock(&driver_lock);
+}
+#endif
+
 #ifdef CONFIG_CPU_FREQ_MSM
 static struct cpufreq_frequency_table freq_table[NR_CPUS][35];
 
@@ -1014,6 +1066,7 @@ static struct notifier_block __cpuinitdata acpuclk_cpu_notifier = {
 	.notifier_call = acpuclk_cpu_callback,
 };
 
+#ifdef CONFIG_ENABLE_MIN_KRAIT_VOLTAGE
 static const int krait_needs_vmin(void)
 {
 	switch (read_cpuid_id()) {
@@ -1034,6 +1087,7 @@ static void krait_apply_vmin(struct acpu_level *tbl)
 		tbl->avsdscr_setting = 0;
 	}
 }
+#endif
 
 static int __init get_speed_bin(u32 pte_efuse)
 {
@@ -1136,8 +1190,10 @@ static void __init hw_init(void)
 	const struct l2_level *l2_level;
 	int cpu, rc;
 
+#ifdef CONFIG_ENABLE_MIN_KRAIT_VOLTAGE
 	if (krait_needs_vmin())
 		krait_apply_vmin(drv.acpu_freq_tbl);
+#endif
 
 	l2->hfpll_base = ioremap(l2->hfpll_phys_base, SZ_32);
 	BUG_ON(!l2->hfpll_base);
