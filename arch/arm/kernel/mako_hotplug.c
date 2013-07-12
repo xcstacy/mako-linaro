@@ -30,6 +30,7 @@
 #define DEFAULT_SUSPEND_FREQ 702000
 #define DEFAULT_CORES_ON_TOUCH 2
 #define HIGH_LOAD_COUNTER 20
+#define TIMER (HZ/2)
 
 struct cpu_stats
 {
@@ -84,14 +85,17 @@ static void decide_hotplug_func(struct work_struct *work)
     
     if (counter >= 10) 
     {
-        for_each_possible_cpu(cpu) 
+        if (num_online_cpus() < num_possible_cpus()) 
         {
-            if (!cpu_online(cpu)) 
+            for_each_possible_cpu(cpu) 
             {
-                cpu_up(cpu);
+                if (!cpu_online(cpu)) 
+                {
+                    cpu_up(cpu);
+                }
             }
+            scale_interactive_tunables(0, 10000, 80000);
         }
-        scale_interactive_tunables(0, 10000, 80000);
     }
 
     else
@@ -109,7 +113,7 @@ static void decide_hotplug_func(struct work_struct *work)
         } 
     }
 
-    queue_delayed_work(wq, &decide_hotplug, msecs_to_jiffies(HZ));
+    queue_delayed_work(wq, &decide_hotplug, TIMER);
 }
 
 static void mako_hotplug_early_suspend(struct early_suspend *handler)
