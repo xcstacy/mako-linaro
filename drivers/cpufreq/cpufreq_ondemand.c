@@ -45,10 +45,8 @@
 
 #if defined(CONFIG_ZEN_CUSTOM)
 #  define DEF_SAMPLING_DOWN_FACTOR	(DEF_SAMPLING_DOWN_FACTOR_CUSTOM)
-#  define DEF_POWERSAVE_BIAS			(DEF_POWERSAVE_BIAS_CUSTOM)
 #elif defined (CONFIG_ZEN_DEFAULT)
-#  define DEF_SAMPLING_DOWN_FACTOR		(1)
-#  define DEF_POWERSAVE_BIAS			(0)
+#  define DEF_SAMPLING_DOWN_FACTOR	(1)
 #endif
 
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
@@ -175,7 +173,7 @@ static struct dbs_tuners {
 	.down_differential_multi_core = MICRO_FREQUENCY_DOWN_DIFFERENTIAL,
 	.up_threshold_any_cpu_load = DEF_FREQUENCY_UP_THRESHOLD,
 	.ignore_nice = 0,
-	.powersave_bias = DEF_POWERSAVE_BIAS,
+	.powersave_bias = 0,
 	.sync_freq = 0,
 	.optimal_freq = 0,
 };

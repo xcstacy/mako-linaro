@@ -74,7 +74,6 @@ config ZEN_DEFAULT
 	  VM dirty ratio: 20
 	  VM dirty background ratio: 10
 	  Ondemand downsample factor: 1
-	  Ondemand powersave bias: 0%
 
 	  Scheduling latency: 6 ms
 	  Minimal granularity: 0.75 ms
@@ -92,7 +91,6 @@ config ZEN_CUSTOM
 	  VM dirty ratio: 50
 	  VM dirty background ratio: 20
 	  Ondemand downsample factor: 10
-	  Ondemand powersave bias: 15%
 
 	  Scheduling latency: 3 ms
 	  Minimal granularity: 0.3 ms
