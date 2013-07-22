@@ -54,6 +54,7 @@ static void check_temp(struct work_struct *work)
 	struct tsens_device tsens_dev;
 	long temp = 0;
     unsigned int cpu;
+    bool throttling = false;
 
 	policy = cpufreq_cpu_get(0);
 	max_freq = policy->max;
@@ -68,6 +69,7 @@ static void check_temp(struct work_struct *work)
 	   if it means a lag fest. Also poll faster */        
 	if (temp >= (temp_threshold + 10)) 
 	{
+		throttling = true;
 		max_freq = 702000;
 		polling = HZ/8;
 	}
@@ -76,6 +78,7 @@ static void check_temp(struct work_struct *work)
 	   poll faster (every .25s) */
 	else if (temp >= temp_threshold) 
 	{
+		throttling = true;
 		max_freq = 1026000;
 		polling = HZ/4;
 	}
@@ -83,6 +86,7 @@ static void check_temp(struct work_struct *work)
 	/* the device is getting hot, lets throttle a little bit */
 	else if (temp >= (temp_threshold - 5)) 
 	{
+		throttling = true;
 		max_freq = 1350000;
 	} 
 
@@ -92,7 +96,7 @@ static void check_temp(struct work_struct *work)
 		polling = HZ*2;
 	}
 
-	if (max_freq < freq_buffer || max_freq > freq_buffer) 
+	if (throttling) 
 	{
 		freq_buffer = max_freq;
 
