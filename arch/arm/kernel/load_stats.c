@@ -139,9 +139,8 @@ static int update_average_load(unsigned int freq, unsigned int cpu)
 	return 0;
 }
 
-unsigned int report_load_at_max_freq()
+unsigned int report_load_at_max_freq(int cpu)
 {
-	int cpu = 0;
 	struct cpu_load_data *pcpu;
 	unsigned int total_load = 0;
 	pcpu = &per_cpu(cpuload, cpu);
@@ -157,14 +156,15 @@ static int __init msm_rq_stats_init(void)
 {
 	int cpu = 0;
 	struct cpufreq_policy cpu_policy;
-	struct cpu_load_data *pcpu = &per_cpu(cpuload, cpu);
 
-	cpufreq_get_policy(&cpu_policy, cpu);
-
-	pcpu->policy_max = cpu_policy.max;
-	pcpu->cur_freq = acpuclk_get_rate(cpu);
-
-	cpumask_copy(pcpu->related_cpus, cpu_policy.cpus);
+	for_each_possible_cpu(cpu)
+	{
+		struct cpu_load_data *pcpu = &per_cpu(cpuload, cpu);
+		cpufreq_get_policy(&cpu_policy, cpu);
+		pcpu->policy_max = cpu_policy.max;
+		pcpu->cur_freq = acpuclk_get_rate(cpu);
+		cpumask_copy(pcpu->related_cpus, cpu_policy.cpus);
+	}	
 
 	return 0;
 }

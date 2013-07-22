@@ -38,13 +38,13 @@ struct cpu_stats
     unsigned int default_first_level;
     unsigned int suspend_frequency;
     unsigned int cores_on_touch;
+
+    unsigned int counter[2];
 };
 
 static struct cpu_stats stats;
 static struct workqueue_struct *wq;
 static struct delayed_work decide_hotplug;
-
-int counter;
 
 static void scale_interactive_tunables(unsigned int above_hispeed_delay,
     unsigned int timer_rate, 
@@ -60,18 +60,6 @@ static void decide_hotplug_func(struct work_struct *work)
     int cpu;
     int cpu_boost;
 
-    if (report_load_at_max_freq() >= stats.default_first_level)
-    {
-        if (likely(counter < HIGH_LOAD_COUNTER))    
-            counter += 2;
-    }
-
-    else
-    {
-        if (counter > 0)
-            counter--;
-    }
-
     if (unlikely(is_touching && num_online_cpus() < stats.cores_on_touch))
     {
         for_each_possible_cpu(cpu_boost)
@@ -82,35 +70,61 @@ static void decide_hotplug_func(struct work_struct *work)
             }
         }
     }
-    
-    if (counter >= 10) 
+
+    for_each_online_cpu(cpu) 
     {
-        if (num_online_cpus() < num_possible_cpus()) 
+        if (report_load_at_max_freq(cpu) >= stats.default_first_level)
         {
-            for_each_possible_cpu(cpu) 
-            {
-                if (!cpu_online(cpu)) 
-                {
-                    cpu_up(cpu);
-                }
-            }
+            if (likely(stats.counter[cpu] < HIGH_LOAD_COUNTER))    
+                stats.counter[cpu] += 2;
+        }
+
+        else
+        {
+            if (stats.counter[cpu] > 0)
+                stats.counter[cpu]--;
+        }
+
+        if (cpu) 
+        {
+            cpu = 0;
+            break;
+        }
+    }
+
+    if (stats.counter[0] >= 10)
+    {
+        if (!cpu_online(2))
+        {
+            cpu_up(2);
+            scale_interactive_tunables(0, 10000, 80000);
+        }
+    }
+    else
+    {
+        if (cpu_online(2))
+        {
+            cpu_down(2);
+            scale_interactive_tunables(20000, 40000, 20000);
+        }   
+    }
+    
+    if (stats.counter[1] >= 10)
+    {
+        if (!cpu_online(3))
+        {
+            cpu_up(3);
             scale_interactive_tunables(0, 10000, 80000);
         }
     }
 
     else
     {
-        if (num_online_cpus() > 2 && !is_touching)
+        if (cpu_online(3))
         {
-            for_each_online_cpu(cpu) 
-            {
-                if (cpu > 1) 
-                {
-                    cpu_down(cpu);
-                }
-            }
+            cpu_down(3);
             scale_interactive_tunables(20000, 40000, 20000);
-        } 
+        }   
     }
 
     queue_delayed_work(wq, &decide_hotplug, TIMER);
@@ -155,7 +169,8 @@ static void mako_hotplug_late_resume(struct early_suspend *handler)
         }
     }
 
-    counter = 0;
+    stats.counter[0] = 0;
+    stats.counter[1] = 0;
     
     /* restore max frequency */
     msm_cpufreq_set_freq_limits(0, MSM_CPUFREQ_NO_LIMIT, MSM_CPUFREQ_NO_LIMIT);
@@ -213,6 +228,8 @@ int __init mako_hotplug_init(void)
     stats.default_first_level = DEFAULT_FIRST_LEVEL;
     stats.suspend_frequency = DEFAULT_SUSPEND_FREQ;
     stats.cores_on_touch = DEFAULT_CORES_ON_TOUCH;
+    stats.counter[0] = 0;
+    stats.counter[1] = 0;
 
     wq = alloc_workqueue("mako_hotplug_workqueue", 
                     WQ_UNBOUND | WQ_RESCUER | WQ_FREEZABLE, 1);
