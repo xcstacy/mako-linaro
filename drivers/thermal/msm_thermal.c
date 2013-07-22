@@ -31,7 +31,7 @@
  */
 unsigned int polling = HZ*2;
 
-unsigned int temp_threshold = 60;
+unsigned int temp_threshold = 65;
 module_param(temp_threshold, int, 0755);
 
 static struct msm_thermal_data msm_thermal_info;
@@ -43,6 +43,7 @@ struct cpufreq_policy *policy = NULL;
 
 unsigned int max_freq;
 unsigned int freq_buffer;
+bool throttling;
 
 unsigned short get_threshold()
 {
@@ -54,8 +55,8 @@ static void check_temp(struct work_struct *work)
 	struct tsens_device tsens_dev;
 	long temp = 0;
     unsigned int cpu;
-    bool throttling = false;
-
+    
+    throttling = false;
 	policy = cpufreq_cpu_get(0);
 	max_freq = policy->max;
 	
