@@ -30,7 +30,7 @@
 #define DEFAULT_SUSPEND_FREQ 702000
 #define DEFAULT_CORES_ON_TOUCH 2
 #define HIGH_LOAD_COUNTER 20
-#define TIMER (HZ/2)
+#define TIMER HZ
 
 struct cpu_stats
 {
@@ -127,7 +127,7 @@ static void decide_hotplug_func(struct work_struct *work)
         }   
     }
 
-    queue_delayed_work(wq, &decide_hotplug, TIMER);
+    queue_delayed_work(wq, &decide_hotplug, msecs_to_jiffies(TIMER));
 }
 
 static void mako_hotplug_early_suspend(struct early_suspend *handler)
