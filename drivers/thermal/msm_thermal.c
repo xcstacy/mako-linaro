@@ -25,6 +25,14 @@
 #include <linux/of.h>
 #include <mach/cpufreq.h>
 
+#define THROTTLE_FREQUENCY 1026000
+
+struct cpus {
+    bool throttling;
+};
+
+struct cpus cpu_stats;
+
 /*
  * Poll for temperature changes every 2 seconds.
  * It will scale based on the device temperature.
@@ -39,80 +47,66 @@ static struct msm_thermal_data msm_thermal_info;
 static struct workqueue_struct *wq;
 static struct delayed_work check_temp_work;
 
-struct cpufreq_policy *policy = NULL;
-
-unsigned int max_freq;
-unsigned int freq_buffer;
-bool throttling;
-
 unsigned short get_threshold()
 {
 	return temp_threshold;
+}
+
+static void limit_cpu_freqs(unsigned int freq)
+{
+    int cpu;
+        
+    for_each_present_cpu(cpu)
+    {
+        msm_cpufreq_set_freq_limits(cpu, MSM_CPUFREQ_NO_LIMIT, freq);
+        pr_info("Thermal Throttling activated: CPU%d limited to %d\n",
+            cpu, freq);
+    }
+    
+    cpu_stats.throttling = true;
+}
+
+static void unlimit_cpu_freqs(void)
+{
+    int cpu;
+    
+    for_each_present_cpu(cpu)
+    {
+        msm_cpufreq_set_freq_limits(cpu, MSM_CPUFREQ_NO_LIMIT,
+                                    MSM_CPUFREQ_NO_LIMIT);
+        pr_info("Thermal Throttling deactivated: CPU%d unlocked\n", cpu);
+    }
+   
+    cpu_stats.throttling = false;
 }
 
 static void check_temp(struct work_struct *work)
 {
 	struct tsens_device tsens_dev;
 	long temp = 0;
-    unsigned int cpu;
-    
-    throttling = false;
-	policy = cpufreq_cpu_get(0);
-	max_freq = policy->max;
-	
-	if (freq_buffer == 0)
-		freq_buffer = max_freq;
 
 	tsens_dev.sensor_num = msm_thermal_info.sensor_id;
 	tsens_get_temp(&tsens_dev, &temp);
 
-	/* device is really hot, it needs severe throttling even 
-	   if it means a lag fest. Also poll faster */        
-	if (temp >= (temp_threshold + 10)) 
-	{
-		throttling = true;
-		max_freq = 702000;
-		polling = HZ/8;
-	}
-
 	/* temperature is high, lets throttle even more and 
 	   poll faster (every .25s) */
-	else if (temp >= temp_threshold) 
+	if (temp >= temp_threshold) 
 	{
-		throttling = true;
-		max_freq = 1026000;
-		polling = HZ/4;
+        if (!cpu_stats.throttling)
+        {
+            limit_cpu_freqs(THROTTLE_FREQUENCY);
+            polling = HZ/4;
+        }
 	}
-
-	/* the device is getting hot, lets throttle a little bit */
-	else if (temp >= (temp_threshold - 5)) 
-	{
-		throttling = true;
-		max_freq = 1350000;
-	} 
 
 	/* the device is in safe temperature, polling is normal (every second) */
 	else if (temp < (temp_threshold - 10)) 
 	{
-		polling = HZ*2;
-	}
-
-	if (throttling) 
-	{
-		freq_buffer = max_freq;
-
-		/* blocks hotplug operations - critical in this code path */
-		get_online_cpus();
-		for_each_possible_cpu(cpu) 
-		{
-			msm_cpufreq_set_freq_limits(cpu, MSM_CPUFREQ_NO_LIMIT, max_freq);
-			pr_info("Thermal Throttle: max cpu%d frequency changes to %dMHz -" 
-				"polling every %dms", 
-				cpu, 
-				max_freq/1000, 
-				jiffies_to_msecs(polling));
-		}
-		put_online_cpus();
+        if (cpu_stats.throttling)
+        {
+            unlimit_cpu_freqs();
+            polling = HZ*2;
+        }
 	}
 
 	queue_delayed_work(wq, &check_temp_work, polling);
