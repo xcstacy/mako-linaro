@@ -1104,6 +1104,8 @@ static void rt_mutex_init_task(struct task_struct *p)
 	plist_head_init(&p->pi_waiters);
 	p->pi_blocked_on = NULL;
 	p->pi_top_task = NULL;
+	plist_head_init(&p->cv_waiters);
+	p->cond_waiter = NULL;
 #endif
 }
 

@@ -4117,6 +4117,8 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	trace_sched_pi_setprio(p, prio);
 	p->pi_top_task = rt_mutex_get_top_task(p);
 	oldprio = p->prio;
+	trace_printk("task %d had prio %d and takes prio %d\n", p->pid,
+		     oldprio, prio);
 	prev_class = p->sched_class;
 	on_rq = p->on_rq;
 	running = task_current(rq, p);
@@ -7681,6 +7683,7 @@ void __init sched_init(void)
 
 #ifdef CONFIG_RT_MUTEXES
 	plist_head_init(&init_task.pi_waiters);
+	plist_head_init(&init_task.cv_waiters);
 #endif
 
 	/*
