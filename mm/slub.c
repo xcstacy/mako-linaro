@@ -1490,12 +1490,12 @@ static inline void remove_partial(struct kmem_cache_node *n,
 }
 
 /*
- * Lock slab, remove from the partial list and put the object into the
- * per cpu freelist.
+ * Remove slab from the partial list, freeze it and
+ * return the pointer to the freelist.
  *
  * Returns a list of objects or NULL if it fails.
  *
- * Must hold list_lock.
+ * Must hold list_lock since we modify the partial list.
  */
 static inline void *acquire_slab(struct kmem_cache *s,
 		struct kmem_cache_node *n, struct page *page,
