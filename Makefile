@@ -353,8 +353,8 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 CFLAGS_MODULE   =
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
-CFLAGS_KERNEL	=
-AFLAGS_KERNEL	=
+CFLAGS_KERNEL	= -mfpu=neon -ftree-vectorize
+AFLAGS_KERNEL	= -mfpu=neon -ftree-vectorize
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 
@@ -367,13 +367,24 @@ LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
+
+#
+# LINARO OPT
+#
+CFLAGS_A15 = -march=armv7-a -mtune=cortex-a15 -mfpu=neon -funsafe-math-optimizations
+CFLAGS_MODULO = -fmodulo-sched -fmodulo-sched-allow-regmoves
+KERNEL_MODS  = $(CFLAGS_A15) $(CFLAGS_MODULO)
+
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks \
-		   -mtune=cortex-a15 -march=armv7-a -mfpu=neon \
-		   -ftree-vectorize
+		   -ftree-vectorize \
+		   -mno-unaligned-access \
+		   -Wno-sizeof-pointer-memaccess \
+		   $(KERNEL_MODS)
+
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
@@ -573,9 +584,9 @@ endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
 
-ifneq ($(CONFIG_FRAME_WARN),0)
-KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
-endif
+#ifneq ($(CONFIG_FRAME_WARN),0)
+#KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
+#endif
 
 # Force gcc to behave correct even for buggy distributions
 ifndef CONFIG_CC_STACKPROTECTOR
@@ -1577,4 +1588,3 @@ FORCE:
 # Declare the contents of the .PHONY variable as phony.  We keep that
 # information in a variable so we can use it in if_changed and friends.
 .PHONY: $(PHONY)
-
