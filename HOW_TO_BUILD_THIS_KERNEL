@@ -1,0 +1,4 @@
+DEFCONFIG: franco_defconfig
+HOW TO BUILD THE CONFIG FILE: make defconfig franco_defconfig
+COMMAND TO BUILD: make -j`sysctl -an hw.logicalcpu`
+TOOLCHAIN USED: Google 4.6 Toolchain from https://android.googlesource.com/
