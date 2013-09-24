@@ -66,7 +66,7 @@
 
 #define CSR_RSN_OUI_SIZE              ( 4 )
 #define CSR_RSN_VERSION_SUPPORTED     ( 1 )
-#define CSR_RSN_MAX_AUTH_SUITES       ( 16 )
+#define CSR_RSN_MAX_AUTH_SUITES       ( 4 )
 #define CSR_RSN_MAX_CYPHERS           ( 5 )
 #define CSR_RSN_MAX_UNICAST_CYPHERS   ( 5 )
 #define CSR_RSN_MAX_MULTICAST_CYPHERS ( 1 )
@@ -827,7 +827,7 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
 eHalStatus csrUpdatep2pBeaconInterval(tpAniSirGlobal pMac);
 
 //BeaconInterval validation for MCC support
-eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId, 
+eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                                      tANI_U16 *beaconInterval, tANI_U32 cursessionId,
                                      tVOS_CON_MODE currBssPersona);
 

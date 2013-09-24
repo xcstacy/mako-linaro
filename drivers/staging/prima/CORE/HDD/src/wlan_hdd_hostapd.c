@@ -91,6 +91,8 @@
 #include "wlan_btc_svc.h"
 #include <bap_hdd_main.h>
 #include "wlan_hdd_p2p.h"
+#include "cfgApi.h"
+#include "wniCfgAp.h"
 
 #define    IS_UP(_dev) \
     (((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
@@ -111,6 +113,507 @@ struct statsContext
    unsigned int magic;
 };
 #define SAP_24GHZ_CH_COUNT (14) 
+
+#define SAP_MAX_GET_ASSOC_STAS_TIMEOUT    500
+/* Max possible supported rate count
+ * Legacy 14 + 11N MCS 8 + 11AC MCS 10 */
+#define SAP_MAX_SUPPORTED_RATE_COUNT      32
+#define SAP_LEGACY_RATE_MASK              0x007F
+#define SAP_GET_STAS_RATE_TIMEOUT         1000
+#define SAP_AC_MCS_MAP_MASK               0x03
+#define SAP_AC_MCS_MAP_OFFSET             7
+
+#define SAP_LEGACY_RATE_COUNT             SIR_NUM_11B_RATES + SIR_NUM_11A_RATES
+#define SAP_11N_RATE_COUNT                8
+
+#define SAP_RATE_SUPPORT_MAP_LEGACY_MASK  0x0001
+#define SAP_RATE_SUPPORT_MAP_N_MASK       0x001E
+#define SAP_RATE_SUPPORT_MAP_AC_MASK      0x07E0
+
+#define SAP_MAX_24_CHANNEL_NUMBER         14
+#define SAP_GET_STAS_COOKIE               0xC000C1EE
+
+/* Temp put here, will locate correct location
+ * work on progress with UMAC */
+/* Should syn with FW definition */
+typedef enum
+{
+   WNI_CFG_FIXED_RATE_SAP_AUTO,
+   WNI_CFG_FIXED_RATE_11B_LONG_1_MBPS,
+   WNI_CFG_FIXED_RATE_11B_LONG_2_MBPS,
+   WNI_CFG_FIXED_RATE_11B_LONG_5_5_MBPS,
+   WNI_CFG_FIXED_RATE_11B_LONG_11_MBPS,
+   WNI_CFG_FIXED_RATE_11A_6_MBPS,
+   WNI_CFG_FIXED_RATE_11A_9_MBPS,
+   WNI_CFG_FIXED_RATE_11A_12_MBPS,
+   WNI_CFG_FIXED_RATE_11A_18_MBPS,
+   WNI_CFG_FIXED_RATE_11A_24_MBPS,
+   WNI_CFG_FIXED_RATE_11A_36_MBPS,
+   WNI_CFG_FIXED_RATE_11A_48_MBPS,
+   WNI_CFG_FIXED_RATE_11A_54_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_6_5_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_13_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_19_5_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_26_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_39_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_52_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_58_5_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_65_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_7_2_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_14_4_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_21_7_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_28_9_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_43_3_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_57_8_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_65_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_72_2_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_13_5_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_27_MBPS,                     /* 30 */
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_40_5_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_54_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_81_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_108_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_121_5_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_135_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_15_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_30_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_45_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_60_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_90_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_120_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_135_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_150_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_GF_13_5_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_GF_27_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_GF_40_5_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_GF_54_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_GF_81_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_GF_108_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_GF_121_5_MBPS,
+   WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_GF_135_MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_NGI_6_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_NGI_13MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_NGI_19_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_NGI_26MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_NGI_39MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_NGI_52MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_NGI_58_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_NGI_65MBPS,                        /* 60 */
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_NGI_78MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_NGI_86_5_MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_SGI_21_667MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_SGI_28_889MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_SGI_43_333MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_SGI_57_778MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_SGI_65MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_SGI_72_222MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_SGI_86_667MBPS,
+   WNI_CFG_FIXED_RATE_VHT_SIMO_CB_SGI_96_1_MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_13_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_27MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_40_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_54MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_81MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_108MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_121_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_135MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_RESERVED,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_162MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_180MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_15MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_30MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_45MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_60MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_90MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_120MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_135MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_150MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_RESERVED,                /* 90 */
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_180MBPS,
+   WNI_CFG_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_200MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_29_25MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_58_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_87_75MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_117MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_175_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_234MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_263_25MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_292_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_RESERVED,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_351MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_390MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_32_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_65MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_97_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_130MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_195MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_260MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_292_5MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_325MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_RESERVED,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_390MBPS,
+   WNI_CFG_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_433_33MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_6_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_13MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_19_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_26MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_39MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_52MBPS,                   /* 120 */
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_58_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_65MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_78MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_86_5_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_7_2222MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_14_444MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_21_667MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_28_889MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_43_333MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_57_778MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_65MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_72_222MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_86_667MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_96_1_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_13_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_27MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_40_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_54MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_81MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_108MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_121_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_135MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_RESERVED,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_162MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_180MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_15MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_30MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_45MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_60MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_90MBPS,             /* 150 */
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_120MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_135MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_150MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_RESERVED,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_180MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_200MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_29_25MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_58_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_87_75MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_117MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_175_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_234MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_263_25MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_292_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_RESERVED,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_351MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_390MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_32_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_65MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_97_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_130MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_195MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_260MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_292_5MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_325MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_RESERVED,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_390MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_433_33MBPS,
+   WNI_CFG_FIXED_RATE_11A_DUP_6_MBPS,
+   WNI_CFG_FIXED_RATE_11A_DUP_9_MBPS,                                /* 180 */
+   WNI_CFG_FIXED_RATE_11A_DUP_12_MBPS,
+   WNI_CFG_FIXED_RATE_11A_DUP_18_MBPS,
+   WNI_CFG_FIXED_RATE_11A_DUP_24_MBPS,
+   WNI_CFG_FIXED_RATE_11A_DUP_36_MBPS,
+   WNI_CFG_FIXED_RATE_11A_DUP_48_MBPS,
+   WNI_CFG_FIXED_RATE_11A_DUP_54_MBPS,
+   WNI_CFG_FIXED_RATE_11A_80MHZ_DUP_6_MBPS,
+   WNI_CFG_FIXED_RATE_11A_80MHZDUP_9_MBPS,
+   WNI_CFG_FIXED_RATE_11A_80MHZ_DUP_12_MBPS,
+   WNI_CFG_FIXED_RATE_11A_80MHZ_DUP_18_MBPS,
+   WNI_CFG_FIXED_RATE_11A_80MHZ_DUP_24_MBPS,
+   WNI_CFG_FIXED_RATE_11A_80MHZ_DUP_36_MBPS,
+   WNI_CFG_FIXED_RATE_11A_80MHZ_DUP_48_MBPS,
+   WNI_CFG_FIXED_RATE_11A_80MHZ_DUP_54_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_6_5_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_13_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_19_5_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_26_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_39_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_52_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_58_5_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_65_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_SG_7_2_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_SG_14_4_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_SG_21_7_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_SG_28_9_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_SG_43_3_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_SG_57_8_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_SG_65_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_1NSS_MM_SG_72_2_MBPS,                 /* 210 */
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_13_5_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_27_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_40_5_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_54_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_81_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_108_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_121_5_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_135_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_15_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_30_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_45_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_60_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_90_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_120_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_135_MBPS,
+   WNI_CFG_LDPC_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_150_MBPS
+} eCfgFixedRateCfgType;
+
+/* Legacy IDX based rate table */
+typedef struct
+{
+   v_U16_t   legacy_rate_index;
+   v_U32_t   legacy_rate;
+} supported_legacy_rate_t;
+static const supported_legacy_rate_t legacy_rate[] =
+{
+/* IDX   Rate, 100kbps */
+   {2,   10},
+   {4,   20},
+   {11,  55},
+   {12,  60},
+   {18,  90},
+   {24,  120},
+   {36,  180},
+   {48,  240},
+   {66,  330},
+   {72,  360},
+   {96,  480},
+   {108, 540}
+};
+
+/* 11N MCS based rate table */
+typedef struct
+{
+   v_U8_t   mcs_index_11n;
+   v_U32_t  rate_11n[4];
+} supported_11n_rate_t;
+static const supported_11n_rate_t mcs_rate_11n[] =
+{
+/* MCS  L20   L40   S20  S40 */
+   {0,  {65,  135,  72,  150}},
+   {1,  {130, 270,  144, 300}},
+   {2,  {195, 405,  217, 450}},
+   {3,  {260, 540,  289, 600}},
+   {4,  {390, 810,  433, 900}},
+   {5,  {520, 1080, 578, 1200}},
+   {6,  {585, 1215, 650, 1350}},
+   {7,  {650, 1350, 722, 1500}}
+};
+
+/* 11AC MCS based rate table */
+typedef struct
+{
+   v_U8_t   mcs_index_11ac;
+   v_U16_t  cb80_rate_11ac[2];
+   v_U16_t  cb40_rate_11ac[2];
+   v_U16_t  cb20_rate_11ac[2];
+} supported_11ac_rate_t;
+static const supported_11ac_rate_t mcs_rate_11ac[] =
+{
+/* MCS  L80    S80     L40   S40    L20   S40*/
+   {0,  {293,  325},  {135,  150},  {65,   72}},
+   {1,  {585,  650},  {270,  300},  {130,  144}},
+   {2,  {878,  975},  {405,  450},  {195,  217}},
+   {3,  {1170, 1300}, {540,  600},  {260,  289}},
+   {4,  {1755, 1950}, {810,  900},  {390,  433}},
+   {5,  {2340, 2600}, {1080, 1200}, {520,  578}},
+   {6,  {2633, 2925}, {1215, 1350}, {585,  650}},
+   {7,  {2925, 3250}, {1350, 1500}, {650,  722}},
+   {8,  {3510, 3900}, {1620, 1800}, {780,  867}},
+   {9,  {3900, 4333}, {1800, 2000}, {860,  867}}
+};
+
+typedef struct
+{
+   eCfgFixedRateCfgType  eRateCfg;
+   v_U16_t               rate;
+} rate_cfg_item_mapping_t;
+
+static rate_cfg_item_mapping_t legacy_rate_mapping[] =
+{
+   {WNI_CFG_FIXED_RATE_11B_LONG_1_MBPS,                               10},
+   {WNI_CFG_FIXED_RATE_11B_LONG_2_MBPS,                               20},
+   {WNI_CFG_FIXED_RATE_11B_LONG_5_5_MBPS,                             55},
+   {WNI_CFG_FIXED_RATE_11B_LONG_11_MBPS,                              110},
+   {WNI_CFG_FIXED_RATE_11A_6_MBPS,                                    60},
+   {WNI_CFG_FIXED_RATE_11A_9_MBPS,                                    90},
+   {WNI_CFG_FIXED_RATE_11A_12_MBPS,                                   120},
+   {WNI_CFG_FIXED_RATE_11A_18_MBPS,                                   180},
+   {WNI_CFG_FIXED_RATE_11A_24_MBPS,                                   240},
+   {WNI_CFG_FIXED_RATE_11A_36_MBPS,                                   360},
+   {WNI_CFG_FIXED_RATE_11A_48_MBPS,                                   480},
+   {WNI_CFG_FIXED_RATE_11A_54_MBPS,                                   540}
+};
+static rate_cfg_item_mapping_t n_l20_rate_mapping[] =
+{
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_6_5_MBPS,                          65},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_13_MBPS,                           130},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_19_5_MBPS,                         195},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_26_MBPS,                           260},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_39_MBPS,                           390},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_52_MBPS,                           520},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_58_5_MBPS,                         585},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_65_MBPS,                           650}
+};
+static rate_cfg_item_mapping_t n_s20_rate_mapping[] =
+{
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_7_2_MBPS,                       72},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_14_4_MBPS,                      144},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_21_7_MBPS,                      217},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_28_9_MBPS,                      289},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_43_3_MBPS,                      433},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_57_8_MBPS,                      578},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_65_MBPS,                        650},
+   {WNI_CFG_FIXED_RATE_MCS_1NSS_MM_SG_72_2_MBPS,                      722}
+};
+static rate_cfg_item_mapping_t n_l40_rate_mapping[] =
+{
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_13_5_MBPS,                   135},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_27_MBPS,                     270},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_40_5_MBPS,                   405},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_54_MBPS,                     540},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_81_MBPS,                     810},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_108_MBPS,                    1080},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_121_5_MBPS,                  1215},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_135_MBPS,                    1350}
+};
+static rate_cfg_item_mapping_t n_s40_rate_mapping[] =
+{
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_15_MBPS,                  150},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_30_MBPS,                  300},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_45_MBPS,                  450},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_60_MBPS,                  600},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_90_MBPS,                  900},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_120_MBPS,                 1200},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_135_MBPS,                 1350},
+   {WNI_CFG_FIXED_RATE_MCS_40MHZ_1NSS_MM_SG_150_MBPS,                 1500}
+};
+
+#ifdef WLAN_FEATURE_11AC
+static rate_cfg_item_mapping_t ac_l20_rate_mapping[] =
+{
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_6_5MBPS,                  65},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_13MBPS,                   130},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_19_5MBPS,                 195},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_26MBPS,                   260},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_39MBPS,                   390},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_52MBPS,                   520},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_58_5MBPS,                 585},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_65MBPS,                   650},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_78MBPS,                   780},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_NGI_86_5_MBPS,                865}
+};
+static rate_cfg_item_mapping_t ac_s20_rate_mapping[] =
+{
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_7_2222MBPS,               72},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_14_444MBPS,               144},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_21_667MBPS,               217},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_28_889MBPS,               289},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_43_333MBPS,               433},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_57_778MBPS,               578},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_65MBPS,                   650},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_72_222MBPS,               722},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_86_667MBPS,               867},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_SIMO_CB_SGI_96_1_MBPS,                961}
+};
+static rate_cfg_item_mapping_t ac_l40_rate_mapping[] =
+{
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_13_5MBPS,           135},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_27MBPS,             270},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_40_5MBPS,           405},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_54MBPS,             540},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_81MBPS,             810},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_108MBPS,            1080},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_121_5MBPS,          1215},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_135MBPS,            1350},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_162MBPS,            1620},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_NGI_180MBPS,            1800}
+};
+static rate_cfg_item_mapping_t ac_s40_rate_mapping[] =
+{
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_15MBPS,             150},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_30MBPS,             300},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_45MBPS,             450},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_60MBPS,             600},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_90MBPS,             900},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_120MBPS,            1200},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_135MBPS,            1350},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_150MBPS,            1500},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_180MBPS,            1800},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_40MHZ_SIMO_CB_SGI_200MBPS,            2000}
+};
+static rate_cfg_item_mapping_t ac_l80_rate_mapping[] =
+{
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_29_25MBPS,          293},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_58_5MBPS,           585},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_87_75MBPS,          878},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_117MBPS,            1170},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_175_5MBPS,          1755},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_234MBPS,            2340},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_263_25MBPS,         2633},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_292_5MBPS,          2925},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_351MBPS,            3510},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_NGI_390MBPS,            3900}
+};
+static rate_cfg_item_mapping_t ac_s80_rate_mapping[] =
+{
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_32_5MBPS,           325},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_65MBPS,             650},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_97_5MBPS,           975},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_130MBPS,            1300},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_195MBPS,            1950},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_260MBPS,            2600},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_292_5MBPS,          2925},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_325MBPS,            3250},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_390MBPS,            3900},
+   {WNI_CFG_LDPC_FIXED_RATE_VHT_80MHZ_SIMO_CB_SGI_433_33MBPS,         4333}
+};
+#endif /* WLAN_FEATURE_11AC */
+
+typedef enum
+{
+   RATE_CFG_RATE_LEGACY,
+   RATE_CFG_RATE_11N_MCS_LGI_20,
+   RATE_CFG_RATE_11N_MCS_SGI_20,
+   RATE_CFG_RATE_11N_MCS_LGI_40,
+   RATE_CFG_RATE_11N_MCS_SGI_40,
+   RATE_CFG_RATE_11AC_MCS_LGI_20,
+   RATE_CFG_RATE_11AC_MCS_SGI_20,
+   RATE_CFG_RATE_11AC_MCS_LGI_40,
+   RATE_CFG_RATE_11AC_MCS_SGI_40,
+   RATE_CFG_RATE_11AC_MCS_LGI_80,
+   RATE_CFG_RATE_11AC_MCS_SGI_80
+} rate_cfg_supported_rate_t;
+
+typedef enum
+{
+   RATE_CFG_RATE_11AC_MAX_MCS_7,
+   RATE_CFG_RATE_11AC_MAX_MCS_8,
+   RATE_CFG_RATE_11AC_MAX_MCS_9
+} rate_cfg_11ac_max_mcs_t;
+
+typedef enum
+{
+   RATE_CFG_RATE_BW_20,
+   RATE_CFG_RATE_BW_40,
+   RATE_CFG_RATE_BW_80
+} rate_cfg_supported_bw_t;
+
+typedef enum
+{
+   RATE_CFG_RATE_GI_LONG,
+   RATE_CFG_RATE_GI_SHORT
+} rate_cfg_gi_t;
+
 /*--------------------------------------------------------------------------- 
  *   Function definitions
  *-------------------------------------------------------------------------*/
@@ -456,9 +959,19 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     char *startBssEvent; 
     hdd_context_t *pHddCtx;
     hdd_scaninfo_t *pScanInfo  = NULL;
+    struct iw_michaelmicfailure msg;
 
     dev = (struct net_device *)usrDataForCallback;
     pHostapdAdapter = netdev_priv(dev);
+
+    if ((NULL == pHostapdAdapter) ||
+        (WLAN_HDD_ADAPTER_MAGIC != pHostapdAdapter->magic))
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                "invalid adapter or adapter has invalid magic");
+        return eHAL_STATUS_FAILURE;
+    }
+
     pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter); 
     pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
     sapEvent = pSapEvent->sapHddEventCode;
@@ -565,7 +1078,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
            return VOS_STATUS_SUCCESS;
         case eSAP_STA_MIC_FAILURE_EVENT:
         {
-            struct iw_michaelmicfailure msg;
             memset(&msg, '\0', sizeof(msg));
             msg.src_addr.sa_family = ARPHRD_ETHER;
             memcpy(msg.src_addr.sa_data, &pSapEvent->sapevt.sapStationMICFailureEvent.staMac, sizeof(v_MACADDR_t));
@@ -629,8 +1141,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                                        0,
                                        (v_MACADDR_t *)wrqu.addr.sa_data,
                                        pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled);
-            } 
-            
+            }
+
             // Stop AP inactivity timer
             if (pHddApCtx->hdd_ap_inactivity_timer.state == VOS_TIMER_STATE_RUNNING)
             {
@@ -643,7 +1155,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             {
                wake_unlock(&pHddCtx->sap_wake_lock);
             }
-            wake_lock_timeout(&pHddCtx->sap_wake_lock, HDD_SAP_WAKE_LOCK_DURATION);
+            wake_lock_timeout(&pHddCtx->sap_wake_lock, msecs_to_jiffies(HDD_SAP_WAKE_LOCK_DURATION));
 #endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
             {
@@ -673,7 +1185,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             // Lets do abort scan to ensure smooth authentication for client
             if ((pScanInfo != NULL) && pScanInfo->mScanPending)
             {
-                hdd_abort_mac_scan(pHddCtx);
+                hdd_abort_mac_scan(pHddCtx, pHostapdAdapter->sessionId);
             }
 
             break;
@@ -844,6 +1356,20 @@ stopbss :
          * we don't want interfaces to become re-enabled */
         pHostapdState->bssState = BSS_STOP;
 
+        if (0 != (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nAPAutoShutOff)
+        {
+            if (VOS_TIMER_STATE_RUNNING == pHddApCtx->hdd_ap_inactivity_timer.state)
+            {
+                vos_status = vos_timer_stop(&pHddApCtx->hdd_ap_inactivity_timer);
+                if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                    hddLog(LOGE, FL("Failed to stop AP inactivity timer"));
+            }
+
+            vos_status = vos_timer_destroy(&pHddApCtx->hdd_ap_inactivity_timer);
+            if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                hddLog(LOGE, FL("Failed to Destroy AP inactivity timer"));
+        }
+
         /* Stop the pkts from n/w stack as we are going to free all of
          * the TX WMM queues for all STAID's */
         hdd_hostapd_stop(dev);
@@ -966,6 +1492,467 @@ int hdd_softap_unpackIE(
     }
     return VOS_STATUS_SUCCESS;
 }
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_hostapd_set_mc_rate_cb() -
+
+  This is called to notify associated stas information ready
+
+  \param  - sapEvent Pointer to get associated stas event
+  \param  - apDriver SoftAP context
+
+  \return - none
+
+  --------------------------------------------------------------------------*/
+void hdd_hostapd_set_mc_rate_cb
+(
+   tSap_Event      *sapEvent,
+   void            *apDriver
+)
+{
+   hdd_ap_ctx_t    *apCtxt;
+
+   if ((NULL == apDriver) || (NULL == sapEvent))
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "%s : Invalid arguments", __func__);
+      return;
+   }
+
+   apCtxt = (hdd_ap_ctx_t *)apDriver;
+
+   /* there is a race condition that exists between this callback function
+      and the caller since the caller could time out either before or
+      while this code is executing.  we'll assume the timeout hasn't
+      occurred, but we'll verify that right before complete our work */
+   if (SAP_GET_STAS_COOKIE == apCtxt->getStasCookie)
+   {
+      vos_mem_copy((void *)&apCtxt->getStasEventBuffer,
+                   (void *)sapEvent,
+                   sizeof(tSap_Event));
+      complete(&apCtxt->sap_get_associated_stas_complete);
+   }
+   else
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "%s : Invalid cookie", __func__);
+   }
+   return;
+}
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_hostapd_set_mc_rate_update
+
+  This is called to find rate and send cfg command to FW
+
+  \param  - sapEvent Pointer to get associated stas event
+  \param  - pHostapdAdapter SoftAP Adapter Context
+
+  \return - int, 0 success
+                 negative fail
+
+  --------------------------------------------------------------------------*/
+static int hdd_hostapd_set_mc_rate_update
+(
+   tSap_Event      *sapEvent,
+   hdd_adapter_t   *pHostapdAdapter
+)
+{
+   tHalHandle               hHal;
+   hdd_ap_ctx_t            *apCtxt;
+   tSap_AssocMacAddr       *assocSta;
+   rate_cfg_11ac_max_mcs_t  supportedAcMaxMcs = RATE_CFG_RATE_11AC_MAX_MCS_7;
+   rate_cfg_supported_bw_t  bandWidth;
+   rate_cfg_gi_t            gi;
+   rate_cfg_item_mapping_t *nMappingTable = NULL;
+   rate_cfg_item_mapping_t *acMappingTable = NULL;
+   v_U8_t                   stasLoop, ratesLoop;
+   v_U8_t                   rateArrayOrder;
+   v_U8_t                   mcsTable11n;
+   v_U16_t                  targetCfgId = 0;
+   v_U16_t                  targetCfgValue = 0;
+   v_U16_t                  currentRate;
+   v_U16_t                  combinedSupportMap = 0xFFFF;
+   v_U16_t                  supportMap = 0x0000;
+   v_U16_t                  supportedChannelCount = 0;
+   v_U32_t                  legacyRates[SAP_LEGACY_RATE_COUNT];
+   int                      rc = 0;
+   tSirRetStatus            cfdStat;
+
+   if ((NULL == pHostapdAdapter) || (NULL == sapEvent))
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "%s : Invalid arguments", __func__);
+      return -1;
+   }
+
+   apCtxt = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
+   hHal   = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+             "setMcRateCB NUM SAT %d, targetMCRate %d, current channel %d",
+             sapEvent->sapevt.sapAssocStaListEvent.noOfAssocSta,
+             apCtxt->targetMCRate,
+             apCtxt->operatingChannel);
+
+   if (!sapEvent->sapevt.sapAssocStaListEvent.noOfAssocSta)
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "Not connected any STA yet");
+      return -1;
+   }
+
+   for (stasLoop = 0;
+        stasLoop < sapEvent->sapevt.sapAssocStaListEvent.noOfAssocSta;
+        stasLoop++)
+   {
+      vos_mem_zero((v_U8_t *)legacyRates, sizeof(legacyRates));
+      rateArrayOrder = 0;
+      mcsTable11n    = 0;
+      supportedChannelCount = 0;
+      assocSta = sapEvent->sapevt.sapAssocStaListEvent.pAssocStas++;
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                "ASSOSID %d, OPM %d, nBM %d, SGI40 %d, SGI20 %d, S40 %d",
+                assocSta->assocId,
+                assocSta->supportedRates.opRateMode,
+                assocSta->supportedRates.aniEnhancedRateBitmap,
+                assocSta->ShortGI40Mhz,
+                assocSta->ShortGI20Mhz,
+                assocSta->Support40Mhz);
+
+      /* Legacy Rate */
+      for (ratesLoop = 0; ratesLoop < SIR_NUM_11B_RATES; ratesLoop++)
+      {
+         currentRate = assocSta->supportedRates.llbRates[ratesLoop] &
+                       SAP_LEGACY_RATE_MASK;
+
+         /* To fix KW error report */
+         if (SAP_LEGACY_RATE_COUNT <= rateArrayOrder)
+         {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s, Invalid array Size, break", __func__);
+            break;
+         }
+
+         /* Make 100kbps order */
+         legacyRates[rateArrayOrder] = (currentRate * 100) / 20;
+         rateArrayOrder++;
+         if (currentRate)
+         {
+            supportedChannelCount++;
+         }
+      }
+      for (ratesLoop = 0; ratesLoop < SIR_NUM_11A_RATES; ratesLoop++)
+      {
+         currentRate = assocSta->supportedRates.llaRates[ratesLoop] &
+                       SAP_LEGACY_RATE_MASK;
+         /* To fix KW error report */
+         if (SAP_LEGACY_RATE_COUNT <= rateArrayOrder)
+         {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s, Invalid array Size, break", __func__);
+            break;
+         }
+
+         /* Make 100kbps order */
+         legacyRates[rateArrayOrder] = (currentRate * 100) / 20;
+         rateArrayOrder++;
+         if (currentRate)
+         {
+            supportedChannelCount++;
+         }
+      }
+      if (supportedChannelCount)
+      {
+         for (ratesLoop = 0; ratesLoop < SAP_LEGACY_RATE_COUNT; ratesLoop++)
+         {
+            if (legacyRates[ratesLoop] == apCtxt->targetMCRate)
+            {
+               supportMap |= (1 << RATE_CFG_RATE_LEGACY);
+               break;
+            }
+         }
+      }
+
+      /* 11N */
+      if (eSTA_11n <= assocSta->supportedRates.opRateMode)
+      {
+         if (assocSta->Support40Mhz)
+         {
+            mcsTable11n |= 0x01;
+            if (assocSta->ShortGI40Mhz)
+            {
+               mcsTable11n |= 0x02;
+               supportMap |= (1 << RATE_CFG_RATE_11N_MCS_SGI_40);
+               nMappingTable = n_s40_rate_mapping;
+            }
+            else
+            {
+               supportMap |= (1 << RATE_CFG_RATE_11N_MCS_LGI_40);
+               nMappingTable = n_l40_rate_mapping;
+            }
+         }
+         else
+         {
+            if (assocSta->ShortGI20Mhz)
+            {
+               mcsTable11n |= 0x02;
+               supportMap |= (1 << RATE_CFG_RATE_11N_MCS_SGI_20);
+               nMappingTable = n_s20_rate_mapping;
+            }
+            else
+            {
+               supportMap |= (1 << RATE_CFG_RATE_11N_MCS_LGI_20);
+               nMappingTable = n_l20_rate_mapping;
+            }
+         }
+      }
+
+#ifdef WLAN_FEATURE_11AC
+      /* 11AC */
+      if (eSTA_11ac <= assocSta->supportedRates.opRateMode)
+      {
+         /* Find supported MAX MCS */
+         supportedAcMaxMcs = assocSta->supportedRates.vhtRxMCSMap &
+                             SAP_AC_MCS_MAP_MASK;
+         supportedAcMaxMcs += SAP_AC_MCS_MAP_OFFSET;
+         /* Find channel characteristics from MAX rate */
+         if (mcs_rate_11ac[supportedAcMaxMcs].cb80_rate_11ac[0] ==
+             assocSta->supportedRates.vhtRxHighestDataRate)
+         {
+            supportMap |= (1 << RATE_CFG_RATE_11AC_MCS_LGI_80);
+            bandWidth = RATE_CFG_RATE_BW_80;
+            gi = RATE_CFG_RATE_GI_LONG;
+            acMappingTable = ac_l80_rate_mapping;
+         }
+         else if (mcs_rate_11ac[supportedAcMaxMcs].cb80_rate_11ac[1] ==
+                  assocSta->supportedRates.vhtRxHighestDataRate)
+         {
+            supportMap |= (1 << RATE_CFG_RATE_11AC_MCS_SGI_80);
+            bandWidth = RATE_CFG_RATE_BW_80;
+            gi = RATE_CFG_RATE_GI_SHORT;
+            acMappingTable = ac_s80_rate_mapping;
+         }
+         else if (mcs_rate_11ac[supportedAcMaxMcs].cb40_rate_11ac[0] ==
+                  assocSta->supportedRates.vhtRxHighestDataRate)
+         {
+            supportMap |= (1 << RATE_CFG_RATE_11AC_MCS_LGI_40);
+            bandWidth = RATE_CFG_RATE_BW_40;
+            gi = RATE_CFG_RATE_GI_LONG;
+            acMappingTable = ac_l40_rate_mapping;
+         }
+         else if (mcs_rate_11ac[supportedAcMaxMcs].cb40_rate_11ac[1] ==
+                  assocSta->supportedRates.vhtRxHighestDataRate)
+         {
+            supportMap |= (1 << RATE_CFG_RATE_11AC_MCS_SGI_40);
+            bandWidth = RATE_CFG_RATE_BW_40;
+            gi = RATE_CFG_RATE_GI_SHORT;
+            acMappingTable = ac_s40_rate_mapping;
+         }
+         else if (mcs_rate_11ac[supportedAcMaxMcs].cb20_rate_11ac[0] ==
+                  assocSta->supportedRates.vhtRxHighestDataRate)
+         {
+            supportMap |= (1 << RATE_CFG_RATE_11AC_MCS_LGI_20);
+            bandWidth = RATE_CFG_RATE_BW_20;
+            gi = RATE_CFG_RATE_GI_LONG;
+            acMappingTable = ac_l20_rate_mapping;
+         }
+         else if (mcs_rate_11ac[supportedAcMaxMcs].cb20_rate_11ac[1] ==
+                  assocSta->supportedRates.vhtRxHighestDataRate)
+         {
+            supportMap |= (1 << RATE_CFG_RATE_11AC_MCS_SGI_20);
+            bandWidth = RATE_CFG_RATE_BW_20;
+            gi = RATE_CFG_RATE_GI_SHORT;
+            acMappingTable = ac_s20_rate_mapping;
+         }
+      }
+#endif /* WLAN_FEATURE_11AC */
+      combinedSupportMap &= supportMap;
+   }
+
+   if ((!combinedSupportMap) &&
+       (!sapEvent->sapevt.sapAssocStaListEvent.noOfAssocSta))
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s, No Common supported rate, discard", __func__);
+      return -1;
+   }
+
+   /* Select target band */
+   if (apCtxt->operatingChannel <=
+       SAP_MAX_24_CHANNEL_NUMBER)
+   {
+      targetCfgId = WNI_CFG_FIXED_RATE_MULTICAST_24GHZ;
+   }
+   else
+   {
+      targetCfgId = WNI_CFG_FIXED_RATE_MULTICAST_5GHZ;
+   }
+
+   /* First find from legacy */
+   if (combinedSupportMap & SAP_RATE_SUPPORT_MAP_LEGACY_MASK)
+   {
+      for (ratesLoop = 0; ratesLoop < SAP_LEGACY_RATE_COUNT; ratesLoop++)
+      {
+         if (apCtxt->targetMCRate ==
+             legacy_rate_mapping[ratesLoop].rate)
+         {
+            targetCfgValue = legacy_rate_mapping[ratesLoop].eRateCfg;
+            break;
+         }
+      }
+   }
+
+   /* If available same on 11N, update target rate */
+   if ((combinedSupportMap & SAP_RATE_SUPPORT_MAP_N_MASK) &&
+       (NULL != nMappingTable))
+   {
+      for (ratesLoop = 0; ratesLoop < SAP_11N_RATE_COUNT; ratesLoop++)
+      {
+         if (apCtxt->targetMCRate == nMappingTable[ratesLoop].rate)
+         {
+            targetCfgValue = nMappingTable[ratesLoop].eRateCfg;
+            break;
+         }
+      }
+   }
+
+#ifdef WLAN_FEATURE_11AC
+   /* If available same on 11AC, update target rate */
+   if ((combinedSupportMap & SAP_RATE_SUPPORT_MAP_AC_MASK) &&
+       (NULL != acMappingTable))
+   {
+      for (ratesLoop = 0; ratesLoop < supportedAcMaxMcs; ratesLoop++)
+      {
+         if (apCtxt->targetMCRate == acMappingTable[ratesLoop].rate)
+         {
+            targetCfgValue = acMappingTable[ratesLoop].eRateCfg;
+            break;
+         }
+      }
+   }
+#endif /* WLAN_FEATURE_11AC */
+
+   /* Finally send config to FW */
+   if (targetCfgId && targetCfgValue)
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                "%s, Target Band %d, cfg value %d",
+                __func__, targetCfgId, targetCfgValue);
+      cfdStat = cfgSetInt((tpAniSirGlobal)hHal,
+                          targetCfgId,
+                          targetCfgValue);
+      if (eSIR_SUCCESS != cfdStat)
+      {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s, CFG Fail %d",
+                   __func__, cfdStat);
+         rc = -1;
+      }
+   }
+
+   return rc;
+};
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_hostapd_set_mc_rate() -
+
+  This is called user application set forcefully MC rate
+
+  \param  - pHostapdAdapter Pointer to adapter structure
+  \param  - targetRateHkbps MC rate to set, hundreds kbps order
+
+  \return - int, 0 success
+                 negative fail
+
+  --------------------------------------------------------------------------*/
+int hdd_hostapd_set_mc_rate
+(
+   hdd_adapter_t *pHostapdAdapter,
+   int            targetRateHkbps
+)
+{
+   tHalHandle      hHal;
+   hdd_ap_ctx_t   *apCtxt;
+   eHalStatus      smeStatus;
+   int             rc;
+
+   if ((NULL == pHostapdAdapter) || (0 == targetRateHkbps))
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "%s : Invalid arguments", __func__);
+      return -1;
+   }
+
+   apCtxt = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
+   hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+             "hdd_hostapd_setMcRate %d", targetRateHkbps);
+
+   init_completion(&apCtxt->sap_get_associated_stas_complete);
+
+   apCtxt->getStasCookie = SAP_GET_STAS_COOKIE;
+   apCtxt->targetMCRate = targetRateHkbps;
+   apCtxt->getStasEventBuffer.sapevt.sapAssocStaListEvent.noOfAssocSta = 0;
+   apCtxt->assocStasBuffer = (tSap_AssocMacAddr *)vos_mem_malloc(
+                    sizeof(tSap_AssocMacAddr) * HAL_NUM_ASSOC_STA);
+   if (NULL == apCtxt->assocStasBuffer)
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "%s : Buffer Alloc fail", __func__);
+      return -1;
+   }
+   smeStatus = sme_RoamGetAssociatedStas(hHal,
+                             pHostapdAdapter->sessionId,
+                             VOS_MODULE_ID_HDD,
+                             (void *)apCtxt,
+                             hdd_hostapd_set_mc_rate_cb,
+                             (tANI_U8 *)apCtxt->assocStasBuffer);
+   if (smeStatus)
+   {
+      apCtxt->getStasCookie = 0;
+      vos_mem_free(apCtxt->assocStasBuffer);
+      apCtxt->assocStasBuffer = NULL;
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "%s : SME Issue fail", __func__);
+      return -1;
+   }
+
+   /* Wait for completion */
+   rc = wait_for_completion_interruptible_timeout(
+                       &apCtxt->sap_get_associated_stas_complete,
+                       msecs_to_jiffies(SAP_MAX_GET_ASSOC_STAS_TIMEOUT));
+
+   /* either we have a response or we timed out
+      either way, first invalidate our cookie */
+   apCtxt->getStasCookie = 0;
+   if (0 >= rc)
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "%s : Wait timeout or interrupted", __func__);
+
+      /* there is a race condition such that the callback
+         function could be executing at the same time we are. of
+         primary concern is if the callback function had already
+         verified the "magic" but hasn't yet set the completion
+         variable. Since the completion variable is on our
+         stack, we'll delay just a bit to make sure the data is
+         still valid if that is the case */
+      vos_sleep(50);
+      /* we'll now try to test memory */
+   }
+
+   rc = hdd_hostapd_set_mc_rate_update(
+         &apCtxt->getStasEventBuffer,
+         pHostapdAdapter);
+   vos_mem_free(apCtxt->assocStasBuffer);
+   apCtxt->assocStasBuffer = NULL;
+
+   return rc;
+}
+
 int
 static iw_softap_setparam(struct net_device *dev, 
                           struct iw_request_info *info,
@@ -1038,6 +2025,16 @@ static iw_softap_setparam(struct net_device *dev,
                             "%s: QCSAP_PARAM_HIDE_SSID failed",
                             __func__);
                     return status;
+                }
+                break;
+            }
+
+        case QCSAP_PARAM_SET_MC_RATE:
+            {
+                if (hdd_hostapd_set_mc_rate(pHostapdAdapter, set_value))
+                {
+                   hddLog(VOS_TRACE_LEVEL_ERROR,
+                          "%s: SET_MC_RATE failed", __func__);
                 }
                 break;
             }
@@ -1202,6 +2199,12 @@ static iw_softap_set_max_tx_power(struct net_device *dev,
     if (NULL == value)
         return -ENOMEM;
 
+    /* Assign correct slef MAC address */
+    vos_mem_copy(bssid, pHostapdAdapter->macAddressCurrent.bytes,
+                 VOS_MAC_ADDR_SIZE);
+    vos_mem_copy(selfMac, pHostapdAdapter->macAddressCurrent.bytes,
+                 VOS_MAC_ADDR_SIZE);
+
     set_value = value[0];
     if (eHAL_STATUS_SUCCESS != sme_SetMaxTxPower(hHal, bssid, selfMac, set_value))
     {
@@ -1210,6 +2213,24 @@ static iw_softap_set_max_tx_power(struct net_device *dev,
         return -EIO;
     }
 
+    return 0;
+}
+
+int
+static iw_display_data_path_snapshot(struct net_device *dev,
+                        struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
+{
+
+    /* Function intitiating dumping states of
+     *  HDD(WMM Tx Queues)
+     *  TL State (with Per Client infor)
+     *  DXE Snapshot (Called at the end of TL Snapshot)
+     */
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hddLog(LOGE, "%s: called for SAP",__func__);
+    hdd_wmm_tx_snapshot(pHostapdAdapter);
+    WLANTL_TLDebugMessage(VOS_TRUE);
     return 0;
 }
 
@@ -1442,7 +2463,7 @@ static iw_softap_commit(struct net_device *dev,
                  //TODO: Need to handle mixed mode     
                  pConfig->RSNEncryptType = RSNEncryptType; // Use the cipher type in the RSN IE
                  pConfig->mcRSNEncryptType = mcRSNEncryptType;
-                 hddLog( LOG1, FL("%s: CSR AuthType = %d, EncryptionType = %d mcEncryptionType = %d\n"), 
+                 hddLog( LOG1, FL("CSR AuthType = %d, EncryptionType = %d mcEncryptionType = %d\n"),
                                   RSNAuthType, RSNEncryptType, mcRSNEncryptType);
              } 
         }
@@ -1472,8 +2493,8 @@ static iw_softap_commit(struct net_device *dev,
     // ht_capab is not what the name conveys,this is used for protection bitmap
     pConfig->ht_capab = (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apProtection;
 
-    if (pCommitConfig->num_accept_mac > MAX_MAC_ADDRESS_ACCEPTED)
-        num_mac = pConfig->num_accept_mac = MAX_MAC_ADDRESS_ACCEPTED;
+    if (pCommitConfig->num_accept_mac > MAX_ACL_MAC_ADDRESS)
+        num_mac = pConfig->num_accept_mac = MAX_ACL_MAC_ADDRESS;
     else
         num_mac = pConfig->num_accept_mac = pCommitConfig->num_accept_mac;
     acl_entry = pCommitConfig->accept_mac;
@@ -1482,8 +2503,8 @@ static iw_softap_commit(struct net_device *dev,
         vos_mem_copy(&pConfig->accept_mac[i], acl_entry->addr, sizeof(v_MACADDR_t));
         acl_entry++;
     }
-    if (pCommitConfig->num_deny_mac > MAX_MAC_ADDRESS_DENIED)
-        num_mac = pConfig->num_deny_mac = MAX_MAC_ADDRESS_DENIED;
+    if (pCommitConfig->num_deny_mac > MAX_ACL_MAC_ADDRESS)
+        num_mac = pConfig->num_deny_mac = MAX_ACL_MAC_ADDRESS;
     else
         num_mac = pConfig->num_deny_mac = pCommitConfig->num_deny_mac;
     acl_entry = pCommitConfig->deny_mac;
@@ -1614,7 +2635,6 @@ int iw_softap_get_channel_list(struct net_device *dev,
     v_U8_t bandEndChannel = RF_CHAN_165;
     v_U32_t temp_num_channels = 0;
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
     v_REGDOMAIN_t domainIdCurrentSoftap;
     tpChannelListInfo channel_list = (tpChannelListInfo) extra;
@@ -1639,8 +2659,8 @@ int iw_softap_get_channel_list(struct net_device *dev,
         bandEndChannel = RF_CHAN_165;
     }
 
-    hddLog(LOG1, FL("\n nBandCapability = %d, bandStartChannel = %hu, "
-                "bandEndChannel = %hu \n"), pHddCtx->cfg_ini->nBandCapability, 
+    hddLog(LOG1, FL("\n curBand = %d, bandStartChannel = %hu, "
+                "bandEndChannel = %hu "), curBand,
                 bandStartChannel, bandEndChannel );
 
     for( i = bandStartChannel; i <= bandEndChannel; i++ )
@@ -1952,7 +2972,7 @@ static int iw_set_ap_encodeext(struct net_device *dev,
     }
          
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-          ("%s:EncryptionType:%d key_len:%d, :%d, KeyId:%d \n"),__func__, setKey.encType, setKey.keyLength,
+          ("%s:EncryptionType:%d key_len:%d, KeyId:%d"), __func__, setKey.encType, setKey.keyLength,
             setKey.keyId);
     for(i=0; i< ext->key_len; i++)
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -2593,46 +3613,84 @@ int iw_get_softap_linkspeed(struct net_device *dev,
 
 {
    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+   hdd_context_t *pHddCtx;
    char *pLinkSpeed = (char*)extra;
-   v_U16_t link_speed;
+   v_U32_t link_speed;
    unsigned short staId;
-   int len = sizeof(v_U16_t)+1;
+   int len = sizeof(v_U32_t)+1;
    v_BYTE_t macAddress[VOS_MAC_ADDR_SIZE];
    VOS_STATUS status;
-   int rc;
+   int rc, valid;
 
-   if ( hdd_string_to_hex ((char *)wrqu->data.pointer, wrqu->data.length, macAddress ) )
+   pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+
+   valid = wlan_hdd_validate_context(pHddCtx);
+
+   if (0 != valid)
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "ERROR: Command not found");
-      return -EINVAL;
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context not valid"));
+       return valid;
    }
 
-   status = hdd_softap_GetStaId(pHostapdAdapter, (v_MACADDR_t *)macAddress, (void *)(&staId));
+   hddLog(VOS_TRACE_LEVEL_INFO, "%s wrqu->data.length= %d\n", __func__, wrqu->data.length);
+   status = hdd_string_to_hex ((char *)wrqu->data.pointer, wrqu->data.length, macAddress );
 
    if (!VOS_IS_STATUS_SUCCESS(status ))
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, FL("ERROR: HDD Failed to find sta id!!"));
+      hddLog(VOS_TRACE_LEVEL_ERROR, FL("String to Hex conversion Failed"));
+   }
+
+   /* If no mac address is passed and/or its length is less than 18,
+    * link speed for first connected client will be returned.
+    */
+   if (!VOS_IS_STATUS_SUCCESS(status ) || wrqu->data.length < 18)
+   {
+      status = hdd_softap_GetConnectedStaId(pHostapdAdapter, (void *)(&staId));
+   }
+   else
+   {
+      status = hdd_softap_GetStaId(pHostapdAdapter,
+                               (v_MACADDR_t *)macAddress, (void *)(&staId));
+   }
+
+   if (!VOS_IS_STATUS_SUCCESS(status))
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR, FL("ERROR: HDD Failed to find sta id!!"));
       link_speed = 0;
    }
    else
    {
       status = wlan_hdd_get_classAstats_for_station(pHostapdAdapter , staId);
+
       if (!VOS_IS_STATUS_SUCCESS(status ))
       {
-          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unable to retrieve SME statistics", __func__);
+          hddLog(VOS_TRACE_LEVEL_ERROR, FL("Unable to retrieve SME statistics"));
           return -EINVAL;
       }
-      link_speed =(int)pHostapdAdapter->hdd_stats.ClassA_stat.tx_rate/2;
+
+      WLANTL_GetSTALinkCapacity(pHddCtx->pvosContext,
+                                staId, &link_speed);
+
+      link_speed = link_speed / 10;
+
+      if (0 == link_speed)
+      {
+          /* The linkspeed returned by HAL is in units of 500kbps.
+           * converting it to mbps.
+           * This is required to support legacy firmware which does
+           * not return link capacity.
+           */
+          link_speed =(int)pHostapdAdapter->hdd_stats.ClassA_stat.tx_rate/2;
+      }
    }
 
    wrqu->data.length = len;
-   rc = snprintf(pLinkSpeed, len, "%u", link_speed);
+   rc = snprintf(pLinkSpeed, len, "%lu", link_speed);
+
    if ((rc < 0) || (rc >= len))
    {
       // encoding or length error?
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-            "%s: Unable to encode link speed, got [%s]",
-             __func__, pLinkSpeed);
+      hddLog(VOS_TRACE_LEVEL_ERROR,FL( "Unable to encode link speed"));
       return -EIO;
    }
 
@@ -2711,6 +3769,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setMaxAssoc" },
    { QCSAP_PARAM_HIDE_SSID,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "hideSSID" },
+   { QCSAP_PARAM_SET_MC_RATE,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMcRate" },
   { QCSAP_IOCTL_GETPARAM,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
@@ -2754,7 +3814,7 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE, 0, "ap_stats" },
   { QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED,
         IW_PRIV_TYPE_CHAR | 18,
-        IW_PRIV_TYPE_CHAR | 3, "getLinkSpeed" },
+        IW_PRIV_TYPE_CHAR | 5, "getLinkSpeed" },
 
   { QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3, 0, "" },
@@ -2816,6 +3876,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
         0,
         "setTxMaxPower" },
+    { QCSAP_IOCTL_DATAPATH_SNAP_SHOT,
+      IW_PRIV_TYPE_NONE | IW_PRIV_TYPE_NONE, 0, "dataSnapshot" },
 };
 
 static const iw_handler hostapd_private[] = {
@@ -2841,6 +3903,7 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED - SIOCIWFIRSTPRIV]     = iw_get_softap_linkspeed,
    [QCSAP_IOCTL_SET_TX_POWER - SIOCIWFIRSTPRIV]   = iw_softap_set_tx_power,
    [QCSAP_IOCTL_SET_MAX_TX_POWER - SIOCIWFIRSTPRIV]   = iw_softap_set_max_tx_power,
+   [QCSAP_IOCTL_DATAPATH_SNAP_SHOT - SIOCIWFIRSTPRIV]  =   iw_display_data_path_snapshot,
 };
 const struct iw_handler_def hostapd_handler_def = {
    .num_standard     = sizeof(hostapd_handler) / sizeof(hostapd_handler[0]),
@@ -2891,11 +3954,14 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
 {   
     hdd_hostapd_state_t * phostapdBuf;
     struct net_device *dev = pAdapter->dev;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     VOS_STATUS status;
     ENTER();
        // Allocate the Wireless Extensions state structure   
     phostapdBuf = WLAN_HDD_GET_HOSTAP_STATE_PTR( pAdapter );
  
+    sme_SetCurrDeviceMode(pHddCtx->hHal, pAdapter->device_mode);
+
     // Zero the memory.  This zeros the profile structure.
     memset(phostapdBuf, 0,sizeof(hdd_hostapd_state_t));
     

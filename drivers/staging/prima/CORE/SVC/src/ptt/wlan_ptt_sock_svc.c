@@ -295,12 +295,12 @@ static int ptt_sock_rx_nlink_msg (struct sk_buff * skb)
    switch (type) {
       case ANI_NL_MSG_PUMAC:  //Message from the PTT socket APP
          PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: Received ANI_NL_MSG_PUMAC Msg [0x%X]\n",
-            __func__, type, radio);
+            __func__, type);
          ptt_proc_pumac_msg(skb, &wnl->wmsg, radio);
          break;
       case ANI_NL_MSG_PTT: //Message from Quarky GUI
          PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: Received ANI_NL_MSG_PTT Msg [0x%X]\n",
-            __func__, type, radio);
+            __func__, type);
          ptt_proc_quarky_msg(wnl, &wnl->wmsg, radio);
          break;
       default:
@@ -314,6 +314,9 @@ int ptt_sock_activate_svc(void *pAdapter)
    pAdapterHandle = (struct hdd_context_s*)pAdapter;
    nl_srv_register(ANI_NL_MSG_PUMAC, ptt_sock_rx_nlink_msg);
    nl_srv_register(ANI_NL_MSG_PTT, ptt_sock_rx_nlink_msg);
+#ifdef WLAN_KD_READY_NOTIFIER
+   nl_srv_nl_ready_indication();
+#endif /* WLAN_KD_READY_NOTIFIER */
    return 0;
 }
 #endif //PTT_SOCK_SVC_ENABLE

@@ -80,7 +80,7 @@ typedef struct
    wpt_uint8 addr2MACAddress[6];
    wpt_uint8 frmType;
    wpt_uint8 fStaType;
-   wpt_uint8 fProtectedFrame;
+   wpt_uint8 fProtMgmtFrame;
    wpt_uint16 fPktlen;
    wpt_status txCompleteStatus;
    wpt_uint8  staIdx;
@@ -109,7 +109,7 @@ typedef struct
    wpt_uint8 rxChannel;
    wpt_uint8 type:2;
    wpt_uint8 subtype:4;
-   wpt_uint8 reserved0:2;
+   wpt_uint8 rfBand:2;
 
    wpt_uint16 rtsf:1;  //For beacon only. 1 ~V Riva TSF is bigger(later) than the one received
    wpt_uint16 bsf:1;   //1 Riva sends the last beacon, 0 not.
@@ -165,6 +165,10 @@ typedef struct
 
 #ifdef WLAN_FEATURE_11W
    wpt_uint32 rmf:1;
+#endif
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+   wpt_uint32 offloadScanLearn;
+   wpt_uint32 roamCandidateInd;
 #endif
 } WDI_DS_RxMetaInfoType;
 

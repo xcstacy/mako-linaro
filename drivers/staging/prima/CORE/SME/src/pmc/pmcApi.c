@@ -1,43 +1,28 @@
 /*
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
- *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
- * Permission to use, copy, modify, and/or distribute this software for
- * any purpose with or without fee is hereby granted, provided that the
- * above copyright notice and this permission notice appear in all
- * copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
- * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
- * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
- * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
- * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
- * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- */
+  * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+  *
+  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+  *
+  *
+  * Permission to use, copy, modify, and/or distribute this software for
+  * any purpose with or without fee is hereby granted, provided that the
+  * above copyright notice and this permission notice appear in all
+  * copies.
+  *
+  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+  * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+  * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+  * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+  * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  * PERFORMANCE OF THIS SOFTWARE.
+*/
 /*
- * Copyright (c) 2012, The Linux Foundation. All rights reserved.
- *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
- * Permission to use, copy, modify, and/or distribute this software for
- * any purpose with or without fee is hereby granted, provided that the
- * above copyright notice and this permission notice appear in all
- * copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
- * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
- * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
- * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
- * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
- * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- */
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
 
 /******************************************************************************
 *
@@ -45,9 +30,9 @@
 *
 * Description: Routines that make up the Power Management Control (PMC) API.
 *
-* Copyright 2008 (c) Qualcomm, Incorporated.  
+* Copyright 2008 (c) Qualcomm Technologies, Inc.  
 * All Rights Reserved.
-* Qualcomm Confidential and Proprietary.
+* Qualcomm Technologies Confidential and Proprietary.
 *
 ******************************************************************************/
 
@@ -116,7 +101,7 @@ eHalStatus pmcOpen (tHalHandle hHal)
     palZeroMemory(pMac->hHdd, &(pMac->pmc.smpsConfig), sizeof(tPmcSmpsConfigParams));
 
     /* Allocate a timer to use with IMPS. */
-    if (palTimerAlloc(pMac->hHdd, &pMac->pmc.hImpsTimer, pmcImpsTimerExpired, hHal) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_init(&pMac->pmc.hImpsTimer, VOS_TIMER_TYPE_SW, pmcImpsTimerExpired, hHal) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot allocate timer for IMPS"));
         return eHAL_STATUS_FAILURE;
@@ -133,7 +118,7 @@ eHalStatus pmcOpen (tHalHandle hHal)
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT    
     /* Allocate a timer used to report current PMC state through periodic DIAG event */
-    if (palTimerAlloc(pMac->hHdd, &pMac->pmc.hDiagEvtTimer, pmcDiagEvtTimerExpired, hHal) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_init(&pMac->pmc.hDiagEvtTimer, VOS_TIMER_TYPE_SW, pmcDiagEvtTimerExpired, hHal) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot allocate timer for diag event reporting"));
         return eHAL_STATUS_FAILURE;
@@ -145,8 +130,8 @@ eHalStatus pmcOpen (tHalHandle hHal)
     pMac->pmc.bmpsConfig.bmpsPeriod = WNI_CFG_LISTEN_INTERVAL_STADEF;
 
     /* Allocate a timer used to schedule a deferred power save mode exit. */
-    if (palTimerAlloc(pMac->hHdd, &pMac->pmc.hExitPowerSaveTimer,
-                      pmcExitPowerSaveTimerExpired, hHal) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_init(&pMac->pmc.hExitPowerSaveTimer, VOS_TIMER_TYPE_SW,
+                      pmcExitPowerSaveTimerExpired, hHal) !=VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot allocate exit power save mode timer"));
         PMC_ABORT;
@@ -306,7 +291,7 @@ eHalStatus pmcStop (tHalHandle hHal)
     smsLog(pMac, LOG2, FL("Entering pmcStop"));
 
     /* Cancel any running timers. */
-    if (palTimerStop(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_stop(&pMac->pmc.hImpsTimer) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot cancel IMPS timer"));
     }
@@ -317,7 +302,7 @@ eHalStatus pmcStop (tHalHandle hHal)
     pmcStopDiagEvtTimer(hHal);
 #endif
 
-    if (palTimerStop(pMac->hHdd, pMac->pmc.hExitPowerSaveTimer) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_stop(&pMac->pmc.hExitPowerSaveTimer) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot cancel exit power save mode timer"));
     }
@@ -368,7 +353,7 @@ eHalStatus pmcClose (tHalHandle hHal)
     smsLog(pMac, LOG2, FL("Entering pmcClose"));
 
     /* Free up allocated resources. */
-    if (palTimerFree(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_destroy(&pMac->pmc.hImpsTimer) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate IMPS timer"));
     }
@@ -377,12 +362,12 @@ eHalStatus pmcClose (tHalHandle hHal)
         smsLog(pMac, LOGE, FL("Cannot deallocate traffic timer"));
     }
 #ifdef FEATURE_WLAN_DIAG_SUPPORT    
-    if (palTimerFree(pMac->hHdd, pMac->pmc.hDiagEvtTimer) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_destroy(&pMac->pmc.hDiagEvtTimer) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate timer for diag event reporting"));
     }
 #endif
-    if (palTimerFree(pMac->hHdd, pMac->pmc.hExitPowerSaveTimer) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_destroy(&pMac->pmc.hExitPowerSaveTimer) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate exit power save mode timer"));
     }
@@ -1055,12 +1040,10 @@ eHalStatus pmcRequestFullPower (tHalHandle hHal, void (*callbackRoutine) (void *
 
     /* If in IMPS State, then cancel the timer. */
     if (pMac->pmc.pmcState == IMPS)
-        if (palTimerStop(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
+        if (vos_timer_stop(&pMac->pmc.hImpsTimer) != VOS_STATUS_SUCCESS)
         {
             smsLog(pMac, LOGE, FL("Cannot cancel IMPS timer"));
-            return eHAL_STATUS_FAILURE;
         }
-
     /* Enter Request Full Power State. */
     if (pmcEnterRequestFullPowerState(hHal, fullPowerReason) != eHAL_STATUS_SUCCESS)
         return eHAL_STATUS_FAILURE;
@@ -1362,15 +1345,16 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             /* Check that we are in the correct state for this message. */
             if (pMac->pmc.pmcState != REQUEST_FULL_POWER)
             {
-                smsLog(pMac, LOGE, FL("Got Exit IMPS Response Message while in state %d"), pMac->pmc.pmcState);
+                smsLog(pMac, LOGE, FL("Got Exit IMPS Response Message while "
+                   "in state %d"), pMac->pmc.pmcState);
                 break;
             }
 
             /* Enter Full Power State. */
             if (pMsg->statusCode != eSIR_SME_SUCCESS)
             {
-                smsLog(pMac, LOGP, FL("Response message to request to exit IMPS indicates failure, status %x"),
-                       pMsg->statusCode);
+                smsLog(pMac, LOGE, FL("Response message to request to exit "
+                   "IMPS indicates failure, status %x"), pMsg->statusCode);
             }
             pmcEnterFullPowerState(pMac);
         break;
@@ -1785,6 +1769,24 @@ eHalStatus pmcRequestBmps (
          status = eHAL_STATUS_FAILURE;
       }
    }
+   /* Retry to enter the BMPS if the
+      status = eHAL_STATUS_PMC_NOT_NOW */
+   else if (status == eHAL_STATUS_PMC_NOT_NOW)
+   {
+      pmcStopTrafficTimer(hHal);
+      smsLog(pMac, LOG1, FL("Can't enter BMPS+++"));
+      if (pmcShouldBmpsTimerRun(pMac))
+      {
+         if (pmcStartTrafficTimer(pMac,
+                                  pMac->pmc.bmpsConfig.trafficMeasurePeriod)
+                                  != eHAL_STATUS_SUCCESS)
+         {
+            smsLog(pMac, LOG1, FL("Cannot start BMPS Retry timer"));
+         }
+         smsLog(pMac, LOG1,
+                FL("BMPS Retry Timer already running or started"));
+      }
+   }
 
    return status;
 }
@@ -2187,28 +2189,22 @@ eHalStatus pmcWowlAddBcastPattern (
            pmcGetPmcStateStr(pMac->pmc.pmcState));
         return eHAL_STATUS_FAILURE;
     }
+
     if( pMac->pmc.pmcState == IMPS || pMac->pmc.pmcState == REQUEST_IMPS )
     {
-        eHalStatus status;
-        vos_mem_copy(pattern->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr));
-        //Wake up the chip first
-        status = pmcDeferMsg( pMac, eWNI_PMC_WOWL_ADD_BCAST_PTRN, 
-                                    pattern, sizeof(tSirWowlAddBcastPtrn) );
-
-        if( eHAL_STATUS_PMC_PENDING == status )
-        {
-            return eHAL_STATUS_SUCCESS;
-        }
-        else 
-        {
-            //either fail or already in full power
-            if( !HAL_STATUS_SUCCESS( status ) )
-            {
-                return ( status );
-            }
-            //else let it through because it is in full power state
-        }
+        smsLog(pMac, LOGE, FL("Cannot add WoWL Pattern as chip is in %s state"),
+           pmcGetPmcStateStr(pMac->pmc.pmcState));
+        return eHAL_STATUS_FAILURE;
     }
+
+    if( !csrIsConnStateConnected(pMac, sessionId) )
+    {
+        smsLog(pMac, LOGE, FL("Cannot add WoWL Pattern session in %d state"),
+           pSession->connectState);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    vos_mem_copy(pattern->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr));
 
     if (pmcSendMessage(hHal, eWNI_PMC_WOWL_ADD_BCAST_PTRN, pattern, sizeof(tSirWowlAddBcastPtrn))
         != eHAL_STATUS_SUCCESS)
@@ -2269,11 +2265,12 @@ eHalStatus pmcWowlDelBcastPattern (
         return eHAL_STATUS_FAILURE;
     }
 
+    vos_mem_copy(pattern->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr));
+
     if( pMac->pmc.pmcState == IMPS || pMac->pmc.pmcState == REQUEST_IMPS )
     {
         eHalStatus status;
 
-        vos_mem_copy(pattern->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr));
         //Wake up the chip first
         status = pmcDeferMsg( pMac, eWNI_PMC_WOWL_DEL_BCAST_PTRN, 
                                     pattern, sizeof(tSirWowlDelBcastPtrn) );
@@ -2379,9 +2376,6 @@ eHalStatus pmcEnterWowl (
        return eHAL_STATUS_FAILURE;
    }
 
-   vos_mem_copy(wowlEnterParams->bssId, pSession->connectedProfile.bssid, 
-               sizeof(tSirMacAddr));
-
    if( !PMC_IS_READY(pMac) )
    {
        smsLog(pMac, LOGE, FL("Requesting WoWL when PMC not ready"));
@@ -2427,6 +2421,9 @@ eHalStatus pmcEnterWowl (
              "will not be accepted");
       return eHAL_STATUS_FAILURE;
    }
+
+   vos_mem_copy(wowlEnterParams->bssId, pSession->connectedProfile.bssid,
+               sizeof(tSirMacAddr));
 
    // To avoid race condition, set callback routines before sending message.
    /* cache the WOWL information */
@@ -2613,7 +2610,6 @@ eHalStatus pmcSetNSOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest,
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tpSirHostOffloadReq pRequestBuf;
     vos_msg_t msg;
-    int i;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
     if( NULL == pSession )
@@ -2782,7 +2778,7 @@ pmcPopulateMacHeader( tpAniSirGlobal pMac,
                       tANI_U8* pBD,
                       tANI_U8 type,
                       tANI_U8 subType,
-                      tSirMacAddr peerAddr ,
+                      tSirMacAddr peerAddr,
                       tSirMacAddr selfMacAddr)
 {
     tSirRetStatus   statusCode = eSIR_SUCCESS;
@@ -2873,7 +2869,7 @@ pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = pmcPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
-                                SIR_MAC_MGMT_PROBE_REQ, bssId ,selfMacAddr);
+                                SIR_MAC_MGMT_PROBE_REQ, bssId,selfMacAddr);
 
     if ( eSIR_SUCCESS != nSirStatus )
     {
@@ -2896,7 +2892,7 @@ pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-            "There were warnings while packing a Probe Request (0x%08x)." );
+            "There were warnings while packing a Probe Request" );
     }
 
     *pusLen = nPayload + sizeof(tSirMacMgmtHdr); 
@@ -3114,7 +3110,7 @@ eHalStatus pmcGetFilterMatchCount
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
     VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
-        "%s: filterId = %d", __func__);
+        "%s", __func__);
 
     if(NULL == pSession )
     {

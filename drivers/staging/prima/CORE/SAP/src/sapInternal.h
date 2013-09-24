@@ -204,9 +204,9 @@ typedef struct sSapContext {
 
     // Mac filtering settings
     eSapMacAddrACL      eSapMacAddrAclMode;
-    v_MACADDR_t         acceptMacList[MAX_MAC_ADDRESS_ACCEPTED];
+    v_MACADDR_t         acceptMacList[MAX_ACL_MAC_ADDRESS];
     v_U8_t              nAcceptMac;
-    v_MACADDR_t         denyMacList[MAX_MAC_ADDRESS_DENIED];
+    v_MACADDR_t         denyMacList[MAX_ACL_MAC_ADDRESS];
     v_U8_t              nDenyMac;
 
     // QOS config
@@ -592,26 +592,28 @@ sapSortMacList(v_MACADDR_t *macList, v_U8_t size);
 
   FUNCTION    sapAddMacToACL
 
-  DESCRIPTION 
+  DESCRIPTION
     Function to ADD a mac address in an ACL.
     The function ensures that the ACL list remains sorted after the addition.
-    This API does not take care of buffer overflow i.e. if the list is already maxed out while adding a mac address,
-    it will still try to add. 
-    The caller must take care that the ACL size is less than MAX_MAC_ADDRESS_ACCEPTED before calling this function.
+    This API does not take care of buffer overflow i.e. if the list is already
+    maxed out while adding a mac address, it will still try to add.
+    The caller must take care that the ACL size is less than MAX_ACL_MAC_ADDRESS
+    before calling this function.
 
-  DEPENDENCIES 
+  DEPENDENCIES
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
        macList          : ACL list of mac addresses (black/white list)
-       size (I/O)       : size of the ACL. It is an I/O arg. The API takes care of incrementing the size by 1.
+       size (I/O)       : size of the ACL. It is an I/O arg. The API takes care
+                          of incrementing the size by 1.
        peerMac          : Mac address of the peer to be added
 
  RETURN VALUE
     None.
 
-  SIDE EFFECTS 
+  SIDE EFFECTS
 
 ============================================================================*/
 void
@@ -749,8 +751,20 @@ sap_AcquireGlobalLock( ptSapContext  pSapCtx );
 VOS_STATUS
 sap_ReleaseGlobalLock( ptSapContext  pSapCtx );
 
-VOS_STATUS
-wlan_sap_select_cbmode(void *pAdapter,eSapPhyMode SapHw_mode, v_U8_t channel);
+/*==========================================================================
+FUNCTION  sapConvertSapPhyModeToCsrPhyMode
+
+DESCRIPTION Function to implement selection of CSR PhyMode using SAP PhyMode
+
+DEPENDENCIES PARAMETERS
+
+IN sapPhyMode : SAP Phy Module
+
+RETURN VALUE If SUCCESS or FAILURE
+
+SIDE EFFECTS
+============================================================================*/
+eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode );
 
 #ifdef __cplusplus
 }

@@ -18,6 +18,27 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+
 
 /******************************************************************************
 *
@@ -73,7 +94,7 @@ eHalStatus pmcEnterLowPowerState (tHalHandle hHal)
         return eHAL_STATUS_SUCCESS;
 
     /* Cancel any running timers. */
-    if (palTimerStop(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_stop(&pMac->pmc.hImpsTimer) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot cancel IMPS timer"));
         return eHAL_STATUS_FAILURE;
@@ -81,7 +102,7 @@ eHalStatus pmcEnterLowPowerState (tHalHandle hHal)
 
     pmcStopTrafficTimer(hHal);
 
-    if (palTimerStop(pMac->hHdd, pMac->pmc.hExitPowerSaveTimer) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_stop(&pMac->pmc.hExitPowerSaveTimer) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot cancel exit power save mode timer"));
         return eHAL_STATUS_FAILURE;
@@ -456,7 +477,7 @@ eHalStatus pmcEnterImpsState (tHalHandle hHal)
     /* Set timer to come out of IMPS.only if impsPeriod is non-Zero*/
     if(0 != pMac->pmc.impsPeriod)
     {
-        if (palTimerStart(pMac->hHdd, pMac->pmc.hImpsTimer, pMac->pmc.impsPeriod * 1000, FALSE) != eHAL_STATUS_SUCCESS)
+        if (vos_timer_start(&pMac->pmc.hImpsTimer, pMac->pmc.impsPeriod) != VOS_STATUS_SUCCESS)
         {
             PMC_ABORT;
             pMac->pmc.ImpsReqTimerFailed = VOS_TRUE;
@@ -2107,7 +2128,7 @@ eHalStatus pmcIssueCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void *
     {
         smePushCommand( pMac, pCommand, fPutToListHead );
     }
-    else
+    else if( pCommand )
     {
         pmcReleaseCommand( pMac, pCommand );
     }
@@ -2458,6 +2479,13 @@ eHalStatus pmcEnterImpsCheck( tpAniSirGlobal pMac )
         return eHAL_STATUS_PMC_ALREADY_IN_IMPS;
     }
 
+    /* Check whether driver load unload is in progress */
+    if(vos_is_load_unload_in_progress( VOS_MODULE_ID_VOSS, NULL))
+    {
+       smsLog(pMac, LOGW, FL("Driver load/unload is in progress"));
+       return eHAL_STATUS_PMC_NOT_NOW;
+    }
+
     return ( eHAL_STATUS_SUCCESS );
 }
 
@@ -2582,6 +2610,7 @@ void pmcDiagEvtTimerExpired (tHalHandle hHal)
     {
         smsLog(pMac, LOGP, FL("Cannot re-arm DIAG evt timer"));
     }
+    vos_timer_start(&pMac->pmc.hDiagEvtTimer, PMC_DIAG_EVT_TIMER_INTERVAL);
 }
 
 eHalStatus pmcStartDiagEvtTimer (tHalHandle hHal)
@@ -2590,8 +2619,7 @@ eHalStatus pmcStartDiagEvtTimer (tHalHandle hHal)
 
     smsLog(pMac, LOG2, FL("Entering pmcStartDiagEvtTimer"));
 
-    if (palTimerStart(pMac->hHdd, pMac->pmc.hDiagEvtTimer, PMC_DIAG_EVT_TIMER_INTERVAL *
-                          1000, TRUE) != eHAL_STATUS_SUCCESS)
+    if ( vos_timer_start(&pMac->pmc.hDiagEvtTimer, PMC_DIAG_EVT_TIMER_INTERVAL) != VOS_STATUS_SUCCESS)
     {
        smsLog(pMac, LOGP, FL("Cannot start DIAG evt timer"));
        return eHAL_STATUS_FAILURE;
@@ -2604,6 +2632,6 @@ void pmcStopDiagEvtTimer (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     smsLog(pMac, LOG2, FL("Entering pmcStopDiagEvtTimer"));
-    (void)palTimerStop(pMac->hHdd, pMac->pmc.hDiagEvtTimer);
+    (void)vos_timer_stop(&pMac->pmc.hDiagEvtTimer);
 }
 #endif

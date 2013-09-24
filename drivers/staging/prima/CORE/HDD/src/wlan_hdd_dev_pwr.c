@@ -143,7 +143,7 @@ static int wlan_suspend(hdd_context_t* pHddCtx)
    */
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Suspending Mc, Rx and Tx Threads",__func__);
 
-   init_completion(&pHddCtx->tx_sus_event_var);
+   INIT_COMPLETION(pHddCtx->tx_sus_event_var);
 
    /* Indicate Tx Thread to Suspend */
    set_bit(TX_SUSPEND_EVENT_MASK, &vosSchedContext->txEventFlag);
@@ -163,7 +163,7 @@ static int wlan_suspend(hdd_context_t* pHddCtx)
    /* Set the Tx Thread as Suspended */
    pHddCtx->isTxThreadSuspended = TRUE;
 
-   init_completion(&pHddCtx->rx_sus_event_var);
+   INIT_COMPLETION(pHddCtx->rx_sus_event_var);
 
    /* Indicate Rx Thread to Suspend */
    set_bit(RX_SUSPEND_EVENT_MASK, &vosSchedContext->rxEventFlag);
@@ -191,7 +191,7 @@ static int wlan_suspend(hdd_context_t* pHddCtx)
    /* Set the Rx Thread as Suspended */
    pHddCtx->isRxThreadSuspended = TRUE;
 
-   init_completion(&pHddCtx->mc_sus_event_var);
+   INIT_COMPLETION(pHddCtx->mc_sus_event_var);
 
    /* Indicate MC Thread to Suspend */
    set_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
@@ -462,8 +462,8 @@ void hddDevTmTxBlockTimeoutHandler(void *usrData)
 
    /* Resume TX flow */
     
-   netif_tx_start_all_queues(staAdapater->dev);
-
+   netif_tx_wake_all_queues(staAdapater->dev);
+   pHddCtx->tmInfo.qBlocked = VOS_FALSE;
    mutex_unlock(&pHddCtx->tmInfo.tmOperationLock);
 
    return;
@@ -500,6 +500,16 @@ void hddDevTmLevelChangedHandler(struct device *dev, int changedTmLevel)
       return;
    }
 
+   /* Only STA mode support TM now
+    * all other mode, TM feature should be disabled */
+   if (~VOS_STA & pHddCtx->concurrency_mode)
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_ERROR,
+                "%s: CMODE 0x%x, TM disable",
+                __func__, pHddCtx->concurrency_mode);
+      newTmLevel = WLAN_HDD_TM_LEVEL_0;
+   }
+
    if ((newTmLevel < WLAN_HDD_TM_LEVEL_0) ||
        (newTmLevel >= WLAN_HDD_TM_LEVEL_MAX))
    {
@@ -509,8 +519,8 @@ void hddDevTmLevelChangedHandler(struct device *dev, int changedTmLevel)
       return;
    }
 
-   if (changedTmLevel != WLAN_HDD_TM_LEVEL_4)
-      sme_SetTmLevel(pHddCtx->hHal, changedTmLevel, 0);
+   if (newTmLevel != WLAN_HDD_TM_LEVEL_4)
+      sme_SetTmLevel(pHddCtx->hHal, newTmLevel, 0);
 
    if (mutex_lock_interruptible(&pHddCtx->tmInfo.tmOperationLock))
    {
@@ -519,7 +529,7 @@ void hddDevTmLevelChangedHandler(struct device *dev, int changedTmLevel)
       return;
    }
 
-   pHddCtx->tmInfo.currentTmLevel = changedTmLevel;
+   pHddCtx->tmInfo.currentTmLevel = newTmLevel;
    pHddCtx->tmInfo.txFrameCount = 0;
    vos_mem_copy(&pHddCtx->tmInfo.tmAction,
                 &thermalMigrationAction[newTmLevel],
@@ -575,7 +585,7 @@ VOS_STATUS hddDevTmRegisterNotifyCallback(hdd_context_t *pHddCtx)
    mutex_init(&pHddCtx->tmInfo.tmOperationLock);
    pHddCtx->tmInfo.txFrameCount = 0;
    pHddCtx->tmInfo.blockedQueue = NULL;
-
+   pHddCtx->tmInfo.qBlocked     = VOS_FALSE;
    return VOS_STATUS_SUCCESS;
 }
 

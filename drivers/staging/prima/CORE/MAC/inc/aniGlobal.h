@@ -336,6 +336,20 @@ typedef struct sAniSirLim
     tLimScanResultNode
            *gLimCachedScanHashTable[LIM_MAX_NUM_OF_SCAN_RESULTS];
 
+    /// This indicates total length of 'matched' scan results
+    tANI_U16   gLimMlmLfrScanResultLength;
+
+    /// This indicates total length of 'cached' scan results
+    tANI_U16   gLimSmeLfrScanResultLength;
+
+    /**
+     * Hash table definition for storing LFR SCAN results
+     * This is the placed holder for roaming candidates as forwarded
+     * by FW
+     */
+    tLimScanResultNode
+        *gLimCachedLfrScanHashTable[LIM_MAX_NUM_OF_SCAN_RESULTS];
+
     /// Place holder for current channel ID
     /// being scanned during background scanning
     tANI_U32   gLimBackgroundScanChannelId;
@@ -650,6 +664,10 @@ typedef struct sAniSirLim
     tLimAdmitPolicyInfo admitPolicyInfo;
     vos_lock_t lkPeGlobalLock;
     tANI_U8 disableLDPCWithTxbfAP;
+#ifdef FEATURE_WLAN_TDLS
+    tANI_U8 gLimTDLSBufStaEnabled;
+    tANI_U8 gLimTDLSUapsdMask;
+#endif
 
 
 
@@ -901,6 +919,8 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
     tLimDisassocDeauthCnfReq limDisassocDeauthCnfReq;
     tANI_U8 deferredMsgCnt;
     tSirDFSChannelList    dfschannelList;
+    tANI_U8 deauthMsgCnt;
+    tANI_U8 gLimIbssStaLimit;
 } tAniSirLim, *tpAniSirLim;
 
 typedef struct sLimMgmtFrameRegistration
@@ -1046,7 +1066,7 @@ typedef struct sAniSirGlobal
 #ifdef FEATURE_WLAN_TDLS
     v_BOOL_t isTdlsPowerSaveProhibited;
 #endif
-    
+    tANI_U8 fScanOffload;
 } tAniSirGlobal;
 
 #ifdef FEATURE_WLAN_TDLS

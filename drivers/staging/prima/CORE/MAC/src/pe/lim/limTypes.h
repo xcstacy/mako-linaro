@@ -739,6 +739,8 @@ tSirRetStatus limProcessSmeTdlsMgmtSendReq(tpAniSirGlobal pMac,
                                                            tANI_U32 *pMsgBuf);
 tSirRetStatus limProcessSmeTdlsAddStaReq(tpAniSirGlobal pMac, 
                                                            tANI_U32 *pMsgBuf);
+tSirRetStatus limProcesSmeTdlsLinkEstablishReq(tpAniSirGlobal pMac,
+                                                           tANI_U32 *pMsgBuf);
 tSirRetStatus limProcessSmeTdlsDelStaReq(tpAniSirGlobal pMac, 
                                                            tANI_U32 *pMsgBuf);
 void limSendSmeTDLSDeleteAllPeerInd(tpAniSirGlobal pMac, tpPESession psessionEntry);
@@ -905,7 +907,7 @@ limPostSmeMessage(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsgBuf)
     
     if(pMsgBuf == NULL)
     {
-        limLog(pMac, LOGE,FL("Buffer is Pointing to NULL\n"));
+        limLog(pMac, LOGE,FL("Buffer is Pointing to NULL"));
            return;
     }
       
@@ -950,7 +952,7 @@ limPostMlmMessage(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsgBuf)
     tSirMsgQ msg;
     if(pMsgBuf == NULL)
     {
-        limLog(pMac, LOGE,FL("Buffer is Pointing to NULL\n"));
+        limLog(pMac, LOGE,FL("Buffer is Pointing to NULL"));
            return;
     }
     msg.type = (tANI_U16) msgType;
@@ -1103,5 +1105,10 @@ typedef struct sSetLinkCbackParams
     void * cbackDataPtr;
 } tSetLinkCbackParams;
 #endif
+
+void limProcessRxScanEvent(tpAniSirGlobal mac, void *buf);
+
+int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg);
+void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
 #endif /* __LIM_TYPES_H */
 

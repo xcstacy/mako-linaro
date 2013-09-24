@@ -102,9 +102,11 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
            WDA_GET_RX_MPDU_LEN(pRxPacketInfo));
     limPrintMacAddr(pMac, pHdr->sa, LOG2);)
 
-    if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
-        return;
-
+    if (!pMac->fScanOffload)
+    {
+        if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
+            return;
+    }
 
     /**
      * Expect Beacon only when
@@ -116,12 +118,14 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
     if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||
         (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) ||
         (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE) ||
-        (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE))
+        (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE)
+        || pMac->fScanOffload
+        )
     {
-        if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, 
-                                                    (void **)&pBeacon, sizeof(tSchBeaconStruct)))
+        pBeacon = vos_mem_malloc(sizeof(tSchBeaconStruct));
+        if ( NULL == pBeacon )
         {
-            limLog(pMac, LOGE, FL("Unable to PAL allocate memory in limProcessBeaconFrame\n") );
+            limLog(pMac, LOGE, FL("Unable to allocate memory in limProcessBeaconFrame") );
             return;
         }
 
@@ -132,10 +136,10 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
             // Received wrongly formatted/invalid Beacon.
             // Ignore it and move on.
             limLog(pMac, LOGW,
-                   FL("Received invalid Beacon in state %X\n"),
+                   FL("Received invalid Beacon in state %X"),
                    psessionEntry->limMlmState);
             limPrintMlmState(pMac, LOGW,  psessionEntry->limMlmState);
-            palFreeMemory(pMac->hHdd, pBeacon);
+            vos_mem_free(pBeacon);
             return;
         }
 
@@ -144,7 +148,8 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         if ((!psessionEntry->lastBeaconDtimPeriod) &&
             (sirCompareMacAddr( psessionEntry->bssId, pBeacon->bssid)))
         {
-            palCopyMemory( pMac->hHdd, ( tANI_U8* )&psessionEntry->lastBeaconTimeStamp, ( tANI_U8* )pBeacon->timeStamp, sizeof(tANI_U64) );
+            vos_mem_copy(( tANI_U8* )&psessionEntry->lastBeaconTimeStamp,
+                         ( tANI_U8* )pBeacon->timeStamp, sizeof(tANI_U64) );
             psessionEntry->lastBeaconDtimCount = pBeacon->tim.dtimCount;
             psessionEntry->lastBeaconDtimPeriod= pBeacon->tim.dtimPeriod;
             psessionEntry->currentBssBeaconCnt++;
@@ -153,6 +158,12 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT_TSF, 0, pBeacon->timeStamp[0]);)
         MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT_TSF, 0, pBeacon->timeStamp[1]);)
 
+        if (pMac->fScanOffload)
+        {
+            limCheckAndAddBssDescription(pMac, pBeacon, pRxPacketInfo,
+                    eANI_BOOLEAN_FALSE, eANI_BOOLEAN_TRUE);
+
+        }
 
         if ((pMac->lim.gLimMlmState  == eLIM_MLM_WT_PROBE_RESP_STATE) ||
             (pMac->lim.gLimMlmState  == eLIM_MLM_PASSIVE_SCAN_STATE))
@@ -169,29 +180,31 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)
         {
         }
-        else
+        else if (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE)
         {
             if( psessionEntry->beacon != NULL )
             {
-                palFreeMemory(pMac->hHdd, psessionEntry->beacon);
+                vos_mem_free(psessionEntry->beacon);
                 psessionEntry->beacon = NULL;
              }
              psessionEntry->bcnLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-             if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->beacon, psessionEntry->bcnLen)) != eHAL_STATUS_SUCCESS)
+             psessionEntry->beacon = vos_mem_malloc(psessionEntry->bcnLen);
+             if ( NULL == psessionEntry->beacon )
              {
                 PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store beacon"));)
               }
               else
               {
                 //Store the Beacon/ProbeRsp. This is sent to csr/hdd in join cnf response. 
-                palCopyMemory(pMac->hHdd, psessionEntry->beacon, WDA_GET_RX_MPDU_DATA(pRxPacketInfo), psessionEntry->bcnLen);
+                vos_mem_copy(psessionEntry->beacon, WDA_GET_RX_MPDU_DATA(pRxPacketInfo),
+                             psessionEntry->bcnLen);
 
                }
              
              // STA in WT_JOIN_BEACON_STATE (IBSS)
             limCheckAndAnnounceJoinSuccess(pMac, pBeacon, pHdr,psessionEntry);
         } // if (pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE)
-        palFreeMemory(pMac->hHdd, pBeacon);
+        vos_mem_free(pBeacon);
     } // if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) || ...
     else
     {
@@ -214,7 +227,7 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         }
         else
         {
-            PELOG1(limLog(pMac, LOG1, FL("Received Beacon in unexpected state %d\n"),
+            PELOG1(limLog(pMac, LOG1, FL("Received Beacon in unexpected state %d"),
                    psessionEntry->limMlmState);
             limPrintMlmState(pMac, LOG1, psessionEntry->limMlmState);)
 #ifdef WLAN_DEBUG                    
@@ -249,9 +262,11 @@ limProcessBeaconFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
            WDA_GET_RX_MPDU_LEN(pRxPacketInfo));
     limPrintMacAddr(pMac, pHdr->sa, LOG2);
 
-    if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
-        return;
-
+    if (!pMac->fScanOffload)
+    {
+        if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
+            return;
+    }
 
     /**
      * No session has been established. Expect Beacon only when
@@ -262,19 +277,19 @@ limProcessBeaconFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
         (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) ||
         (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE))
     {
-        if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, 
-                                                    (void **)&pBeacon, sizeof(tSchBeaconStruct)))
+        pBeacon = vos_mem_malloc(sizeof(tSchBeaconStruct));
+        if ( NULL == pBeacon )
         {
-            limLog(pMac, LOGE, FL("Unable to PAL allocate memory in limProcessBeaconFrameNoSession\n") );
+            limLog(pMac, LOGE, FL("Unable to allocate memory in limProcessBeaconFrameNoSession") );
             return;
         }
 
         if (sirConvertBeaconFrame2Struct(pMac, (tANI_U8 *) pRxPacketInfo, pBeacon) != eSIR_SUCCESS)
         {
             // Received wrongly formatted/invalid Beacon. Ignore and move on. 
-            limLog(pMac, LOGW, FL("Received invalid Beacon in global MLM state %X\n"), pMac->lim.gLimMlmState);
+            limLog(pMac, LOGW, FL("Received invalid Beacon in global MLM state %X"), pMac->lim.gLimMlmState);
             limPrintMlmState(pMac, LOGW,  pMac->lim.gLimMlmState);
-            palFreeMemory(pMac->hHdd, pBeacon);
+            vos_mem_free(pBeacon);
             return;
         }
 
@@ -291,11 +306,11 @@ limProcessBeaconFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
         else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)
         {
         }  // end of eLIM_MLM_LEARN_STATE)       
-        palFreeMemory(pMac->hHdd, pBeacon);
+        vos_mem_free(pBeacon);
     } // end of (eLIM_MLM_WT_PROBE_RESP_STATE) || (eLIM_MLM_PASSIVE_SCAN_STATE)
     else
     {
-        limLog(pMac, LOG1, FL("Rcvd Beacon in unexpected MLM state %d\n"), pMac->lim.gLimMlmState);
+        limLog(pMac, LOG1, FL("Rcvd Beacon in unexpected MLM state %d"), pMac->lim.gLimMlmState);
         limPrintMlmState(pMac, LOG1, pMac->lim.gLimMlmState);
 #ifdef WLAN_DEBUG                    
         pMac->lim.gLimUnexpBcnCnt++;
