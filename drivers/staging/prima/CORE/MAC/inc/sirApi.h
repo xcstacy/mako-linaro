@@ -1,9 +1,43 @@
 /*
-* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
-
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
 /*
  * Airgo Networks, Inc proprietary. All rights reserved.
@@ -104,6 +138,10 @@ typedef tANI_U8 tSirIpv4Addr[SIR_IPV4_ADDR_LEN];
 
 #define SIR_VERSION_STRING_LEN 64
 typedef tANI_U8 tSirVersionString[SIR_VERSION_STRING_LEN];
+
+/* Periodic Tx pattern offload feature */
+#define PERIODIC_TX_PTRN_MAX_SIZE 1536
+#define MAXNUM_PERIODIC_TX_PTRNS 6
 
 enum eSirHostMsgTypes
 {
@@ -418,6 +456,7 @@ typedef struct sSirRemainOnChnReq
     tANI_U8  chnNum;
     tANI_U8  phyMode;
     tANI_U32 duration;
+    tANI_U8  isProbeRequestAllowed;
     tANI_U8  probeRspIe[1];
 }tSirRemainOnChnReq, *tpSirRemainOnChnReq;
 
@@ -848,6 +887,21 @@ typedef struct sSirSmeScanReq
       -----------------------------*/
 } tSirSmeScanReq, *tpSirSmeScanReq;
 
+typedef struct sSirSmeScanAbortReq
+{
+    tANI_U16        type;
+    tANI_U16        msgLen;
+    tANI_U8         sessionId;
+} tSirSmeScanAbortReq, *tpSirSmeScanAbortReq;
+
+typedef struct sSirSmeScanChanReq
+{
+    tANI_U16        type;
+    tANI_U16        msgLen;
+    tANI_U8         sessionId;
+    tANI_U16        transcationId;
+} tSirSmeGetScanChanReq, *tpSirSmeGetScanChanReq;
+
 #ifdef FEATURE_OEM_DATA_SUPPORT
 
 #ifndef OEM_DATA_REQ_SIZE
@@ -995,6 +1049,7 @@ typedef struct sSirSmeJoinReq
     tAniBool            is11Rconnection;
 #endif
 #ifdef FEATURE_WLAN_CCX
+    tAniBool            isCCXFeatureIniEnabled;
     tAniBool            isCCXconnection;
     tCCXTspecInfo       ccxTspecInfo;
 #endif
@@ -1011,6 +1066,7 @@ typedef struct sSirSmeJoinReq
     tANI_U8             txBFIniFeatureEnabled;
     tANI_U8             txBFCsnValue;
 #endif
+    tANI_U8             isAmsduSupportInAMPDU;
 
     tAniTitanCBNeighborInfo cbNeighbors;
     tAniBool            spectrumMgtIndicator;
@@ -2062,6 +2118,17 @@ typedef struct sAniGetRssiReq
     
 } tAniGetRssiReq, *tpAniGetRssiReq;
 
+typedef struct sAniGetSnrReq
+{
+    // Common for all types are requests
+    tANI_U16                msgType;    // message type is same as the request type
+    tANI_U16                msgLen;  // length of the entire request
+    tANI_U8                 sessionId;
+    tANI_U8                 staId;
+    void                    *snrCallback;
+    void                    *pDevContext; //device context
+} tAniGetSnrReq, *tpAniGetSnrReq;
+
 #if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
 typedef struct sAniGetRoamRssiRsp
 {
@@ -2084,11 +2151,21 @@ typedef struct sAniChangeCountryCodeReq
     tANI_U16                msgType;    // message type is same as the request type
     tANI_U16                msgLen;     // length of the entire request
     tANI_U8                 countryCode[WNI_CFG_COUNTRY_CODE_LEN];   //3 char country code
+    tAniBool                countryFromUserSpace;
     void                    *changeCCCallback;
     void                    *pDevContext; //device context
     void                    *pVosContext; //voss context
     
 } tAniChangeCountryCodeReq, *tpAniChangeCountryCodeReq;
+
+typedef struct sAniDHCPStopInd
+{
+    tANI_U16                msgType;      // message type is same as the request type
+    tANI_U16                msgLen;       // length of the entire request
+    tANI_U8                 device_mode;  // Mode of the device(ex:STA, AP)
+    tSirMacAddr             macAddr;
+
+} tAniDHCPInd, *tpAniDHCPInd;
 
 typedef struct sAniSummaryStatsInfo
 {
@@ -2283,6 +2360,14 @@ typedef struct sSirP2PNoaStart
    tANI_U32      status;
    tANI_U32      bssIdx;
 } tSirP2PNoaStart, *tpSirP2PNoaStart;
+
+typedef struct sSirTdlsInd
+{
+   tANI_U16      status;
+   tANI_U16      assocId;
+   tANI_U16      staIdx;
+   tANI_U16      reasonCode;
+} tSirTdlsInd, *tpSirTdlsInd;
 
 typedef struct sSirP2PNoaAttr
 {
@@ -2662,6 +2747,14 @@ typedef struct sSmeIbssPeerInd
 
     //Beacon will be appended for new Peer indication.
 }tSmeIbssPeerInd, *tpSmeIbssPeerInd;
+
+typedef struct sSirIbssPeerInactivityInd
+{
+   tANI_U8       bssIdx;
+   tANI_U8       staIdx;
+   tSirMacAddr   peerAddr;
+}tSirIbssPeerInactivityInd, *tpSirIbssPeerInactivityInd;
+
 
 typedef struct sLimScanChn
 {
@@ -3219,7 +3312,9 @@ typedef struct sSirUpdateAPWPARSNIEsReq
 #define SIR_OFFLOAD_DISABLE                         0
 #define SIR_OFFLOAD_ENABLE                          1
 #define SIR_OFFLOAD_BCAST_FILTER_ENABLE             0x2
+#define SIR_OFFLOAD_MCAST_FILTER_ENABLE             0x4
 #define SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE     (SIR_OFFLOAD_ENABLE|SIR_OFFLOAD_BCAST_FILTER_ENABLE)
+#define SIR_OFFLOAD_NS_AND_MCAST_FILTER_ENABLE      (SIR_OFFLOAD_ENABLE|SIR_OFFLOAD_MCAST_FILTER_ENABLE)
 
 #ifdef WLAN_NS_OFFLOAD
 typedef struct sSirNsOffloadReq
@@ -3231,6 +3326,7 @@ typedef struct sSirNsOffloadReq
     tANI_U8 selfMacAddr[6];
     tANI_U8 srcIPv6AddrValid;
     tANI_U8 targetIPv6AddrValid[SIR_MAC_NUM_TARGET_IPV6_NS_OFFLOAD_NA];
+    tANI_U8 slotIdx;
 } tSirNsOffloadReq, *tpSirNsOffloadReq;
 #endif //WLAN_NS_OFFLOAD
 
@@ -3273,6 +3369,7 @@ typedef struct sSirSmeAddStaSelfReq
     tANI_U16        mesgType;
     tANI_U16        mesgLen;
     tSirMacAddr     selfMacAddr;
+    tVOS_CON_MODE   currDeviceMode;
 }tSirSmeAddStaSelfReq, *tpSirSmeAddStaSelfReq;
 
 typedef struct sSirSmeDelStaSelfReq
@@ -3307,6 +3404,8 @@ typedef struct sSirSmeDelStaSelfRsp
 #define SIR_COEX_IND_TYPE_ENABLE_HB_MONITOR (1)
 #define SIR_COEX_IND_TYPE_SCAN_COMPROMISED (2)
 #define SIR_COEX_IND_TYPE_SCAN_NOT_COMPROMISED (3)
+#define SIR_COEX_IND_TYPE_DISABLE_AGGREGATION_IN_2p4 (4)
+#define SIR_COEX_IND_TYPE_ENABLE_AGGREGATION_IN_2p4 (5)
 
 typedef struct sSirSmeCoexInd
 {
@@ -3399,7 +3498,7 @@ typedef struct sSirWlanSetRxpFilters
 #define CHANNEL_LIST_DYNAMIC_UPDATE           4 /* Occupied channel list can be learnt after update */
 #define SIR_ROAM_SCAN_24G_DEFAULT_CH     1
 #define SIR_ROAM_SCAN_5G_DEFAULT_CH      36
-#define SIR_ROAM_SCAN_RESERVED_BYTES     64
+#define SIR_ROAM_SCAN_RESERVED_BYTES     61
 #endif
 
 typedef enum
@@ -3417,7 +3516,7 @@ typedef struct
   tANI_U32    encryption; 
   tANI_U32    bcastNetwType; 
   tANI_U8     ucChannelCount;
-  tANI_U8     aChannels[SIR_PNO_MAX_NETW_CHANNELS]; 
+  tANI_U8     aChannels[SIR_PNO_MAX_NETW_CHANNELS_EX];
   tANI_U8     rssiThreshold;
 } tSirNetworkType; 
 
@@ -3487,9 +3586,18 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U8   p24GProbeTemplate[SIR_ROAM_SCAN_MAX_PB_REQ_SIZE];
   tANI_U16  us5GProbeTemplateLen;
   tANI_U8   p5GProbeTemplate[SIR_ROAM_SCAN_MAX_PB_REQ_SIZE];
-  tANI_U8   ReservedBytes[SIR_ROAM_SCAN_RESERVED_BYTES]; /*This is to add any additional data in future
-                                                           without changing the interface params on Host
-                                                           and firmware.*/
+  tANI_U8     ReservedBytes[SIR_ROAM_SCAN_RESERVED_BYTES];
+  /*ReservedBytes is to add any further params in future
+    without changing the interface params on Host
+    and firmware.The firmware right now checks
+    if the size of this structure matches and then
+    proceeds with the processing of the command.
+    So, in future, if there is any need to add
+    more params, pick the memory from reserved
+    bytes and keep deducting the reserved bytes
+    by the amount of bytes picked.*/
+  tANI_U8   nProbes;
+  tANI_U16  HomeAwayTime;
   tSirRoamNetworkType ConnectedNetwork;
   tSirMobilityDomainInfo MDID;
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
@@ -3517,12 +3625,18 @@ typedef struct {
 // Preferred Network Found Indication
 typedef struct
 {  
-  tANI_U16        mesgType;
-  tANI_U16        mesgLen;
+  tANI_U16      mesgType;
+  tANI_U16      mesgLen;
   /* Network that was found with the highest RSSI*/
-  tSirMacSSid ssId;
+  tSirMacSSid   ssId;
   /* Indicates the RSSI */
-  tANI_U8        rssi;
+  tANI_U8       rssi;
+  /* Length of the beacon or probe response
+   * corresponding to the candidate found by PNO */
+  tANI_U32      frameLength;
+  /* Index to memory location where the contents of
+   * beacon or probe response frame will be copied */
+  tANI_U8       data[1];
 } tSirPrefNetworkFoundInd, *tpSirPrefNetworkFoundInd;
 #endif // FEATURE_WLAN_SCAN_PNO
 
@@ -3558,6 +3672,9 @@ typedef struct
 
   /* Beacon Early Termination Interval */
   tANI_U32 uBETInterval; 
+
+  /* MAX LI for modulated DTIM */
+  tANI_U32 uMaxLIModulatedDTIM;
 
 }tSirSetPowerParamsReq, *tpSirSetPowerParamsReq;
 
@@ -3821,6 +3938,33 @@ typedef struct sSirTdlsAddStaRsp
     tANI_U8                bcastSig;
     eTdlsAddOper           tdlsAddOper;
 } tSirTdlsAddStaRsp ;
+
+/* TDLS Request struct SME-->PE */
+typedef struct
+{
+    tANI_U16            messageType;   // eWNI_SME_TDLS_LINK_ESTABLISH_REQ
+    tANI_U16            length;
+    tANI_U8             sessionId;     // Session ID
+    tANI_U16            transactionId; // Transaction ID for cmd
+    tANI_U8             uapsdQueues;   // Peer's uapsd Queues Information
+    tANI_U8             maxSp;         // Peer's Supported Maximum Service Period
+    tANI_U8             isBufSta;      // Does Peer Support as Buffer Station.
+    tANI_U8             isResponder;   // Is Peer a responder.
+    tSirMacAddr         bssid;         // For multi-session, for PE to locate peSession ID
+    tSirMacAddr         peerMac;
+}tSirTdlsLinkEstablishReq, *tpSirTdlsLinkEstablishReq;
+
+/* TDLS Request struct SME-->PE */
+typedef struct
+{
+    tANI_U16            messageType;   // eWNI_SME_TDLS_LINK_ESTABLISH_RSP
+    tANI_U16            length;
+    tANI_U8             sessionId;     // Session ID
+    tANI_U16            transactionId; // Transaction ID for cmd
+    tSirResultCodes        statusCode;
+    tSirMacAddr            peerMac;
+}tSirTdlsLinkEstablishReqRsp, *tpSirTdlsLinkEstablishReqRsp;
+
 /* TDLS Request struct SME-->PE */
 typedef struct sSirTdlsDelStaReq
 {
@@ -4056,5 +4200,183 @@ typedef struct sSirWlanExcludeUnencryptParam
     tSirMacAddr     bssId;
 }tSirWlanExcludeUnencryptParam,*tpSirWlanExcludeUnencryptParam;
 #endif
+
+typedef struct sAniHandoffReq
+{
+    // Common for all types are requests
+    tANI_U16  msgType; // message type is same as the request type
+    tANI_U16  msgLen;  // length of the entire request
+    tANI_U8   sessionId;
+    tANI_U8   bssid[WNI_CFG_BSSID_LEN];
+    tANI_U8   channel;
+} tAniHandoffReq, *tpAniHandoffReq;
+
+typedef struct sSirScanOffloadReq {
+    tANI_U8 sessionId;
+    tSirMacAddr bssId;
+    tANI_U8 numSsid;
+    tSirMacSSid ssId[SIR_SCAN_MAX_NUM_SSID];
+    tANI_U8 hiddenSsid;
+    tSirMacAddr selfMacAddr;
+    tSirBssType bssType;
+    tANI_U8 dot11mode;
+    tSirScanType scanType;
+    tANI_U32 minChannelTime;
+    tANI_U32 maxChannelTime;
+    tANI_BOOLEAN p2pSearch;
+    tANI_U16 uIEFieldLen;
+    tANI_U16 uIEFieldOffset;
+    tSirChannelList channelList;
+    /*-----------------------------
+      sSirScanOffloadReq....
+      -----------------------------
+      uIEFieldLen
+      -----------------------------
+      uIEFieldOffset               ----+
+      -----------------------------    |
+      channelList.numChannels          |
+      -----------------------------    |
+      ... variable size up to          |
+      channelNumber[numChannels-1]     |
+      This can be zero, if             |
+      numChannel is zero.              |
+      ----------------------------- <--+
+      ... variable size uIEField
+      up to uIEFieldLen (can be 0)
+      -----------------------------*/
+} tSirScanOffloadReq, *tpSirScanOffloadReq;
+
+typedef enum sSirScanEventType {
+    SCAN_EVENT_STARTED=0x1,          /* Scan command accepted by FW */
+    SCAN_EVENT_COMPLETED=0x2,        /* Scan has been completed by FW */
+    SCAN_EVENT_BSS_CHANNEL=0x4,      /* FW is going to move to HOME channel */
+    SCAN_EVENT_FOREIGN_CHANNEL = 0x8,/* FW is going to move to FORIEGN channel */
+    SCAN_EVENT_DEQUEUED=0x10,       /* scan request got dequeued */
+    SCAN_EVENT_PREEMPTED=0x20,      /* preempted by other high priority scan */
+    SCAN_EVENT_START_FAILED=0x40,   /* scan start failed */
+    SCAN_EVENT_RESTARTED=0x80,      /*scan restarted*/
+    SCAN_EVENT_MAX=0x8000
+} tSirScanEventType;
+
+typedef struct sSirScanOffloadEvent{
+    tSirScanEventType event;
+    tSirResultCodes reasonCode;
+    tANI_U32 chanFreq;
+    tANI_U32 requestor;
+    tANI_U32 scanId;
+} tSirScanOffloadEvent, *tpSirScanOffloadEvent;
+
+typedef struct sSirUpdateChanParam
+{
+    tANI_U8 chanId;
+    tANI_U8 pwr;
+} tSirUpdateChanParam, *tpSirUpdateChanParam;
+
+typedef struct sSirUpdateChan
+{
+    tANI_U8 numChan;
+    tSirUpdateChanParam chanParam[1];
+} tSirUpdateChanList, *tpSirUpdateChanList;
+
+#ifdef FEATURE_WLAN_LPHB
+#define SIR_LPHB_FILTER_LEN   64
+
+typedef enum
+{
+   LPHB_SET_EN_PARAMS_INDID,
+   LPHB_SET_TCP_PARAMS_INDID,
+   LPHB_SET_TCP_PKT_FILTER_INDID,
+   LPHB_SET_UDP_PARAMS_INDID,
+   LPHB_SET_UDP_PKT_FILTER_INDID,
+   LPHB_SET_NETWORK_INFO_INDID,
+} LPHBIndType;
+
+typedef struct sSirLPHBEnableStruct
+{
+   v_U8_t enable;
+   v_U8_t item;
+   v_U8_t session;
+} tSirLPHBEnableStruct;
+
+typedef struct sSirLPHBTcpParamStruct
+{
+   v_U32_t      srv_ip;
+   v_U32_t      dev_ip;
+   v_U16_t      src_port;
+   v_U16_t      dst_port;
+   v_U16_t      timeout;
+   v_U8_t       session;
+   tSirMacAddr  gateway_mac;
+} tSirLPHBTcpParamStruct;
+
+typedef struct sSirLPHBTcpFilterStruct
+{
+   v_U16_t length;
+   v_U8_t  offset;
+   v_U8_t  session;
+   v_U8_t  filter[SIR_LPHB_FILTER_LEN];
+} tSirLPHBTcpFilterStruct;
+
+typedef struct sSirLPHBUdpParamStruct
+{
+   v_U32_t      srv_ip;
+   v_U32_t      dev_ip;
+   v_U16_t      src_port;
+   v_U16_t      dst_port;
+   v_U16_t      interval;
+   v_U16_t      timeout;
+   v_U8_t       session;
+   tSirMacAddr  gateway_mac;
+} tSirLPHBUdpParamStruct;
+
+typedef struct sSirLPHBUdpFilterStruct
+{
+   v_U16_t length;
+   v_U8_t  offset;
+   v_U8_t  session;
+   v_U8_t  filter[SIR_LPHB_FILTER_LEN];
+} tSirLPHBUdpFilterStruct;
+
+typedef struct sSirLPHBReq
+{
+   v_U16_t cmd;
+   v_U16_t dummy;
+   union
+   {
+      tSirLPHBEnableStruct     lphbEnableReq;
+      tSirLPHBTcpParamStruct   lphbTcpParamReq;
+      tSirLPHBTcpFilterStruct  lphbTcpFilterReq;
+      tSirLPHBUdpParamStruct   lphbUdpParamReq;
+      tSirLPHBUdpFilterStruct  lphbUdpFilterReq;
+   } params;
+} tSirLPHBReq;
+
+typedef struct sSirLPHBTimeoutInd
+{
+   v_U8_t sessionIdx;
+   v_U8_t protocolType; /*TCP or UDP*/
+   v_U8_t eventReason;
+} tSirLPHBTimeoutInd;
+#endif /* FEATURE_WLAN_LPHB */
+
+typedef struct sSirAddPeriodicTxPtrn
+{
+    /* MAC Address for the adapter */
+    tSirMacAddr macAddress;
+
+    tANI_U8  ucPtrnId;           // Pattern ID
+    tANI_U16 ucPtrnSize;         // Pattern size
+    tANI_U32 usPtrnIntervalMs;   // In msec
+    tANI_U8  ucPattern[PERIODIC_TX_PTRN_MAX_SIZE]; // Pattern buffer
+} tSirAddPeriodicTxPtrn, *tpSirAddPeriodicTxPtrn;
+
+typedef struct sSirDelPeriodicTxPtrn
+{
+    /* MAC Address for the adapter */
+    tSirMacAddr macAddress;
+
+    /* Bitmap of pattern IDs that need to be deleted */
+    tANI_U32 ucPatternIdBitmap;
+} tSirDelPeriodicTxPtrn, *tpSirDelPeriodicTxPtrn;
 
 #endif /* __SIR_API_H */

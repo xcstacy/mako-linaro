@@ -9,6 +9,7 @@
  * above copyright notice and this permission notice appear in all
  * copies.
  *
+ * Airgo Networks, Inc proprietary. All rights reserved.
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
  * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
@@ -39,9 +40,8 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+
 /*
- *
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessAuthFrame.cc contains the code
  * for processing received Authentication Frame.
  * Author:        Chandra Modumudi
@@ -202,9 +202,8 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     }
 
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-              FL("Auth Frame Received: BSSID %02x:%02x:%02x:%02x:%02x:%02x (Rssi %d)"),
-              pHdr->bssId[0], pHdr->bssId[1], pHdr->bssId[2],
-              pHdr->bssId[3], pHdr->bssId[4], pHdr->bssId[5],
+              FL("Auth Frame Received: BSSID " MAC_ADDRESS_STR " (RSSI %d)"),
+              MAC_ADDR_ARRAY(pHdr->bssId),
               (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pRxPacketInfo)));
 
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
@@ -447,7 +446,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 {   
                     tpSirKeys pKey;
                     pKey =  &psessionEntry->WEPKeyMaterial[keyId].key[0];              
-                    palCopyMemory( pMac->hHdd, defaultKey, pKey->key, pKey->keyLength);
+                    vos_mem_copy(defaultKey, pKey->key, pKey->keyLength);
                     val = pKey->keyLength;
                 }                   
                 else                              
@@ -572,27 +571,30 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 tLimMlmDeauthReq        *pMlmDeauthReq = NULL;
                 pMlmDisassocReq = pMac->lim.limDisassocDeauthCnfReq.pMlmDisassocReq;
                 if (pMlmDisassocReq &&
-                        (palEqualMemory( pMac->hHdd,(tANI_U8 *) pHdr->sa,
+                        (vos_mem_compare((tANI_U8 *) pHdr->sa,
                                          (tANI_U8 *) &pMlmDisassocReq->peerMacAddr,
-                                         sizeof(tSirMacAddr))))
+                                          sizeof(tSirMacAddr))))
                 {
-                    PELOGE(limLog(pMac, LOGP, FL("\nTODO:Ack for disassoc frame is pending"
-                                    "Issue delsta for %02x:%02x:%02x:%02x:%02x:%02x"),
+                    PELOGE(limLog(pMac, LOGE, FL("\nTODO:Ack for disassoc "
+                                "frame is pending Issue delsta for"
+                                " %02x:%02x:%02x:%02x:%02x:%02x"),
                                 pMlmDisassocReq->peerMacAddr[0],
                                 pMlmDisassocReq->peerMacAddr[1],
                                 pMlmDisassocReq->peerMacAddr[2],
                                 pMlmDisassocReq->peerMacAddr[3],
                                 pMlmDisassocReq->peerMacAddr[4],
                                 pMlmDisassocReq->peerMacAddr[5]);)
+                    limProcessDisassocAckTimeout(pMac);
                 }
                 pMlmDeauthReq = pMac->lim.limDisassocDeauthCnfReq.pMlmDeauthReq;
                 if (pMlmDeauthReq &&
-                        (palEqualMemory( pMac->hHdd,(tANI_U8 *) pHdr->sa,
+                        (vos_mem_compare((tANI_U8 *) pHdr->sa,
                                          (tANI_U8 *) &pMlmDeauthReq->peerMacAddr,
                                          sizeof(tSirMacAddr))))
                 {
-                    PELOGE(limLog(pMac, LOGP, FL("\nTODO:Ack for disassoc frame is pending"
-                                    "Issue delsta for %02x:%02x:%02x:%02x:%02x:%02x"),
+                    PELOGE(limLog(pMac, LOGE, FL("\nTODO:Ack for deauth frame "
+                                "is pending Issue delsta for "
+                                "%02x:%02x:%02x:%02x:%02x:%02x"),
                                 pMlmDeauthReq->peerMacAddr[0],
                                 pMlmDeauthReq->peerMacAddr[1],
                                 pMlmDeauthReq->peerMacAddr[2],
@@ -600,6 +602,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                 pMlmDeauthReq->peerMacAddr[4],
                                 pMlmDeauthReq->peerMacAddr[5]
                                 );)
+                    limProcessDeauthAckTimeout(pMac);
                 }
             }
 
@@ -641,7 +644,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                         if (pStaDs->valid)
                         {
-                             if (palEqualMemory( pMac->hHdd,(tANI_U8 *) &pStaDs->staAddr,
+                             if (vos_mem_compare((tANI_U8 *) &pStaDs->staAddr,
                                       (tANI_U8 *) &(pHdr->sa), (tANI_U8) (sizeof(tSirMacAddr))) )
                                   break;
                         }
@@ -722,10 +725,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                         PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %x peer "), pAuthNode);
                         limPrintMacAddr(pMac, pHdr->sa, LOG1);)
 
-                        palCopyMemory( pMac->hHdd,
-                                     (tANI_U8 *) pAuthNode->peerMacAddr,
-                                     pHdr->sa,
-                                     sizeof(tSirMacAddr));
+                        vos_mem_copy((tANI_U8 *) pAuthNode->peerMacAddr,
+                                      pHdr->sa,
+                                      sizeof(tSirMacAddr));
 
                         pAuthNode->mlmState =
                         eLIM_MLM_AUTHENTICATED_STATE;
@@ -752,8 +754,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                         /// Send Auth indication to SME
 
-                        palCopyMemory( pMac->hHdd,
-                                     (tANI_U8 *) mlmAuthInd.peerMacAddr,
+                        vos_mem_copy((tANI_U8 *) mlmAuthInd.peerMacAddr,
                                      (tANI_U8 *) pHdr->sa,
                                      sizeof(tSirMacAddr));
                         mlmAuthInd.authType = (tAniAuthType)
@@ -828,10 +829,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                 return;
                             }
 
-                            palCopyMemory( pMac->hHdd,
-                                         (tANI_U8 *) pAuthNode->peerMacAddr,
-                                         pHdr->sa,
-                                         sizeof(tSirMacAddr));
+                            vos_mem_copy((tANI_U8 *) pAuthNode->peerMacAddr,
+                                          pHdr->sa,
+                                          sizeof(tSirMacAddr));
 
                             pAuthNode->mlmState =
                             eLIM_MLM_WT_AUTH_FRAME3_STATE;
@@ -889,10 +889,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                             
                             pChallenge = pAuthNode->challengeText;
 
-                            palCopyMemory( pMac->hHdd,
-                                           pChallenge,
-                                          (tANI_U8 *) challengeTextArray,
-                                          sizeof(challengeTextArray));
+                            vos_mem_copy(pChallenge,
+                                        (tANI_U8 *) challengeTextArray,
+                                         sizeof(challengeTextArray));
 
                             /**
                              * Sending Authenticaton frame with challenge.
@@ -906,8 +905,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                             eSIR_MAC_SUCCESS_STATUS;
                             authFrame.type   = SIR_MAC_CHALLENGE_TEXT_EID;
                             authFrame.length = SIR_MAC_AUTH_CHALLENGE_LENGTH;
-                            palCopyMemory( pMac->hHdd,
-                                         authFrame.challengeText,
+                            vos_mem_copy(authFrame.challengeText,
                                          pAuthNode->challengeText,
                                          SIR_MAC_AUTH_CHALLENGE_LENGTH);
 
@@ -995,9 +993,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 return;
             }
 
-            if ( !palEqualMemory( pMac->hHdd,(tANI_U8 *) pHdr->sa,
-                          (tANI_U8 *) &pMac->lim.gpLimMlmAuthReq->peerMacAddr,
-                          sizeof(tSirMacAddr)) )
+            if ( !vos_mem_compare((tANI_U8 *) pHdr->sa,
+                                  (tANI_U8 *) &pMac->lim.gpLimMlmAuthReq->peerMacAddr,
+                                  sizeof(tSirMacAddr)) )
             {
                 /**
                  * Received Authentication frame from an entity
@@ -1072,8 +1070,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %x peer "), pAuthNode);)
                     PELOG1(limPrintMacAddr(pMac, pHdr->sa, LOG1);)
 
-                    palCopyMemory( pMac->hHdd,
-                                 (tANI_U8 *) pAuthNode->peerMacAddr,
+                    vos_mem_copy((tANI_U8 *) pAuthNode->peerMacAddr,
                                  pMac->lim.gpLimMlmAuthReq->peerMacAddr,
                                  sizeof(tSirMacAddr));
                     pAuthNode->fTimerStarted = 0;
@@ -1188,7 +1185,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                 ((tpSirMacAuthFrameBody) plainBody)->authStatusCode = eSIR_MAC_SUCCESS_STATUS;
                                 ((tpSirMacAuthFrameBody) plainBody)->type   = SIR_MAC_CHALLENGE_TEXT_EID;
                                 ((tpSirMacAuthFrameBody) plainBody)->length = SIR_MAC_AUTH_CHALLENGE_LENGTH;
-                                palCopyMemory( pMac->hHdd, (tANI_U8 *) ((tpSirMacAuthFrameBody) plainBody)->challengeText,
+                                vos_mem_copy((tANI_U8 *) ((tpSirMacAuthFrameBody) plainBody)->challengeText,
                                               pRxAuthFrameBody->challengeText,
                                               SIR_MAC_AUTH_CHALLENGE_LENGTH);
 
@@ -1228,7 +1225,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                             {
                                 tpSirKeys pKey;
                                 pKey =  &psessionEntry->WEPKeyMaterial[keyId].key[0];
-                                palCopyMemory( pMac->hHdd, defaultKey, pKey->key, pKey->keyLength);
+                                vos_mem_copy(defaultKey, pKey->key, pKey->keyLength);
                             }
                             else
                             if (wlan_cfgGetStr(pMac, (tANI_U16) (WNI_CFG_WEP_DEFAULT_KEY_1 + keyId),
@@ -1266,7 +1263,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                 ((tpSirMacAuthFrameBody) plainBody)->authStatusCode = eSIR_MAC_SUCCESS_STATUS;
                                 ((tpSirMacAuthFrameBody) plainBody)->type   = SIR_MAC_CHALLENGE_TEXT_EID;
                                 ((tpSirMacAuthFrameBody) plainBody)->length = SIR_MAC_AUTH_CHALLENGE_LENGTH;
-                                palCopyMemory( pMac->hHdd, (tANI_U8 *) ((tpSirMacAuthFrameBody) plainBody)->challengeText,
+                                vos_mem_copy((tANI_U8 *) ((tpSirMacAuthFrameBody) plainBody)->challengeText,
                                               pRxAuthFrameBody->challengeText,
                                               SIR_MAC_AUTH_CHALLENGE_LENGTH);
 
@@ -1447,9 +1444,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                  * Authentication frame3
                  */
 
-                if (palEqualMemory( pMac->hHdd,pRxAuthFrameBody->challengeText,
-                              pAuthNode->challengeText,
-                              SIR_MAC_AUTH_CHALLENGE_LENGTH))
+                if (vos_mem_compare(pRxAuthFrameBody->challengeText,
+                                    pAuthNode->challengeText,
+                                    SIR_MAC_AUTH_CHALLENGE_LENGTH))
                 {
                     /// Challenge match. STA is autheticated !
 
@@ -1474,10 +1471,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                          LIM_NO_WEP_IN_FC,psessionEntry);
 
                     /// Send Auth indication to SME
-                    palCopyMemory( pMac->hHdd,
-                                 (tANI_U8 *) mlmAuthInd.peerMacAddr,
+                    vos_mem_copy((tANI_U8 *) mlmAuthInd.peerMacAddr,
                                  (tANI_U8 *) pHdr->sa,
-                                 sizeof(tSirMacAddr));
+                                  sizeof(tSirMacAddr));
                     mlmAuthInd.authType = (tAniAuthType)
                                           pRxAuthFrameBody->authAlgoNumber;
                     mlmAuthInd.sessionId = psessionEntry->smeSessionId;
@@ -1554,9 +1550,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 return;
             }
 
-            if ( !palEqualMemory( pMac->hHdd,(tANI_U8 *) pHdr->sa,
-                          (tANI_U8 *) &pMac->lim.gpLimMlmAuthReq->peerMacAddr,
-                          sizeof(tSirMacAddr)) )
+            if ( !vos_mem_compare((tANI_U8 *) pHdr->sa,
+                                  (tANI_U8 *) &pMac->lim.gpLimMlmAuthReq->peerMacAddr,
+                                  sizeof(tSirMacAddr)) )
             {
                 /**
                  * Received Authentication frame from an entity
@@ -1611,8 +1607,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %x peer "), pAuthNode);
                 limPrintMacAddr(pMac, pHdr->sa, LOG1);)
 
-                palCopyMemory( pMac->hHdd,
-                             (tANI_U8 *) pAuthNode->peerMacAddr,
+                vos_mem_copy((tANI_U8 *) pAuthNode->peerMacAddr,
                              pMac->lim.gpLimMlmAuthReq->peerMacAddr,
                              sizeof(tSirMacAddr));
                 pAuthNode->fTimerStarted = 0;
@@ -1685,9 +1680,8 @@ tSirRetStatus limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd, vo
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
 
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-              FL("Auth Frame Received: BSSID %02x:%02x:%02x:%02x:%02x:%02x (Rssi %d)"),
-              pHdr->bssId[0], pHdr->bssId[1], pHdr->bssId[2],
-              pHdr->bssId[3], pHdr->bssId[4], pHdr->bssId[5],
+              FL("Auth Frame Received: BSSID " MAC_ADDRESS_STR " (RSSI %d)"),
+              MAC_ADDR_ARRAY(pHdr->bssId),
               (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pBd)));
 
     // Check for the operating channel and see what needs to be done next.
@@ -1718,8 +1712,8 @@ tSirRetStatus limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd, vo
 #endif
 
     // Check that its the same bssId we have for preAuth
-    if (!palEqualMemory( pMac->hHdd, pMac->ft.ftPEContext.pFTPreAuthReq->preAuthbssId,
-        pHdr->bssId, sizeof( tSirMacAddr )))
+    if (!vos_mem_compare(pMac->ft.ftPEContext.pFTPreAuthReq->preAuthbssId,
+                         pHdr->bssId, sizeof( tSirMacAddr )))
     {
         // In this case SME if indeed has triggered a 
         // pre auth it will time out.
