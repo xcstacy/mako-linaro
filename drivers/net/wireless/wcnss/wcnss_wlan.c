@@ -489,7 +489,20 @@ static int enable_wcnss_suspend_notify_set(const char *val,
 module_param_call(enable_wcnss_suspend_notify, enable_wcnss_suspend_notify_set,
 		param_get_int, &enable_wcnss_suspend_notify, S_IRUGO | S_IWUSR);
 
-static void wcnss_suspend_notify(void)
+int wcnss_wlan_iris_xo_mode(void)
+{
+	if (!penv || !penv->pdev || !penv->smd_channel_ready)
+		return -ENODEV;
+
+	if (penv->wlan_config.use_48mhz_xo)
+		return WCNSS_XO_48MHZ;
+	else
+		return WCNSS_XO_19MHZ;
+}
+EXPORT_SYMBOL(wcnss_wlan_iris_xo_mode);
+
+
+void wcnss_suspend_notify(void)
 {
 	void __iomem *pmu_spare_reg;
 	u32 reg = 0;
@@ -505,7 +518,7 @@ static void wcnss_suspend_notify(void)
 	spin_unlock_irqrestore(&reg_spinlock, flags);
 }
 
-static void wcnss_resume_notify(void)
+void wcnss_resume_notify(void)
 {
 	void __iomem *pmu_spare_reg;
 	u32 reg = 0;
