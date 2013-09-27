@@ -2427,6 +2427,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                 }
             }
             pHddStaCtx->ft_carrier_on = TRUE;
+            pHddStaCtx->hdd_ReassocScenario = VOS_TRUE;
             break;
 #endif
 
