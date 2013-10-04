@@ -109,15 +109,12 @@ static void __cpuinit decide_hotplug_func(struct work_struct *work)
     int cpu;
     int cpu_boost;
 
-	if (interactive_selected)
-	{
 		if (is_touching && num_online_cpus() < stats.cores_on_touch)
 		{
 			for (cpu_boost = 2; cpu_boost < stats.cores_on_touch; cpu_boost++)
             	if (cpu_is_offline(cpu_boost)) 
             	    cpu_up(cpu_boost);
 		}
-	}
 
     for_each_online_cpu(cpu) 
     {
