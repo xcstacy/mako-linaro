@@ -55,6 +55,15 @@ static int is_pressure;
 static int is_width_major;
 static int is_width_minor;
 
+/* extern vars */
+bool is_touching;
+u64 freq_boosted_time;
+
+bool suspended = false;
+
+bool doubletap_to_wake = false;
+module_param(doubletap_to_wake, bool, 0664);
+
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)               \
 	struct lge_touch_attribute lge_touch_attr_##_name =       \
 	__ATTR(_name, _mode, _show, _store)
@@ -803,6 +812,22 @@ static void touch_input_report(struct lge_touch_data *ts)
 	input_sync(ts->input_dev);
 }
 
+struct double_tap_to_wake {
+	unsigned long touch_time;
+	unsigned long window_time;
+	unsigned long sample_time_ms;
+	unsigned int touches;
+	struct input_dev *input_device;
+};
+
+static struct double_tap_to_wake wake;
+
+void wake_up_display(struct input_dev *input_dev)
+{
+	wake.input_device = input_dev;
+	return;
+}
+
 /*
  * Touch work function
  */
@@ -819,6 +844,38 @@ static void touch_work_func(struct work_struct *work)
 		is_touching = true;
 		freq_boosted_time = ktime_to_ms(ktime_get());
 	}
+
+	if (suspended && doubletap_to_wake)
+	{
+		if (!(wake.touch_time + 2000 >= ktime_to_ms(ktime_get())))
+		{
+			wake.touch_time = ktime_to_ms(ktime_get());
+			wake.touches = 0;
+		}
+			
+		if (!time_is_after_jiffies(
+			wake.window_time + msecs_to_jiffies(wake.sample_time_ms)))
+		{
+			/*
+			 * Don't count as touch when we release the touch input
+			 */
+			if (ts->ts_data.curr_data[0].state != ABS_RELEASE)
+				++wake.touches;
+
+			if (wake.touches == 2)
+			{
+				input_event(wake.input_device, EV_KEY, KEY_POWER, 1);
+				input_event(wake.input_device, EV_SYN, 0, 0);
+				msleep(100);
+				input_event(wake.input_device, EV_KEY, KEY_POWER, 0);
+				input_event(wake.input_device, EV_SYN, 0, 0);
+
+				input_sync(wake.input_device);	
+			}
+		}
+
+		wake.window_time = jiffies;
+	} 
 
 	atomic_dec(&ts->next_work);
 	ts->ts_data.total_num = 0;
@@ -1864,6 +1921,11 @@ static int touch_probe(struct i2c_client *client,
 	int ret = 0;
 	int one_sec = 0;
 
+	wake.touch_time = 0;
+	wake.window_time = jiffies;
+	wake.sample_time_ms = 100;
+	wake.touches = 0;
+
 	if (unlikely(touch_debug_mask & DEBUG_TRACE))
 		TOUCH_DEBUG_MSG("\n");
 
@@ -2145,8 +2207,7 @@ static void touch_early_suspend(struct early_suspend *h)
 	struct lge_touch_data *ts =
 			container_of(h, struct lge_touch_data, early_suspend);
 
-	if (unlikely(touch_debug_mask & DEBUG_TRACE))
-		TOUCH_DEBUG_MSG("\n");
+	suspended = true;
 
 	ts->curr_resume_state = 0;
 
@@ -2155,19 +2216,27 @@ static void touch_early_suspend(struct early_suspend *h)
 		return;
 	}
 
-	if (ts->pdata->role->operation_mode == INTERRUPT_MODE)
-		disable_irq(ts->client->irq);
-	else
-		hrtimer_cancel(&ts->timer);
+	if (doubletap_to_wake)
+	{
+		enable_irq_wake(ts->client->irq);
+	}
+	else 
+	{
+		if (ts->pdata->role->operation_mode == INTERRUPT_MODE)
+                disable_irq(ts->client->irq);
+        else
+                hrtimer_cancel(&ts->timer);
 
-	cancel_work_sync(&ts->work);
-	cancel_delayed_work_sync(&ts->work_init);
-	if (ts->pdata->role->key_type == TOUCH_HARD_KEY)
-		cancel_delayed_work_sync(&ts->work_touch_lock);
+        cancel_work_sync(&ts->work);
+        cancel_delayed_work_sync(&ts->work_init);
+        if (ts->pdata->role->key_type == TOUCH_HARD_KEY)
+                cancel_delayed_work_sync(&ts->work_touch_lock);
 
-	release_all_ts_event(ts);
+        release_all_ts_event(ts);
 
-	touch_power_cntl(ts, ts->pdata->role->suspend_pwr);
+        touch_power_cntl(ts, ts->pdata->role->suspend_pwr);
+
+	}
 }
 
 static void touch_late_resume(struct early_suspend *h)
@@ -2175,8 +2244,7 @@ static void touch_late_resume(struct early_suspend *h)
 	struct lge_touch_data *ts =
 			container_of(h, struct lge_touch_data, early_suspend);
 
-	if (unlikely(touch_debug_mask & DEBUG_TRACE))
-		TOUCH_DEBUG_MSG("\n");
+	suspended = false;
 
 	ts->curr_resume_state = 1;
 
@@ -2185,20 +2253,27 @@ static void touch_late_resume(struct early_suspend *h)
 		return;
 	}
 
-	touch_power_cntl(ts, ts->pdata->role->resume_pwr);
-
-	if (ts->pdata->role->operation_mode == INTERRUPT_MODE)
-		enable_irq(ts->client->irq);
+	if (doubletap_to_wake)
+	{
+		disable_irq_wake(ts->client->irq);
+	}
 	else
-		hrtimer_start(&ts->timer,
-			ktime_set(0, ts->pdata->role->report_period),
-					HRTIMER_MODE_REL);
+	{
+		touch_power_cntl(ts, ts->pdata->role->resume_pwr);
 
-	if (ts->pdata->role->resume_pwr == POWER_ON)
-		queue_delayed_work(touch_wq, &ts->work_init,
-			msecs_to_jiffies(ts->pdata->role->booting_delay));
-	else
-		queue_delayed_work(touch_wq, &ts->work_init, 0);
+        if (ts->pdata->role->operation_mode == INTERRUPT_MODE)
+                enable_irq(ts->client->irq);
+        else
+                hrtimer_start(&ts->timer,
+                        ktime_set(0, ts->pdata->role->report_period),
+                                        HRTIMER_MODE_REL);
+
+        if (ts->pdata->role->resume_pwr == POWER_ON)
+                queue_delayed_work(touch_wq, &ts->work_init,
+                        msecs_to_jiffies(ts->pdata->role->booting_delay));
+        else
+                queue_delayed_work(touch_wq, &ts->work_init, 0);
+	}
 }
 #endif
 
@@ -2253,7 +2328,7 @@ int touch_driver_register(struct touch_device_driver* driver)
 
 	touch_device_func = driver;
 
-	touch_wq = create_workqueue("touch_wq");
+	touch_wq = alloc_workqueue("touch_wq", 0, 1);
 	if (!touch_wq) {
 		TOUCH_ERR_MSG("CANNOT create new workqueue\n");
 		ret = -ENOMEM;
