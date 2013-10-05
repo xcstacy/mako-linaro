@@ -50,7 +50,6 @@ struct cpufreq_interactive_cpuinfo {
 	unsigned int target_freq;
 	unsigned int floor_freq;
 	u64 floor_validate_time;
-	u64 hispeed_validate_time;
 	int governor_enabled;
 	unsigned int prev_iowait_time;
 };
@@ -67,66 +66,76 @@ static cpumask_t down_cpumask;
 static spinlock_t down_cpumask_lock;
 static struct mutex set_speed_lock;
 
-/* Hi speed to bump to from lo speed when load burst (default max) */
-#define DEFAULT_HISPEED_FREQ 1026000
-static u64 hispeed_freq;
+#define GPU_STATE 2
+#define ACTIVE_CORES 4
+#define TUNABLES 3
 
-/* Bump the CPU to hispeed_freq if its load is >= 50% */
-#define HISPEED_FREQ_LOAD 50
+/* up_threshold, timer_rate, min_sample_time */
+static unsigned int interactive_val[GPU_STATE][ACTIVE_CORES][TUNABLES] =
+{{	
+	/* gpu idle */
+	{100, 40000, 10000},
+	{100, 40000, 20000},
+	{100, 40000, 30000},
+	{100, 40000, 40000} 
+	},{
+	/* gpu busy */
+	{90, 20000, 40000},
+	{90, 20000, 40000},
+	{95, 20000, 60000},
+	{95, 20000, 80000} 
+}};
 
 /* If the CPU load is >= 85% it goes to max frequency */
 #define DEFAULT_UP_THRESHOLD 85
-static unsigned long up_threshold;
+static unsigned int up_threshold;
 
 /*
  * The minimum amount of time to spend at a frequency before we can ramp down.
  */
 #define DEFAULT_MIN_SAMPLE_TIME (80 * USEC_PER_MSEC)
-static unsigned long min_sample_time;
+static unsigned int min_sample_time;
 
 /*
  * The sample rate of the timer used to increase frequency
  */
 #define DEFAULT_TIMER_RATE (35 * USEC_PER_MSEC)
-static unsigned long timer_rate;
-
-/*
- * Wait this long before raising speed above hispeed, by default a single
- * timer interval.
- */
-#define DEFAULT_ABOVE_HISPEED_DELAY DEFAULT_TIMER_RATE
-static unsigned long above_hispeed_delay_val;
+static unsigned int timer_rate;
 
 /*
  * The CPU will be boosted to this frequency when the screen is
  * touched. input_boost needs to be enabled.
  */
-#define DEFAULT_INPUT_BOOST_FREQ 1512000
+#define DEFAULT_INPUT_BOOST_FREQ 1026000
 static int input_boost_freq;
 
 /*
  * Duration of the touch boost
  */
-#define DEFAULT_INPUT_BOOST_FREQ_DURATION 1000
+#define DEFAULT_INPUT_BOOST_FREQ_DURATION 1500
 static int input_boost_freq_duration;
 
 /*
  * dynamic tunables scaling flag linked to the
  * hotplug driver
  */
-static bool dynamic_scaling = true;
+bool dynamic_scaling = true;
 
 /*
  * Helper to get the maximum set frequency which takes into consideration if the
  * device is being thermal throttled or not to ensure that the loads are
  * properly calculated
  */
-unsigned int get_cur_max(unsigned int cpu);
-
-bool interactive_selected = false;
+ 
+unsigned int get_cur_max(unsigned int cpu); 
+bool get_core_boost(unsigned int cpu);
 
 static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
                                         unsigned int event);
+
+unsigned int scale_min_sample_time(void);
+unsigned int scale_timer_rate(void);
+unsigned int scale_up_threshold(void);
 
 #ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 static
@@ -189,6 +198,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 	unsigned int delta_idle;
 	unsigned int delta_time;
 	int cpu_load;
+	int load_since_change;
 	u64 time_in_idle;
 	u64 idle_exit_time;
 	struct cpufreq_interactive_cpuinfo *pcpu =
@@ -199,7 +209,19 @@ static void cpufreq_interactive_timer(unsigned long data)
 	unsigned long flags;
 	unsigned int cur_max;
 	unsigned int max_freq;
-        
+    
+    /*static unsigned long time_stamp;
+    if (time_stamp < ktime_to_ms(ktime_get()) - 500)
+    {
+    	pr_info("up_threshold, timer_rate, min_sample_time");
+    	pr_info("%d\t%d\t%d", scale_up_threshold(),scale_timer_rate(),
+    		scale_min_sample_time());
+    	pr_info("-----------------------------------------");
+    	time_stamp = ktime_to_ms(ktime_get());
+    }*/
+    
+	smp_rmb();
+    
 	if (!pcpu->governor_enabled)
 		return;
     
@@ -218,6 +240,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 	time_in_idle = pcpu->time_in_idle;
 	idle_exit_time = pcpu->idle_exit_time;
 	now_idle = get_cpu_idle_time(data, &pcpu->timer_run_time);
+	smp_wmb();
     
 	/* If we raced with cancelling a timer, skip. */
 	if (!idle_exit_time)
@@ -232,18 +255,34 @@ static void cpufreq_interactive_timer(unsigned long data)
     cpu_load = delta_idle > delta_time ? 
                          0 : 100 * (delta_time - delta_idle) / delta_time;
     
+	delta_idle = (unsigned int)(now_idle - pcpu->target_set_time_in_idle);
+	delta_time = (unsigned int)(pcpu->timer_run_time -
+                                pcpu->target_set_time);
+    
+	if ((delta_time == 0) || (delta_idle > delta_time))
+		load_since_change = 0;
+	else
+		load_since_change =
+        100 * (delta_time - delta_idle) / delta_time;
+    
+	/*
+	 * Choose greater of short-term load (since last idle timer
+	 * started or timer function re-armed itself) or long-term load
+	 * (since last frequency change).
+	 */
+	if (load_since_change > cpu_load)
+		cpu_load = load_since_change;
+	
+	/* checking for throttling */
 	cur_max = get_cur_max(pcpu->policy->cpu);
 
 	max_freq = cur_max >= pcpu->policy->max ? pcpu->policy->max : cur_max;
 
 	/* Lets divide by up_threshold so that the device uses more freqs */
-	new_freq = max_freq * cpu_load / up_threshold;
+	new_freq = max_freq * cpu_load / scale_up_threshold();
 
-	if (cpu_load >= up_threshold)
+	if (cpu_load >= scale_up_threshold())
 		new_freq = max_freq;
-    
-	if (new_freq <= hispeed_freq)
-		pcpu->hispeed_validate_time = pcpu->timer_run_time;
     
 	if (cpufreq_frequency_table_target(pcpu->policy, pcpu->freq_table,
                                        new_freq, CPUFREQ_RELATION_H,
@@ -259,13 +298,13 @@ static void cpufreq_interactive_timer(unsigned long data)
 	 * we want cpu0 to be the only core blocked for freq changes while
      	 * we are touching the screen for UI interaction 
 	 */
-	if (is_touching && pcpu->policy->cpu < 2)
+	if (is_touching && get_core_boost(pcpu->policy->cpu))
 	{
 		if (ktime_to_ms(ktime_get()) - 
 				freq_boosted_time >= input_boost_freq_duration)
 			is_touching = false;
-		else if (new_freq < input_boost_freq || 
-					pcpu->policy->cur < input_boost_freq)
+		else if ((new_freq < input_boost_freq || 
+				pcpu->policy->cur < input_boost_freq) && !gpu_idle)
 			new_freq = input_boost_freq;
 	}
     
@@ -275,7 +314,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 	 */
 	if (new_freq < pcpu->floor_freq) {
 		if (pcpu->timer_run_time - pcpu->floor_validate_time
-		    < min_sample_time) {
+		    < scale_min_sample_time()) {
 			goto rearm;
 		}
 	}
@@ -314,7 +353,9 @@ rearm:
 		 * Else cancel the timer if that CPU goes idle.  We don't
 		 * need to re-evaluate speed until the next idle exit.
 		 */
-		if (pcpu->target_freq == pcpu->policy->min) {            
+		if (pcpu->target_freq == pcpu->policy->min) {
+			smp_rmb();
+            
 			if (pcpu->idling)
 				return;
             
@@ -324,7 +365,7 @@ rearm:
 		pcpu->time_in_idle = get_cpu_idle_time(
                                                data, &pcpu->idle_exit_time);
 		mod_timer_pinned(&pcpu->cpu_timer,
-                         jiffies + usecs_to_jiffies(timer_rate));
+                         jiffies + usecs_to_jiffies(scale_timer_rate()));
 	}
     
 	return;
@@ -346,6 +387,7 @@ static void cpufreq_interactive_idle_start(void)
 	}
     
 	pcpu->idling = 1;
+	smp_wmb();
 	pending = timer_pending(&pcpu->cpu_timer);
     
 	if (pcpu->target_freq != pcpu->policy->min) {
@@ -363,7 +405,7 @@ static void cpufreq_interactive_idle_start(void)
                                                    smp_processor_id(), &pcpu->idle_exit_time);
 			pcpu->timer_idlecancel = 0;
 			mod_timer_pinned(&pcpu->cpu_timer,
-                             jiffies + usecs_to_jiffies(timer_rate));
+                             jiffies + usecs_to_jiffies(scale_timer_rate()));
 		}
 #endif
 	} else {
@@ -393,6 +435,7 @@ static void cpufreq_interactive_idle_end(void)
     &per_cpu(cpuinfo, smp_processor_id());
     
 	pcpu->idling = 0;
+	smp_wmb();
     
 	/*
 	 * Arm the timer for 1-2 ticks later if not already, and if the timer
@@ -413,7 +456,7 @@ static void cpufreq_interactive_idle_end(void)
                           &pcpu->idle_exit_time);
 		pcpu->timer_idlecancel = 0;
 		mod_timer_pinned(&pcpu->cpu_timer,
-                         jiffies + usecs_to_jiffies(timer_rate));
+                         jiffies + usecs_to_jiffies(scale_timer_rate()));
 	}
     
 }
@@ -449,6 +492,7 @@ static int cpufreq_interactive_up_task(void *data)
 			unsigned int max_freq = 0;
             
 			pcpu = &per_cpu(cpuinfo, cpu);
+			smp_rmb();
             
 			if (!pcpu->governor_enabled)
 				continue;
@@ -491,6 +535,7 @@ static void cpufreq_interactive_freq_down(struct work_struct *work)
 		unsigned int max_freq = 0;
         
 		pcpu = &per_cpu(cpuinfo, cpu);
+		smp_rmb();
         
 		if (!pcpu->governor_enabled)
 			continue;
@@ -513,33 +558,10 @@ static void cpufreq_interactive_freq_down(struct work_struct *work)
 	}
 }
 
-static ssize_t show_hispeed_freq(struct kobject *kobj,
-                                 struct attribute *attr, char *buf)
-{
-	return sprintf(buf, "%llu\n", hispeed_freq);
-}
-
-static ssize_t store_hispeed_freq(struct kobject *kobj,
-                                  struct attribute *attr, const char *buf,
-                                  size_t count)
-{
-	int ret;
-	u64 val;
-    
-	ret = strict_strtoull(buf, 0, &val);
-	if (ret < 0)
-		return ret;
-	hispeed_freq = val;
-	return count;
-}
-
-static struct global_attr hispeed_freq_attr = __ATTR(hispeed_freq, 0644,
-                                                     show_hispeed_freq, store_hispeed_freq);
-
 static ssize_t show_up_threshold(struct kobject *kobj,
                                  struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", up_threshold);
+	return sprintf(buf, "%d\n", up_threshold);
 }
 
 static ssize_t store_up_threshold(struct kobject *kobj,
@@ -561,7 +583,7 @@ static struct global_attr up_threshold_attr = __ATTR(up_threshold, 0644,
 static ssize_t show_min_sample_time(struct kobject *kobj,
                                     struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", min_sample_time);
+	return sprintf(buf, "%d\n", min_sample_time);
 }
 
 static ssize_t store_min_sample_time(struct kobject *kobj,
@@ -580,32 +602,10 @@ static ssize_t store_min_sample_time(struct kobject *kobj,
 static struct global_attr min_sample_time_attr = __ATTR(min_sample_time, 0644,
                                                         show_min_sample_time, store_min_sample_time);
 
-static ssize_t show_above_hispeed_delay(struct kobject *kobj,
-                                        struct attribute *attr, char *buf)
-{
-	return sprintf(buf, "%lu\n", above_hispeed_delay_val);
-}
-
-static ssize_t store_above_hispeed_delay(struct kobject *kobj,
-                                         struct attribute *attr,
-                                         const char *buf, size_t count)
-{
-	int ret;
-	unsigned long val;
-    
-	ret = strict_strtoul(buf, 0, &val);
-	if (ret < 0)
-		return ret;
-	above_hispeed_delay_val = val;
-	return count;
-}
-
-define_one_global_rw(above_hispeed_delay);
-
 static ssize_t show_timer_rate(struct kobject *kobj,
                                struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", timer_rate);
+	return sprintf(buf, "%d\n", timer_rate);
 }
 
 static ssize_t store_timer_rate(struct kobject *kobj,
@@ -699,8 +699,6 @@ static struct global_attr dynamic_scaling_attr = __ATTR(dynamic_scaling, 0644,
                                                         show_dynamic_scaling, store_dynamic_scaling);
 
 static struct attribute *interactive_attributes[] = {
-	&hispeed_freq_attr.attr,
-	&above_hispeed_delay.attr,
 	&min_sample_time_attr.attr,
 	&timer_rate_attr.attr,
 	&input_boost_freq_attr.attr,
@@ -715,43 +713,35 @@ static struct attribute_group interactive_attr_group = {
 	.name = "interactive",
 };
 
-void scale_above_hispeed_delay(unsigned int new_above_hispeed_delay)
+/* gpu_state, online_cpus, tunable */
+
+unsigned int scale_min_sample_time(void)
 {
-	if (dynamic_scaling &&
-		above_hispeed_delay_val != new_above_hispeed_delay)
-		above_hispeed_delay_val = new_above_hispeed_delay;
+	if (dynamic_scaling)
+		return interactive_val[(gpu_idle)?0:1][num_online_cpus()-1][2];
+	else
+		return min_sample_time;
 }
 
-void scale_timer_rate(unsigned int new_timer_rate)
+unsigned int scale_timer_rate(void)
 {
-	if (dynamic_scaling && timer_rate != new_timer_rate)
-		timer_rate = new_timer_rate;
+	if (dynamic_scaling)
+		return interactive_val[(gpu_idle)?0:1][num_online_cpus()-1][1];
+	else
+		return timer_rate;
 }
 
-void scale_min_sample_time(unsigned int new_min_sample_time)
+unsigned int scale_up_threshold(void)
 {
-	if (dynamic_scaling && min_sample_time != new_min_sample_time)
-		min_sample_time = new_min_sample_time;
+	if (dynamic_scaling)
+		return interactive_val[(gpu_idle)?0:1][num_online_cpus()-1][0];
+	else
+		return up_threshold;
 }
 
 unsigned int get_input_boost_freq()
 {
 	return input_boost_freq;
-}
-
-unsigned int get_min_sample_time()
-{
-	return min_sample_time;
-}
-
-bool get_dynamic_scaling()
-{
-	return dynamic_scaling;
-}
-
-unsigned int get_hispeed_freq()
-{
-	return hispeed_freq;
 }
 
 static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
@@ -778,12 +768,11 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
                 pcpu->floor_freq = pcpu->target_freq;
                 pcpu->floor_validate_time =
 				pcpu->target_set_time;
-                pcpu->hispeed_validate_time =
-				pcpu->target_set_time;
                 pcpu->governor_enabled = 1;
                 pcpu->idle_exit_time = pcpu->target_set_time;
                 mod_timer_pinned(&pcpu->cpu_timer,
-                                 jiffies + usecs_to_jiffies(timer_rate));
+                                 jiffies + usecs_to_jiffies(scale_timer_rate()));
+                smp_wmb();
             }
             
             /*
@@ -793,8 +782,6 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
             if (atomic_inc_return(&active_count) > 1)
                 return 0;
             
-			interactive_selected = true;
-
             rc = sysfs_create_group(cpufreq_global_kobject,
                                     &interactive_attr_group);
             if (rc)
@@ -806,6 +793,7 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
             for_each_cpu(j, policy->cpus) {
                 pcpu = &per_cpu(cpuinfo, j);
                 pcpu->governor_enabled = 0;
+                smp_wmb();
                 del_timer_sync(&pcpu->cpu_timer);
                 
                 /*
@@ -821,8 +809,6 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
             if (atomic_dec_return(&active_count) > 0)
                 return 0;
             
-			interactive_selected = false;
-
             sysfs_remove_group(cpufreq_global_kobject,
                                &interactive_attr_group);
             
@@ -868,9 +854,7 @@ static int __init cpufreq_interactive_init(void)
     
 	up_threshold = DEFAULT_UP_THRESHOLD;
 	min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
-	above_hispeed_delay_val = DEFAULT_ABOVE_HISPEED_DELAY;
 	timer_rate = DEFAULT_TIMER_RATE;
-	hispeed_freq = DEFAULT_HISPEED_FREQ;
 	input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
 	input_boost_freq_duration = DEFAULT_INPUT_BOOST_FREQ_DURATION;
     

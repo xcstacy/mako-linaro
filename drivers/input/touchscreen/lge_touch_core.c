@@ -31,6 +31,9 @@
 #include <linux/version.h>
 #include <linux/atomic.h>
 #include <linux/gpio.h>
+#include <linux/cpufreq.h>
+#include <linux/hotplug.h>
+#include <linux/cpu.h>
 
 #include <linux/input/lge_touch_core.h>
 
@@ -44,13 +47,6 @@ struct lge_touch_attribute {
 				const char *buf, size_t count);
 };
 
-struct touch_control_attribute {
-	struct attribute attr;
-	ssize_t (*show)(struct lge_touch_data *ts, char *buf);
-	ssize_t (*store)(struct lge_touch_data *ts,
-				const char *buf, size_t count);
-};
-
 static int is_pressure;
 static int is_width_major;
 static int is_width_minor;
@@ -58,6 +54,9 @@ static int is_width_minor;
 /* extern vars */
 bool is_touching;
 u64 freq_boosted_time;
+unsigned long time_stamp;
+
+void touchboost_func(void);
 
 bool suspended = false;
 
@@ -68,21 +67,17 @@ module_param(doubletap_to_wake, bool, 0664);
 	struct lge_touch_attribute lge_touch_attr_##_name =       \
 	__ATTR(_name, _mode, _show, _store)
 
-#define TOUCH_CONTROL_ATTR(_name, _mode, _show, _store)               \
-	struct touch_control_attribute touch_control_attr_##_name =       \
-	__ATTR(_name, _mode, _show, _store)
-
 /* Debug mask value
  * usage: echo [debug_mask] > /sys/module/lge_touch_core/parameters/debug_mask
  */
-u32 touch_debug_mask = 0;
+u32 touch_debug_mask = DEBUG_BASE_INFO;
 module_param_named(debug_mask, touch_debug_mask, int, S_IRUGO|S_IWUSR|S_IWGRP);
 
 #ifdef LGE_TOUCH_TIME_DEBUG
 /* Debug mask value
  * usage: echo [debug_mask] > /sys/module/lge_touch_core/parameters/time_debug_mask
  */
-u32 touch_time_debug_mask = 0;
+u32 touch_time_debug_mask = DEBUG_TIME_PROFILE_NONE;
 module_param_named(time_debug_mask, touch_time_debug_mask, int, S_IRUGO|S_IWUSR|S_IWGRP);
 
 #define get_time_interval(a,b) ((a)>=(b) ? (a)-(b) : 1000000+(a)-(b))
@@ -831,7 +826,7 @@ void wake_up_display(struct input_dev *input_dev)
 /*
  * Touch work function
  */
-static void touch_work_func(struct work_struct *work)
+static void __cpuinit touch_work_func(struct work_struct *work)
 {
 	struct lge_touch_data *ts =
 			container_of(work, struct lge_touch_data, work);
@@ -839,6 +834,15 @@ static void touch_work_func(struct work_struct *work)
 	int next_work = 0;
 	int ret;
 
+	if (!is_touching)
+	{
+		gpu_idle = false;
+		touchboost_func();
+	}
+
+    is_touching = true;
+	freq_boosted_time = time_stamp = ktime_to_ms(ktime_get());
+    
 	if (suspended && doubletap_to_wake)
 	{
 		if (!(wake.touch_time + 2000 >= ktime_to_ms(ktime_get())))
@@ -1304,8 +1308,6 @@ static ssize_t show_platform_data(struct lge_touch_data *ts, char *buf)
 			pdata->role->show_touches);
 	ret += sprintf(buf+ret, "\tpointer_location      = %d\n",
 			pdata->role->pointer_location);
-	ret += sprintf(buf+ret, "\taccuracy_filter_enable = %d\n",
-			pdata->role->accuracy_filter_enable);
 	ret += sprintf(buf+ret, "pwr:\n");
 	ret += sprintf(buf+ret, "\tuse_regulator         = %d\n",
 			pdata->pwr->use_regulator);
@@ -1628,120 +1630,6 @@ static ssize_t show_charger(struct lge_touch_data *ts, char *buf)
 	return sprintf(buf, "%d\n", ts->charger_type);
 }
 
-/*
- * Lets tweak the accuracy filter:
- *
- *  @ignore_pressure_gap;
- *  @touch_max_count;
- *  @delta_max;
- *  @max_pressure;
- *  @direction_count;
- *  @time_to_max_pressure;
- *
- */
-
-//ignore_pressure_gap
-static ssize_t store_ignore_pressure_gap(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	unsigned int val;
-
-	sscanf(buf, "%d", &val);
-
-	ts->accuracy_filter.ignore_pressure_gap = val;
-
-	return count;
-}
-
-static ssize_t show_ignore_pressure_gap(struct lge_touch_data *ts, char *buf)
-{
-	return sprintf(buf, "%d\n", ts->accuracy_filter.ignore_pressure_gap);
-}
-
-//touch_max_count
-static ssize_t store_touch_max_count(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	unsigned int val;
-
-	sscanf(buf, "%d", &val);
-
-	ts->accuracy_filter.touch_max_count = val;
-
-	return count;
-}
-
-static ssize_t show_touch_max_count(struct lge_touch_data *ts, char *buf)
-{
-	return sprintf(buf, "%d\n", ts->accuracy_filter.touch_max_count);
-}
-
-//delta_max
-static ssize_t store_delta_max(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	unsigned int val;
-
-	sscanf(buf, "%d", &val);
-
-	ts->accuracy_filter.delta_max = val;
-
-	return count;
-}
-
-static ssize_t show_delta_max(struct lge_touch_data *ts, char *buf)
-{
-	return sprintf(buf, "%d\n", ts->accuracy_filter.delta_max);
-}
-
-//max_pressure
-static ssize_t store_max_pressure(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	unsigned int val;
-
-	sscanf(buf, "%d", &val);
-
-	ts->accuracy_filter.max_pressure = val;
-
-	return count;
-}
-
-static ssize_t show_max_pressure(struct lge_touch_data *ts, char *buf)
-{
-	return sprintf(buf, "%d\n", ts->accuracy_filter.max_pressure);
-}
-
-//direction_count
-static ssize_t store_direction_count(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	unsigned int val;
-
-	sscanf(buf, "%d", &val);
-
-	ts->accuracy_filter.direction_count = val;
-
-	return count;
-}
-
-static ssize_t show_direction_count(struct lge_touch_data *ts, char *buf)
-{
-	return sprintf(buf, "%d\n", ts->accuracy_filter.direction_count);
-}
-
-//time_to_max_pressure
-static ssize_t store_time_to_max_pressure(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	unsigned int val;
-
-	sscanf(buf, "%d", &val);
-
-	ts->accuracy_filter.time_to_max_pressure = val;
-
-	return count;
-}
-
-static ssize_t show_time_to_max_pressure(struct lge_touch_data *ts, char *buf)
-{
-	return sprintf(buf, "%d\n", ts->accuracy_filter.time_to_max_pressure);
-}
-
 static LGE_TOUCH_ATTR(platform_data, S_IRUGO | S_IWUSR, show_platform_data, NULL);
 static LGE_TOUCH_ATTR(firmware, S_IRUGO | S_IWUSR, show_fw_info, store_fw_upgrade);
 static LGE_TOUCH_ATTR(fw_ver, S_IRUGO | S_IWUSR, show_fw_ver, NULL);
@@ -1754,13 +1642,6 @@ static LGE_TOUCH_ATTR(pointer_location, S_IRUGO | S_IWUSR, show_pointer_location
 					store_pointer_location);
 static LGE_TOUCH_ATTR(charger, S_IRUGO | S_IWUSR, show_charger, NULL);
 
-static LGE_TOUCH_ATTR(ignore_pressure_gap, S_IRUGO | S_IWUSR, show_ignore_pressure_gap, store_ignore_pressure_gap);
-static LGE_TOUCH_ATTR(touch_max_count, S_IRUGO | S_IWUSR, show_touch_max_count, store_touch_max_count);
-static LGE_TOUCH_ATTR(delta_max, S_IRUGO | S_IWUSR, show_delta_max, store_delta_max);
-static LGE_TOUCH_ATTR(max_pressure, S_IRUGO | S_IWUSR, show_max_pressure, store_max_pressure);
-static LGE_TOUCH_ATTR(direction_count, S_IRUGO | S_IWUSR, show_direction_count, store_direction_count);
-static LGE_TOUCH_ATTR(time_to_max_pressure, S_IRUGO | S_IWUSR, show_time_to_max_pressure, store_time_to_max_pressure);
-
 static struct attribute *lge_touch_attribute_list[] = {
 	&lge_touch_attr_platform_data.attr,
 	&lge_touch_attr_firmware.attr,
@@ -1772,12 +1653,6 @@ static struct attribute *lge_touch_attribute_list[] = {
 	&lge_touch_attr_show_touches.attr,
 	&lge_touch_attr_pointer_location.attr,
 	&lge_touch_attr_charger.attr,
-	&lge_touch_attr_ignore_pressure_gap.attr,
-	&lge_touch_attr_touch_max_count.attr,
-	&lge_touch_attr_delta_max.attr,
-	&lge_touch_attr_max_pressure.attr,
-	&lge_touch_attr_direction_count.attr,
-	&lge_touch_attr_time_to_max_pressure.attr,
 	NULL,
 };
 
@@ -2094,9 +1969,9 @@ static int touch_probe(struct i2c_client *client,
 		ts->accuracy_filter.ignore_pressure_gap = 5;
 		ts->accuracy_filter.delta_max = 100;
 		ts->accuracy_filter.max_pressure = 255;
-		ts->accuracy_filter.time_to_max_pressure = one_sec / 25;
-		ts->accuracy_filter.direction_count = one_sec / 8;
-		ts->accuracy_filter.touch_max_count = one_sec / 3;
+		ts->accuracy_filter.time_to_max_pressure = one_sec / 20;
+		ts->accuracy_filter.direction_count = one_sec / 6;
+		ts->accuracy_filter.touch_max_count = one_sec / 2;
 	}
 
 #if defined(CONFIG_HAS_EARLYSUSPEND)
