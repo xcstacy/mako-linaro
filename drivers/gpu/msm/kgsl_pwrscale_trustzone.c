@@ -49,7 +49,7 @@ spinlock_t tz_lock;
 #define TZ_RESET_ID		0x3
 #define TZ_UPDATE_ID		0x4
 
-#if 0
+
 #ifdef CONFIG_MSM_SCM
 /* Trap into the TrustZone, and call funcs there. */
 static int __secure_tz_entry(u32 cmd, u32 val, u32 id)
@@ -67,7 +67,7 @@ static int __secure_tz_entry(u32 cmd, u32 val, u32 id)
 	return 0;
 }
 #endif /* CONFIG_MSM_SCM */
-#endif
+
 
 unsigned long window_time = 0, window_time1 = 0;
 unsigned long sample_time_ms = 80;
@@ -229,11 +229,7 @@ static void __cpuinit tz_idle(struct kgsl_device *device, struct kgsl_pwrscale *
 		return;
 
 	gpu_stats.total_time_ms = jiffies_to_msecs((long)jiffies - (long)window_time);
-
-	/*
-	 * No need to cast u32 anymore, do_div() does the job :)
-	 */
-	gpu_stats.busy_time_ms = do_div(priv->bin.busy_time, USEC_PER_MSEC);
+	gpu_stats.busy_time_ms = (u32)priv->bin.busy_time / USEC_PER_MSEC;
 
 	/*
 	 * Scale the up_threshold value based on the active_pwrlevel. We have
@@ -250,19 +246,23 @@ static void __cpuinit tz_idle(struct kgsl_device *device, struct kgsl_pwrscale *
 	 * on simple operations. This is fixed with up_threshold being scaled
 	 */
 	
-	/*pr_info("---------------------------------");
-	if(gpu_idle){pr_info("GPU IDLE");}
-	else{pr_info("GPU BUSY");}
-	pr_info("GPU frequency:\t%d\n", pwr->pwrlevels[pwr->active_pwrlevel].gpu_freq);
-	pr_info("Cur Load:\t\t%ld\n", gpu_stats.busy_time_ms * 100);
-	pr_info("Up Threshold:\t%ld\n", gpu_stats.total_time_ms * gpu_stats.threshold);
-	pr_info("Down Threshold:\t%ld\n", gpu_stats.total_time_ms * down_threshold);*/
-	
-	
 	if (pwr->active_pwrlevel > 1)
 		gpu_stats.threshold = (up_threshold / pwr->active_pwrlevel) + up_differential;
 	else
 		gpu_stats.threshold = up_threshold - up_differential;
+		
+	/*pr_info("---------------------------------");
+	if(gpu_idle){pr_info("GPU IDLE");}
+	else{pr_info("GPU BUSY");}
+	pr_info("GPU frequency:\t%d\n", pwr->pwrlevels[pwr->active_pwrlevel].gpu_freq / 1000000);
+	pr_info("(Cur Load) %ld = (Busy time) %ld * 100", gpu_stats.busy_time_ms * 100,
+		gpu_stats.busy_time_ms);;
+	pr_info("(Up Threshold) %ld = (Total time) %ld * (Threshold) %ld", 
+		gpu_stats.total_time_ms * gpu_stats.threshold, gpu_stats.total_time_ms,
+		gpu_stats.threshold);
+	pr_info("(Down Threshold) %ld = (Total time) %ld * (Down Threshold) %d",
+		gpu_stats.total_time_ms * down_threshold, gpu_stats.total_time_ms, 
+		down_threshold);*/
 
 	if ((gpu_stats.busy_time_ms * 100) > (gpu_stats.total_time_ms * gpu_stats.threshold))
 	{
