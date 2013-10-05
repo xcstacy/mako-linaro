@@ -8389,11 +8389,11 @@ void wlan_hdd_cfg80211_lphb_ind_handler
       return;
    }
 
-   lphbInd = (tSirLPHBInd *)indCont;
+ /*  lphbInd = (tSirLPHBInd *)indCont;
    skb = cfg80211_testmode_alloc_event_skb(
                   ((hdd_adapter_t *)pAdapter)->wdev.wiphy,
                   sizeof(tSirLPHBInd),
-                  GFP_ATOMIC);
+                  GFP_ATOMIC); */
    if (!skb)
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -8420,7 +8420,7 @@ void wlan_hdd_cfg80211_lphb_ind_handler
                 "WLAN_HDD_TM_ATTR_DATA put fail");
       goto nla_put_failure;
    }
-   cfg80211_testmode_event(skb, GFP_ATOMIC);
+   //cfg80211_testmode_event(skb, GFP_ATOMIC);
    return;
 
 nla_put_failure:
@@ -8776,7 +8776,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .resume = wlan_hdd_cfg80211_resume_wlan,
      .suspend = wlan_hdd_cfg80211_suspend_wlan,
      .set_mac_acl = wlan_hdd_cfg80211_set_mac_acl,
-#ifdef WLAN_NL80211_TESTMODE
+#ifdef NL80211_TESTMODE
      .testmode_cmd = wlan_hdd_cfg80211_testmode,
 #endif
      .dump_survey = wlan_hdd_cfg80211_dump_survey,
