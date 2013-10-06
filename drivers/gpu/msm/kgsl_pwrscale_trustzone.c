@@ -198,7 +198,7 @@ static void __cpuinit tz_idle(struct kgsl_device *device, struct kgsl_pwrscale *
 			if (gpu_idle && is_touching)
 			{
 				gpu_idle = false;
-				touchboost_func();
+				//touchboost_func();
 			}
 			else
 			{
