@@ -226,19 +226,19 @@ static inline void dump_handler(const u32 *handler, int count)
  * We deliberately chose a buffer size of 128, so we won't scribble
  * over anything important on overflow before we panic.
  */
-static u32 tlb_handler[128] __cpuinitdata;
+static u32 tlb_handler[128];
 
 /* simply assume worst case size for labels and relocs */
-static struct uasm_label labels[128] __cpuinitdata;
-static struct uasm_reloc relocs[128] __cpuinitdata;
+static struct uasm_label labels[128];
+static struct uasm_reloc relocs[128];
 
 #ifdef CONFIG_64BIT
-static int check_for_high_segbits __cpuinitdata;
+static int check_for_high_segbits;
 #endif
 
-static int check_for_high_segbits __cpuinitdata;
+static int check_for_high_segbits;
 
-static unsigned int kscratch_used_mask __cpuinitdata;
+static unsigned int kscratch_used_mask;
 
 static int __cpuinit allocate_kscratch(void)
 {
@@ -257,8 +257,8 @@ static int __cpuinit allocate_kscratch(void)
 	return r;
 }
 
-static int scratch_reg __cpuinitdata;
-static int pgd_reg __cpuinitdata;
+static int scratch_reg;
+static int pgd_reg;
 enum vmalloc64_mode {not_refill, refill_scratch, refill_noscratch};
 
 static struct work_registers __cpuinit build_get_work_registers(u32 **p)
@@ -387,7 +387,7 @@ static void __cpuinit build_r3000_tlb_refill_handler(void)
  * other one.To keep things simple, we first assume linear space,
  * then we relocate it to the final handler layout as needed.
  */
-static u32 final_handler[64] __cpuinitdata;
+static u32 final_handler[64];
 
 /*
  * Hazards
@@ -661,7 +661,7 @@ static __cpuinit void build_huge_tlb_write_entry(u32 **p,
 /*
  * Check if Huge PTE is present, if so then jump to LABEL.
  */
-static void __cpuinit
+static void
 build_is_huge_pte(u32 **p, struct uasm_reloc **r, unsigned int tmp,
 		unsigned int pmd, int lid)
 {
@@ -729,7 +729,7 @@ static __cpuinit void build_huge_handler_tail(u32 **p,
  * TMP and PTR are scratch.
  * TMP will be clobbered, PTR will hold the pmd entry.
  */
-static void __cpuinit
+static void
 build_get_pmde64(u32 **p, struct uasm_label **l, struct uasm_reloc **r,
 		 unsigned int tmp, unsigned int ptr)
 {
@@ -821,7 +821,7 @@ build_get_pmde64(u32 **p, struct uasm_label **l, struct uasm_reloc **r,
  * BVADDR is the faulting address, PTR is scratch.
  * PTR will hold the pgd for vmalloc.
  */
-static void __cpuinit
+static void
 build_get_pgd_vmalloc64(u32 **p, struct uasm_label **l, struct uasm_reloc **r,
 			unsigned int bvaddr, unsigned int ptr,
 			enum vmalloc64_mode mode)
@@ -1043,7 +1043,7 @@ struct mips_huge_tlb_info {
 	int restore_scratch;
 };
 
-static struct mips_huge_tlb_info __cpuinit
+static struct mips_huge_tlb_info
 build_fast_tlb_refill_handler (u32 **p, struct uasm_label **l,
 			       struct uasm_reloc **r, unsigned int tmp,
 			       unsigned int ptr, int c0_scratch)
@@ -1457,7 +1457,7 @@ static void __cpuinit build_r4000_setup_pgd(void)
 }
 #endif
 
-static void __cpuinit
+static void
 iPTE_LW(u32 **p, unsigned int pte, unsigned int ptr)
 {
 #ifdef CONFIG_SMP
@@ -1477,7 +1477,7 @@ iPTE_LW(u32 **p, unsigned int pte, unsigned int ptr)
 #endif
 }
 
-static void __cpuinit
+static void
 iPTE_SW(u32 **p, struct uasm_reloc **r, unsigned int pte, unsigned int ptr,
 	unsigned int mode)
 {
@@ -1537,7 +1537,7 @@ iPTE_SW(u32 **p, struct uasm_reloc **r, unsigned int pte, unsigned int ptr,
  * the page table where this PTE is located, PTE will be re-loaded
  * with it's original value.
  */
-static void __cpuinit
+static void
 build_pte_present(u32 **p, struct uasm_reloc **r,
 		  int pte, int ptr, int scratch, enum label_id lid)
 {
@@ -1565,7 +1565,7 @@ build_pte_present(u32 **p, struct uasm_reloc **r,
 }
 
 /* Make PTE valid, store result in PTR. */
-static void __cpuinit
+static void
 build_make_valid(u32 **p, struct uasm_reloc **r, unsigned int pte,
 		 unsigned int ptr)
 {
@@ -1578,7 +1578,7 @@ build_make_valid(u32 **p, struct uasm_reloc **r, unsigned int pte,
  * Check if PTE can be written to, if not branch to LABEL. Regardless
  * restore PTE with value from PTR when done.
  */
-static void __cpuinit
+static void
 build_pte_writable(u32 **p, struct uasm_reloc **r,
 		   unsigned int pte, unsigned int ptr, int scratch,
 		   enum label_id lid)
@@ -1598,7 +1598,7 @@ build_pte_writable(u32 **p, struct uasm_reloc **r,
 /* Make PTE writable, update software status bits as well, then store
  * at PTR.
  */
-static void __cpuinit
+static void
 build_make_write(u32 **p, struct uasm_reloc **r, unsigned int pte,
 		 unsigned int ptr)
 {
@@ -1612,7 +1612,7 @@ build_make_write(u32 **p, struct uasm_reloc **r, unsigned int pte,
  * Check if PTE can be modified, if not branch to LABEL. Regardless
  * restore PTE with value from PTR when done.
  */
-static void __cpuinit
+static void
 build_pte_modifiable(u32 **p, struct uasm_reloc **r,
 		     unsigned int pte, unsigned int ptr, int scratch,
 		     enum label_id lid)
@@ -1641,7 +1641,7 @@ build_pte_modifiable(u32 **p, struct uasm_reloc **r,
  * This places the pte into ENTRYLO0 and writes it with tlbwi.
  * Then it returns.
  */
-static void __cpuinit
+static void
 build_r3000_pte_reload_tlbwi(u32 **p, unsigned int pte, unsigned int tmp)
 {
 	uasm_i_mtc0(p, pte, C0_ENTRYLO0); /* cp0 delay */
@@ -1657,7 +1657,7 @@ build_r3000_pte_reload_tlbwi(u32 **p, unsigned int pte, unsigned int tmp)
  * may have the probe fail bit set as a result of a trap on a
  * kseg2 access, i.e. without refill.  Then it returns.
  */
-static void __cpuinit
+static void
 build_r3000_tlb_reload_write(u32 **p, struct uasm_label **l,
 			     struct uasm_reloc **r, unsigned int pte,
 			     unsigned int tmp)
@@ -1675,7 +1675,7 @@ build_r3000_tlb_reload_write(u32 **p, struct uasm_label **l,
 	uasm_i_rfe(p); /* branch delay */
 }
 
-static void __cpuinit
+static void
 build_r3000_tlbchange_handler_head(u32 **p, unsigned int pte,
 				   unsigned int ptr)
 {
@@ -1789,7 +1789,7 @@ static void __cpuinit build_r3000_tlb_modify_handler(void)
 /*
  * R4000 style TLB load/store/modify handlers.
  */
-static struct work_registers __cpuinit
+static struct work_registers
 build_r4000_tlbchange_handler_head(u32 **p, struct uasm_label **l,
 				   struct uasm_reloc **r)
 {
@@ -1825,7 +1825,7 @@ build_r4000_tlbchange_handler_head(u32 **p, struct uasm_label **l,
 	return wr;
 }
 
-static void __cpuinit
+static void
 build_r4000_tlbchange_handler_tail(u32 **p, struct uasm_label **l,
 				   struct uasm_reloc **r, unsigned int tmp,
 				   unsigned int ptr)

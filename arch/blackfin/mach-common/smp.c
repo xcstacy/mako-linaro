@@ -46,7 +46,7 @@ struct corelock_slot corelock __attribute__ ((__section__(".l2.bss")));
 unsigned long blackfin_iflush_l1_entry[NR_CPUS];
 #endif
 
-struct blackfin_initial_pda __cpuinitdata initial_pda_coreb;
+struct blackfin_initial_pda initial_pda_coreb;
 
 #define BFIN_IPI_TIMER	      0
 #define BFIN_IPI_RESCHEDULE   1
@@ -512,7 +512,7 @@ EXPORT_SYMBOL(resync_core_dcache);
 #endif
 
 #ifdef CONFIG_HOTPLUG_CPU
-int __cpuexit __cpu_disable(void)
+int __cpu_disable(void)
 {
 	unsigned int cpu = smp_processor_id();
 
@@ -525,7 +525,7 @@ int __cpuexit __cpu_disable(void)
 
 static DECLARE_COMPLETION(cpu_killed);
 
-int __cpuexit __cpu_die(unsigned int cpu)
+int __cpu_die(unsigned int cpu)
 {
 	return wait_for_completion_timeout(&cpu_killed, 5000);
 }
