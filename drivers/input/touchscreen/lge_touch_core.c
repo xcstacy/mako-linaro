@@ -851,7 +851,7 @@ static int boostpulse_open(void)
 /*
  * Touch work function
  */
-static void __cpuinit touch_work_func(struct work_struct *work)
+static void touch_work_func(struct work_struct *work)
 {
 	struct lge_touch_data *ts =
 			container_of(work, struct lge_touch_data, work);
