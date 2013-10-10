@@ -1218,7 +1218,7 @@ static void __cpuinit console_flush(struct work_struct *work)
 	console_unlock();
 }
 
-static DECLARE_WORK(console_cpu_notify_work, console_flush);
+static __cpuinitdata DECLARE_WORK(console_cpu_notify_work, console_flush);
 
 /**
  * console_cpu_notify - print deferred console messages after CPU hotplug

@@ -376,7 +376,7 @@ static void __cpuinit arch_timer_stop(struct clock_event_device *clk)
 	arch_timer_set_mode(CLOCK_EVT_MODE_UNUSED, clk);
 }
 
-static struct local_timer_ops arch_timer_ops = {
+static struct local_timer_ops arch_timer_ops __cpuinitdata = {
 	.setup	= arch_timer_setup,
 	.stop	= arch_timer_stop,
 };
