@@ -33,9 +33,9 @@
 #define MSM_AMP_EN (PM8921_GPIO_PM_TO_SYS(19))
 #define AGC_COMPRESIION_RATE        0
 #define AGC_OUTPUT_LIMITER_DISABLE  1
-#define AGC_FIXED_GAIN              12
-#define AGC_ATK_TIME			5
-#define AGC_REL_TIME			11
+#define AGC_FIXED_GAIN              15
+#define AGC_ATK_TIME			6
+#define AGC_REL_TIME			13
 #define AGC_HOLD_TIME			0
 #define AGC_OUTPUT_LIMIT_LEVEL		26
 #define AGC_MAX_GAIN			12
