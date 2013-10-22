@@ -133,6 +133,17 @@ int wlan_hdd_cfg80211_pmksa_candidate_notify(
                     int index, bool preauth );
 #endif
 
+#ifdef FEATURE_WLAN_LFR_METRICS
+VOS_STATUS wlan_hdd_cfg80211_roam_metrics_preauth(hdd_adapter_t *pAdapter,
+                                                  tCsrRoamInfo *pRoamInfo);
+
+VOS_STATUS wlan_hdd_cfg80211_roam_metrics_preauth_status(
+    hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, bool preauth_status);
+
+VOS_STATUS wlan_hdd_cfg80211_roam_metrics_handover(hdd_adapter_t *pAdapter,
+                                                   tCsrRoamInfo *pRoamInfo);
+#endif
+
 #ifdef FEATURE_WLAN_WAPI
 void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter,
               u8 key_index, const u8 *mac_addr, u8 *key , int key_Len);
@@ -160,6 +171,12 @@ void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter);
 void wlan_hdd_linux_reg_notifier(struct wiphy *wiphy, struct regulatory_request *request);
 #else
 int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy, struct regulatory_request *request);
+#endif
+#else
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+void wlan_hdd_crda_reg_notifier(struct wiphy *wiphy, struct regulatory_request *request);
+#else
+int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy, struct regulatory_request *request);
 #endif
 #endif
 

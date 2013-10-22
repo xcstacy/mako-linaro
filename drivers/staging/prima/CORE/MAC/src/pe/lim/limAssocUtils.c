@@ -517,7 +517,8 @@ limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSess
     theyRequirePMF = (rxRSNIe.RSN_Cap[0] >> 6) & 0x1;
     theyArePMFCapable = (rxRSNIe.RSN_Cap[0] >> 7) & 0x1;
 
-    if ((theyRequirePMF && !weArePMFCapable) || (weRequirePMF && !theyArePMFCapable))
+    if ((theyRequirePMF && theyArePMFCapable && !weArePMFCapable) ||
+        (weRequirePMF && !theyArePMFCapable))
     {
         limLog(pMac, LOG1, FL("Association fail, robust management frames policy violation"));
         return eSIR_MAC_ROBUST_MGMT_FRAMES_POLICY_VIOLATION;
@@ -1825,7 +1826,7 @@ limPopulatePeerRateSet(tpAniSirGlobal pMac,
     isArate = 0;
 
     /* copy operational rate set from psessionEntry */
-    if ( psessionEntry->rateSet.numRates < SIR_MAC_RATESET_EID_MAX )
+    if ( psessionEntry->rateSet.numRates <= SIR_MAC_RATESET_EID_MAX )
     {
         palCopyMemory(pMac->hHdd,(tANI_U8 *)tempRateSet.rate,(tANI_U8*)(psessionEntry->rateSet.rate), psessionEntry->rateSet.numRates);
         tempRateSet.numRates = psessionEntry->rateSet.numRates;
@@ -1838,7 +1839,7 @@ limPopulatePeerRateSet(tpAniSirGlobal pMac,
     if (psessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11G)
     {
 
-        if (psessionEntry->extRateSet.numRates < SIR_MAC_RATESET_EID_MAX)
+        if (psessionEntry->extRateSet.numRates <= SIR_MAC_RATESET_EID_MAX)
         {
             palCopyMemory(pMac->hHdd,(tANI_U8 *)tempRateSet2.rate, (tANI_U8*)(psessionEntry->extRateSet.rate), psessionEntry->extRateSet.numRates);
             tempRateSet2.numRates = psessionEntry->extRateSet.numRates;
@@ -1850,7 +1851,7 @@ limPopulatePeerRateSet(tpAniSirGlobal pMac,
     }
     else
         tempRateSet2.numRates = 0;
-    if ((tempRateSet.numRates + tempRateSet2.numRates) > 12)
+    if ((tempRateSet.numRates + tempRateSet2.numRates) > SIR_MAC_RATESET_EID_MAX)
     {
         //we are in big trouble
         limLog(pMac, LOGP, FL("more than 12 rates in CFG"));
