@@ -88,7 +88,6 @@
 #define CSR_NUM_IBSS_START_CHANNELS_24      3
 #define CSR_DEF_IBSS_START_CHANNEL_50       36
 #define CSR_DEF_IBSS_START_CHANNEL_24       1
-#define CSR_IBSS_JOIN_TIMEOUT_PERIOD        ( 1 *  PAL_TIMER_TO_SEC_UNIT )  // 1 second
 #define CSR_WAIT_FOR_KEY_TIMEOUT_PERIOD         ( 5 * PAL_TIMER_TO_SEC_UNIT )  // 5 seconds, for WPA, WPA2, CCKM
 #define CSR_WAIT_FOR_WPS_KEY_TIMEOUT_PERIOD         ( 120 * PAL_TIMER_TO_SEC_UNIT )  // 120 seconds, for WPS
 /*---------------------------------------------------------------------------
@@ -215,13 +214,9 @@ tANI_BOOLEAN csrRoamIsSameProfileKeys(tpAniSirGlobal pMac, tCsrRoamConnectedProf
 static eHalStatus csrRoamStartRoamingTimer(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 interval);
 static eHalStatus csrRoamStopRoamingTimer(tpAniSirGlobal pMac, tANI_U32 sessionId);
 static void csrRoamRoamingTimerHandler(void *pv);
-eHalStatus csrRoamStartIbssJoinTimer(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 interval);
-eHalStatus csrRoamStopIbssJoinTimer(tpAniSirGlobal pMac, tANI_U32 sessionId);
-static void csrRoamIbssJoinTimerHandler(void *pv);
 eHalStatus csrRoamStartWaitForKeyTimer(tpAniSirGlobal pMac, tANI_U32 interval);
 eHalStatus csrRoamStopWaitForKeyTimer(tpAniSirGlobal pMac);
 static void csrRoamWaitForKeyTimeOutHandler(void *pv);
- 
 static eHalStatus CsrInit11dInfo(tpAniSirGlobal pMac, tCsr11dinfo *ps11dinfo);
 static eHalStatus csrInitChannelPowerList( tpAniSirGlobal pMac, tCsr11dinfo *ps11dinfo);
 static eHalStatus csrRoamFreeConnectedInfo( tpAniSirGlobal pMac, tCsrRoamConnectedInfo *pConnectedInfo );
@@ -1651,6 +1646,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->nVhtChannelWidth = pMac->roam.configParam.nVhtChannelWidth;
         pParam->enableTxBF = pMac->roam.configParam.txBFEnable;
         pParam->txBFCsnValue = pMac->roam.configParam.txBFCsnValue;
+        pParam->enableVhtFor24GHz = pMac->roam.configParam.enableVhtFor24GHz;
 #endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
         palCopyMemory( pMac->hHdd, &pMac->roam.configParam.csr11rConfig, &pParam->csr11rConfig, sizeof(tCsr11rConfigParams) );
@@ -5398,11 +5394,8 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
                 roamInfo.statusCode = pSession->joinFailStatusCode.statusCode;
                 roamInfo.reasonCode = pSession->joinFailStatusCode.reasonCode;
-                if(CSR_INVALID_SCANRESULT_HANDLE == pCommand->u.roamCmd.hBSSList)
-                {
-                    //We start the IBSS (didn't find any matched IBSS out there)
-                    roamInfo.pBssDesc = pSirBssDesc;
-                }
+                //We start the IBSS (didn't find any matched IBSS out there)
+                roamInfo.pBssDesc = pSirBssDesc;
                 roamInfo.staId = (tANI_U8)pSmeStartBssRsp->staId;
                 vos_mem_copy (roamInfo.bssid, pSirBssDesc->bssId, sizeof(tCsrBssid));
                  //Remove this code once SLM_Sessionization is supported 
@@ -5417,19 +5410,8 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
             }
     
             csrScanCancelIdleScan(pMac);
-            //Only use this timer for ibss. BAP has its own timer for WDS
-            if( CSR_IS_IBSS( pProfile) && CSR_INVALID_SCANRESULT_HANDLE != pCommand->u.roamCmd.hBSSList)
-            {
-              //start the join IBSS timer
-                csrRoamStartIbssJoinTimer(pMac, sessionId, CSR_IBSS_JOIN_TIMEOUT_PERIOD); //interval
-                pSession->ibss_join_pending = TRUE;
-            }
-            if( HAL_STATUS_SUCCESS( status ) )
-            {
-                //Already sent join_req for the WDS station
-                fReleaseCommand = eANI_BOOLEAN_FALSE;
-            }
-            else if( CSR_IS_WDS_STA( pProfile ) )
+
+            if( CSR_IS_WDS_STA( pProfile ) )
             {
                 //need to send stop BSS because we fail to send join_req
                 csrRoamIssueDisassociateCmd( pMac, sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED );
@@ -6750,8 +6732,6 @@ eHalStatus csrRoamDisconnect(tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoamDi
     }
     
     csrRoamCancelRoaming(pMac, sessionId);
-    pSession->ibss_join_pending = FALSE;
-    csrRoamStopIbssJoinTimer(pMac, sessionId);
     csrRoamRemoveDuplicateCommand(pMac, sessionId, NULL, eCsrForcedDisassoc);
     
     return (csrRoamDisconnectInternal(pMac, sessionId, reason));
@@ -7913,7 +7893,7 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             tSirSmeAssocIndToUpperLayerCnf *pUpperLayerAssocCnf;
             tCsrRoamInfo roamInfo;
             tCsrRoamInfo *pRoamInfo = NULL;
-            tANI_U32 sessionId = 0;
+            tANI_U32 sessionId;
             eHalStatus status;
             smsLog( pMac, LOG1, FL("ASSOCIATION confirmation can be given to upper layer "));
             palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
@@ -9178,14 +9158,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         {
                             palCopyMemory(pMac->hHdd, pSession->pConnectBssDesc->bssId, &pNewBss->bssId, sizeof(tCsrBssid));
                         }
-                        // Stop the join IBSS timer in case of join, for 
-                        // genuine merge do nothing
-                        if(pSession->ibss_join_pending)
-                        {
-                           pSession->ibss_join_pending = FALSE;
-                           csrRoamStopIbssJoinTimer(pMac, sessionId);
-                           result = eCSR_ROAM_RESULT_IBSS_JOIN_SUCCESS;
-                        }
                     }
                     smsLog(pMac, LOGW, "CSR:  eSIR_SME_JOINED_NEW_BSS received from PE");
                     break;
@@ -9822,8 +9794,14 @@ void csrRoamWaitForKeyTimeOutHandler(void *pv)
         }
 #endif
         smsLog(pMac, LOGW, " SME pre-auth state timeout. ");
+
         //Change the substate so command queue is unblocked.
-        csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_NONE, pInfo->sessionId);
+        if (CSR_ROAM_SESSION_MAX > pInfo->sessionId)
+        {
+            csrRoamSubstateChange(pMac, eCSR_ROAM_SUBSTATE_NONE,
+                                  pInfo->sessionId);
+        }
+
         if (pSession)
         {
             if( csrIsConnStateConnectedInfra(pMac, pInfo->sessionId) ) 
@@ -9888,47 +9866,6 @@ eHalStatus csrRoamStopWaitForKeyTimer(tpAniSirGlobal pMac)
     return (vos_timer_stop(&pMac->roam.hTimerWaitForKey));
 }
 
-void csrRoamIbssJoinTimerHandler(void *pv)
-{
-    tCsrTimerInfo *pInfo = (tCsrTimerInfo *)pv;
-    tpAniSirGlobal pMac = pInfo->pMac;
-    eCsrRoamDisconnectReason reason = eCSR_DISCONNECT_REASON_IBSS_JOIN_FAILURE;
-    tANI_U32 sessionId = pInfo->sessionId;
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-
-    if(!pSession)
-    {
-        smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
-        return;
-    }
-    
-    pSession->ibss_join_pending = FALSE;
-    // JEZ100225:  As of main/latest "tip", we are no longer doing this. Check on this.
-    //csrRoamCallCallback(pMac, sessionId, NULL, 0, eCSR_ROAM_IBS_IND, eCSR_ROAM_RESULT_IBSS_JOIN_FAILED);
-    // Send an IBSS stop request to PE
-    csrRoamDisconnectInternal(pMac, sessionId, reason);
-}
-eHalStatus csrRoamStartIbssJoinTimer(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 interval)
-{
-    eHalStatus status;
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-
-    if(!pSession)
-    {
-        smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
-        return eHAL_STATUS_FAILURE;
-    }
-    
-    smsLog(pMac, LOG1, " csrRoamStartIbssJoinTimer");
-    pSession->ibssJoinTimerInfo.sessionId = (tANI_U8)sessionId;
-    status = vos_timer_start(&pSession->hTimerIbssJoining, interval/PAL_TIMER_TO_MS_UNIT);
-    
-    return (status);
-}
-eHalStatus csrRoamStopIbssJoinTimer(tpAniSirGlobal pMac, tANI_U32 sessionId)
-{
-    return (vos_timer_stop(&pMac->roam.roamSession[sessionId].hTimerIbssJoining));
-}
 void csrRoamCompletion(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamInfo *pRoamInfo, tSmeCmd *pCommand, 
                         eCsrRoamResult roamResult, tANI_BOOLEAN fSuccess)
 {
@@ -10272,8 +10209,20 @@ static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, tCsrRo
             case eCSR_CFG_DOT11_MODE_11AC:
                 if (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))
                 {
-                    cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC;
-                    eBand = eCSR_BAND_5G;
+                    /* If the operating channel is in 2.4 GHz band, check for
+                     * INI item to disable VHT operation in 2.4 GHz band
+                     */
+                    if (CSR_IS_CHANNEL_24GHZ(operationChn) &&
+                        !pMac->roam.configParam.enableVhtFor24GHz)
+                    {
+                       /* Disable 11AC operation */
+                       cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
+                    }
+                    else
+                    {
+                       cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC;
+                    }
+                    eBand = CSR_IS_CHANNEL_24GHZ(operationChn) ? eCSR_BAND_24 : eCSR_BAND_5G;
                 }
                 else
                 {
@@ -10284,8 +10233,20 @@ static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, tCsrRo
             case eCSR_CFG_DOT11_MODE_11AC_ONLY:
                 if (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))
                 {
-                    cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC_ONLY;
-                    eBand = eCSR_BAND_5G;
+                   /* If the operating channel is in 2.4 GHz band, check for
+                    * INI item to disable VHT operation in 2.4 GHz band
+                    */
+                   if (CSR_IS_CHANNEL_24GHZ(operationChn) &&
+                       !pMac->roam.configParam.enableVhtFor24GHz)
+                   {
+                      /* Disable 11AC operation */
+                      cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
+                   }
+                   else
+                   {
+                      cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC_ONLY;
+                   }
+                   eBand = CSR_IS_CHANNEL_24GHZ(operationChn) ? eCSR_BAND_24 : eCSR_BAND_5G;
                 }
                 else
                 {
@@ -10319,8 +10280,20 @@ static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, tCsrRo
 #ifdef WLAN_FEATURE_11AC
                     if (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))
                     {
-                        cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC;
-                        eBand = eCSR_BAND_5G;
+                       /* If the operating channel is in 2.4 GHz band, check for
+                        * INI item to disable VHT operation in 2.4 GHz band
+                        */
+                       if (CSR_IS_CHANNEL_24GHZ(operationChn) &&
+                           !pMac->roam.configParam.enableVhtFor24GHz)
+                       {
+                          /* Disable 11AC operation */
+                          cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
+                       }
+                       else
+                       {
+                          cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC;
+                       }
+                       eBand = CSR_IS_CHANNEL_24GHZ(operationChn) ? eCSR_BAND_24 : eCSR_BAND_5G;
                     }
                     else
                     {
@@ -10454,8 +10427,6 @@ eHalStatus csrRoamIssueStopBss( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoa
         }
     }
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
-    pSession->ibss_join_pending = FALSE;
-    csrRoamStopIbssJoinTimer(pMac, sessionId );
     // Set the roaming substate to 'stop Bss request'...
     csrRoamSubstateChange( pMac, NewSubstate, sessionId );
 
@@ -13412,16 +13383,6 @@ eHalStatus csrRoamOpenSession(tpAniSirGlobal pMac,
                 break;
             }
 #endif
-            pSession->ibssJoinTimerInfo.pMac = pMac;
-            pSession->ibssJoinTimerInfo.sessionId = CSR_SESSION_ID_INVALID;
-            status = vos_timer_init(&pSession->hTimerIbssJoining, VOS_TIMER_TYPE_SW,
-                                    csrRoamIbssJoinTimerHandler,
-                                    &pSession->ibssJoinTimerInfo);
-            if (!HAL_STATUS_SUCCESS(status))
-            {
-                smsLog(pMac, LOGE, FL("cannot allocate memory for IbssJoining timer"));
-                break;
-            }
             status = csrIssueAddStaForSessionReq (pMac, i, pSelfMacAddr);
             break;
         }
@@ -13608,7 +13569,6 @@ void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId)
 #ifdef FEATURE_WLAN_BTAMP_UT_RF
         vos_timer_destroy(&pSession->hTimerJoinRetry);
 #endif
-        vos_timer_destroy(&pSession->hTimerIbssJoining);
         purgeSmeSessionCmdList(pMac, sessionId, &pMac->sme.smeCmdPendingList);
         if (pMac->fScanOffload)
         {
@@ -13669,7 +13629,6 @@ static void csrInitSession( tpAniSirGlobal pMac, tANI_U32 sessionId )
     pSession->sessionId = CSR_SESSION_ID_INVALID;
     pSession->callback = NULL;
     pSession->pContext = NULL;
-    pSession->ibss_join_pending = FALSE;
     pSession->connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
     // TODO : Confirm pMac->roam.fReadyForPowerSave = eANI_BOOLEAN_FALSE;
     csrFreeRoamProfile( pMac, sessionId );
