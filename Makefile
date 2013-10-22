@@ -566,6 +566,8 @@ all: vmlinux
 # KBUILD_CFLAGS	+= -Os
 # else
 KBUILD_CFLAGS	+= -O3
+KBUILD_CFLAGS   += $(call cc-disable-warning,maybe-uninitialized)
+KBUILD_CFLAGS   += $(call cc-disable-warning,array-bounds)
 # endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
