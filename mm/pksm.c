@@ -153,7 +153,7 @@ static int is_full_zero(const void *s1, size_t len)
 #else
 static int is_full_zero(const void *s1, size_t len)
 {
-	unsigned long *src = s1;
+	unsigned const long *src = s1;
 	int i;
 
 	len /= sizeof(*src);
@@ -566,65 +566,6 @@ static inline bool ksm_test_exit(struct mm_struct *mm)
 }
 
 /*
- * We use break_ksm to break COW on a ksm page: it's a stripped down
- *
- *	if (get_user_pages(current, mm, addr, 1, 1, 1, &page, NULL) == 1)
- *		put_page(page);
- *
- * but taking great care only to touch a ksm page, in a VM_MERGEABLE vma,
- * in case the application has unmapped and remapped mm,addr meanwhile.
- * Could a ksm page appear anywhere else?  Actually yes, in a VM_PFNMAP
- * mmap of /dev/mem or /dev/kmem, where we would not want to touch it.
- */
-static int break_ksm(struct vm_area_struct *vma, unsigned long addr)
-{
-	struct page *page;
-	int ret = 0;
-
-	do {
-		cond_resched();
-		page = follow_page(vma, addr, FOLL_GET);
-		if (IS_ERR_OR_NULL(page))
-			break;
-		if (PageKsm(page))
-			ret = handle_mm_fault(vma->vm_mm, vma, addr,
-							FAULT_FLAG_WRITE);
-		else
-			ret = VM_FAULT_WRITE;
-		put_page(page);
-	} while (!(ret & (VM_FAULT_WRITE | VM_FAULT_SIGBUS | VM_FAULT_OOM)));
-	/*
-	 * We must loop because handle_mm_fault() may back out if there's
-	 * any difficulty e.g. if pte accessed bit gets updated concurrently.
-	 *
-	 * VM_FAULT_WRITE is what we have been hoping for: it indicates that
-	 * COW has been broken, even if the vma does not permit VM_WRITE;
-	 * but note that a concurrent fault might break PageKsm for us.
-	 *
-	 * VM_FAULT_SIGBUS could occur if we race with truncation of the
-	 * backing file, which also invalidates anonymous pages: that's
-	 * okay, that truncation will have unmapped the PageKsm for us.
-	 *
-	 * VM_FAULT_OOM: at the time of writing (late July 2009), setting
-	 * aside mem_cgroup limits, VM_FAULT_OOM would only be set if the
-	 * current task has TIF_MEMDIE set, and will be OOM killed on return
-	 * to user; and ksmd, having no mm, would never be chosen for that.
-	 *
-	 * But if the mm is in a limited mem_cgroup, then the fault may fail
-	 * with VM_FAULT_OOM even if the current task is not TIF_MEMDIE; and
-	 * even ksmd can fail in this way - though it's usually breaking ksm
-	 * just to undo a merge it made a moment before, so unlikely to oom.
-	 *
-	 * That's a pity: we might therefore have more kernel pages allocated
-	 * than we're counting as nodes in the stable tree; but ksm_do_scan
-	 * will retry to break_cow on each pass, so should recover the page
-	 * in due course.  The important thing is to not let VM_MERGEABLE
-	 * be cleared while any such pages might remain in the area.
-	 */
-	return (ret & VM_FAULT_OOM) ? -ENOMEM : 0;
-}
-
-/*
  * Check that no O_DIRECT or similar I/O is in progress on the
  * page
  */
@@ -632,24 +573,6 @@ static int check_page_dio(struct page *page)
 {
 	int swapped = PageSwapCache(page);
 	return (page_mapcount(page) +1+ swapped != page_count(page));
-}
-
-static void break_cow(struct rmap_item *rmap_item)
-{
-	struct page *page;
-
-	/*
-	 * It is not an accident that whenever we want to break COW
-	 * to undo, we also need to drop a reference to the anon_vma.
-	 */
-	//put_anon_vma(rmap_item->anon_vma);
-
-	page = rmap_item->page;
-
-	if ((atomic_read(&page->_count) < 1))
-                    return;
-
-	//rmap_walk_cow(page, pksm_break_ksm, NULL);
 }
 
 static struct page *get_ksm_page(struct rmap_item *rmap_item)
@@ -807,100 +730,6 @@ static void pksm_free_all_rmap_items(void)
 
 	pksm_clean_all_rmap_items(&l_del);
 }
-
-/*
- * Though it's very tempting to unmerge in_stable_tree(rmap_item)s rather
- * than check every pte of a given vma, the locking doesn't quite work for
- * that - an rmap_item is assigned to the stable tree after inserting ksm
- * page and upping mmap_sem.  Nor does it fit with the way we skip dup'ing
- * rmap_items from parent to child at fork time (so as not to waste time
- * if exit comes before the next scan reaches it).
- *
- * Similarly, although we'd like to remove rmap_items (so updating counts
- * and freeing memory) when unmerging an area, it's easier to leave that
- * to the next pass of ksmd - consider, for example, how ksmd might be
- * in cmp_and_merge_page on one of the rmap_items we would be removing.
- */
-static int unmerge_ksm_pages(struct vm_area_struct *vma,
-			     unsigned long start, unsigned long end)
-{
-	unsigned long addr;
-	int err = 0;
-
-	for (addr = start; addr < end && !err; addr += PAGE_SIZE) {
-		if (ksm_test_exit(vma->vm_mm))
-			break;
-		if (signal_pending(current))
-			err = -ERESTARTSYS;
-		else
-			err = break_ksm(vma, addr);
-	}
-	return err;
-}
-
-#ifdef CONFIG_SYSFS
-/*
- * Only called through the sysfs control interface:
- */
-static int unmerge_and_remove_all_rmap_items(void)
-{
-	struct mm_slot *mm_slot;
-	struct mm_struct *mm;
-	struct vm_area_struct *vma;
-	int err = 0;
-
-	spin_lock(&ksm_mmlist_lock);
-	ksm_scan.mm_slot = list_entry(ksm_mm_head.mm_list.next,
-						struct mm_slot, mm_list);
-	spin_unlock(&ksm_mmlist_lock);
-
-	for (mm_slot = ksm_scan.mm_slot;
-			mm_slot != &ksm_mm_head; mm_slot = ksm_scan.mm_slot) {
-		mm = mm_slot->mm;
-		down_read(&mm->mmap_sem);
-		for (vma = mm->mmap; vma; vma = vma->vm_next) {
-			if (ksm_test_exit(mm))
-				break;
-			if (!(vma->vm_flags & VM_MERGEABLE) || !vma->anon_vma)
-				continue;
-			err = unmerge_ksm_pages(vma,
-						vma->vm_start, vma->vm_end);
-			if (err)
-				goto error;
-		}
-
-		//remove_trailing_rmap_items(mm_slot, &mm_slot->rmap_list);
-
-		spin_lock(&ksm_mmlist_lock);
-		ksm_scan.mm_slot = list_entry(mm_slot->mm_list.next,
-						struct mm_slot, mm_list);
-		if (ksm_test_exit(mm)) {
-			hlist_del(&mm_slot->link);
-			list_del(&mm_slot->mm_list);
-			spin_unlock(&ksm_mmlist_lock);
-
-			free_mm_slot(mm_slot);
-			clear_bit(MMF_VM_MERGEABLE, &mm->flags);
-			up_read(&mm->mmap_sem);
-			mmdrop(mm);
-		} else {
-			spin_unlock(&ksm_mmlist_lock);
-			up_read(&mm->mmap_sem);
-		}
-	}
-
-	ksm_scan.seqnr = 0;
-	return 0;
-
-error:
-	up_read(&mm->mmap_sem);
-	spin_lock(&ksm_mmlist_lock);
-	ksm_scan.mm_slot = &ksm_mm_head;
-	spin_unlock(&ksm_mmlist_lock);
-	return err;
-}
-#endif /* CONFIG_SYSFS */
-
 
 static u32 pksm_calc_checksum(void *addr, u32 hash_strength)
 {
