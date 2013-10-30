@@ -723,6 +723,9 @@ const char * const vmstat_text[] = {
 #endif
 	"nr_anon_transparent_hugepages",
 	"nr_free_cma",
+#ifdef CONFIG_PKSM
+	"nr_pksm_sharing_pages",
+#endif
 	"nr_dirty_threshold",
 	"nr_dirty_background_threshold",
 

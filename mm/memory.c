@@ -123,6 +123,60 @@ static int __init init_zero_pfn(void)
 }
 core_initcall(init_zero_pfn);
 
+#ifdef CONFIG_PKSM
+unsigned long pksm_zero_pfn __read_mostly;
+struct page *empty_pksm_zero_page;
+
+static int __init setup_pksm_zero_page(void)
+{
+	unsigned long addr;
+	addr = __get_free_pages(GFP_KERNEL | __GFP_ZERO, 0);
+	if (!addr)
+		panic("Oh boy, that early out of memory?");
+
+	empty_pksm_zero_page = virt_to_page((void *) addr);
+	SetPageReserved(empty_pksm_zero_page);
+
+	pksm_zero_pfn = page_to_pfn(empty_pksm_zero_page);
+
+	return 0;
+}
+core_initcall(setup_pksm_zero_page);
+
+static inline int is_pksm_zero_pfn(unsigned long pfn)
+{
+	return pfn == pksm_zero_pfn;
+}
+
+static inline void pksm_unmap_zero_page(pte_t pte)
+{
+	if (pte_pfn(pte) == pksm_zero_pfn) {
+		ksm_pages_zero_sharing--;
+		__dec_zone_page_state(empty_pksm_zero_page, NR_PKSM_SHARING_PAGES);
+	}
+}
+
+static inline void pksm_map_zero_page(pte_t pte)
+{
+	if (pte_pfn(pte) == pksm_zero_pfn) {
+		ksm_pages_zero_sharing++;
+		__inc_zone_page_state(empty_pksm_zero_page, NR_PKSM_SHARING_PAGES);
+	}
+}
+
+#else
+static inline int is_pksm_zero_pfn(unsigned long pfn)
+{
+	return 0;
+}
+static inline void pksm_unmap_zero_page(pte_t pte)
+{
+}
+static inline void pksm_map_zero_page(pte_t pte)
+{
+}
+#endif
+
 
 #if defined(SPLIT_RSS_COUNTING)
 
@@ -713,8 +767,10 @@ static inline int is_cow_mapping(vm_flags_t flags)
 #ifndef is_zero_pfn
 static inline int is_zero_pfn(unsigned long pfn)
 {
-	return pfn == zero_pfn;
+	return (pfn == zero_pfn) || (is_pksm_zero_pfn(pfn));
 }
+#else
+#define is_zero_pfn(pfn)   (is_zero_pfn(pfn) || is_pksm_zero_pfn(pfn))
 #endif
 
 #ifndef my_zero_pfn
@@ -900,7 +956,8 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 			rss[MM_ANONPAGES]++;
 		else
 			rss[MM_FILEPAGES]++;
-	}
+	} else
+		pksm_map_zero_page(pte);
 
 out_set_pte:
 	set_pte_at(dst_mm, addr, dst_pte, pte);
@@ -1135,8 +1192,10 @@ again:
 			ptent = ptep_get_and_clear_full(mm, addr, pte,
 							tlb->fullmm);
 			tlb_remove_tlb_entry(tlb, pte, addr);
-			if (unlikely(!page))
+			if (unlikely(!page)) {
+				pksm_unmap_zero_page(ptent);
 				continue;
+			}
 			if (unlikely(details) && details->nonlinear_vma
 			    && linear_page_index(details->nonlinear_vma,
 						addr) != page->index)
@@ -1152,6 +1211,9 @@ again:
 					mark_page_accessed(page);
 				rss[MM_FILEPAGES]--;
 			}
+#ifdef CONFIG_PKSM
+			pksm_unmap_sharing_page(page, mm, addr);
+#endif
 			page_remove_rmap(page);
 			if (unlikely(page_mapcount(page) < 0))
 				print_bad_pte(vma, addr, ptent, page);
@@ -2749,8 +2811,10 @@ gotten:
 				dec_mm_counter_fast(mm, MM_FILEPAGES);
 				inc_mm_counter_fast(mm, MM_ANONPAGES);
 			}
-		} else
+		} else {
+			pksm_unmap_zero_page(orig_pte);
 			inc_mm_counter_fast(mm, MM_ANONPAGES);
+		}
 		flush_cache_page(vma, address, pte_pfn(orig_pte));
 		entry = mk_pte(new_page, vma->vm_page_prot);
 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
@@ -2792,6 +2856,9 @@ gotten:
 			 * mapcount is visible. So transitively, TLBs to
 			 * old page will be flushed before it can be reused.
 			 */
+#ifdef CONFIG_PKSM
+			pksm_unmap_sharing_page(old_page, mm, address);
+#endif
 			page_remove_rmap(old_page);
 		}
 
@@ -3172,6 +3239,10 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	spinlock_t *ptl;
 	pte_t entry;
 
+#ifdef CONFIG_PKSM
+	struct rmap_item *rmap = NULL;
+#endif
+
 	pte_unmap(page_table);
 
 	/* Check if we need to add a guard page to the stack */
@@ -3203,6 +3274,10 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	if (vma->vm_flags & VM_WRITE)
 		entry = pte_mkwrite(pte_mkdirty(entry));
 
+#ifdef CONFIG_PKSM
+	rmap = pksm_alloc_rmap_item();
+#endif
+
 	page_table = pte_offset_map_lock(mm, pmd, address, &ptl);
 	if (!pte_none(*page_table))
 		goto release;
@@ -3214,13 +3289,23 @@ setpte:
 
 	/* No need to invalidate - it was non-present before */
 	update_mmu_cache(vma, address, page_table);
+
 unlock:
 	pte_unmap_unlock(page_table, ptl);
+#ifdef CONFIG_PKSM
+	if (rmap)
+		pksm_add_new_anon_page(page, rmap, vma->anon_vma);
+#endif
 	return 0;
 release:
 	mem_cgroup_uncharge_page(page);
 	page_cache_release(page);
+#ifdef CONFIG_PKSM
+	if (rmap)
+		pksm_free_rmap_item(rmap);
+#endif
 	goto unlock;
+
 oom_free_page:
 	page_cache_release(page);
 oom:
