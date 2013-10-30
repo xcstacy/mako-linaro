@@ -2805,12 +2805,8 @@ static void unplug_check_worker(struct work_struct *work)
 			if (usb_ma > 500) {
 				usb_ma = 500;
 				__pm8921_charger_vbus_draw(usb_ma);
-				pr_info("usb_now=%d, usb_target = %d\n",
-					usb_ma, 500);
 				goto check_again_later;
 			} else if (usb_ma == 500) {
-				pr_info("Stopping Unplug Check Worker"
-					 " USB == 500mA\n");
 				disable_input_voltage_regulation(chip);
 				return;
 			}
@@ -2907,8 +2903,6 @@ static void unplug_check_worker(struct work_struct *work)
 		if (usb_ma < usb_target_ma) {
 			increase_usb_ma_value(&usb_ma);
 			__pm8921_charger_vbus_draw(usb_ma);
-			pr_info("usb_now=%d, usb_target = %d\n",
-					usb_ma, usb_target_ma);
 		} else {
 			usb_target_ma = usb_ma;
 		}
