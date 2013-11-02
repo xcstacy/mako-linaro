@@ -88,6 +88,25 @@ static void cbNotifySetImmediateRoamRssiDiff(hdd_context_t *pHddCtx, unsigned lo
 
 static void cbNotifySetRoamRssiDiff(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
+    if (pHddCtx->cfg_ini->nSelect5GHzMargin)
+    {
+        /*
+           LFR2.0 firmware posts roam candidates whose RSSI is above the
+           look down threshold and RoamRssiDiff better than current AP Rssi.
+           if gSelect5GHzMargin is non-zero; then the expectation is firmware
+           should post all the roam candidates whose RSSI is above lookdown
+           threshold and don't ignore the APs in RoamRssiDiff zone.
+
+           For ex: RoamRssiDiff=5, Lookdown threshold=-78 and
+           gSelect5GHzMargin=30 then firmware selects APs
+           with Rssi -73 or better as roam candidates.
+           if the 5G AP Rssi is -75 it will be ignored.
+           if 2.4G AP Rssi is -45 and 5G AP with -75 is available,
+           STA should connect to 5G AP, hence RoamRssiDiff is set to 0.
+        */
+        pHddCtx->cfg_ini->RoamRssiDiff = 0;
+    }
+
     sme_UpdateRoamRssiDiff((tHalHandle)(pHddCtx->hHal),
                                     pHddCtx->cfg_ini->RoamRssiDiff);
 }
@@ -100,6 +119,12 @@ static void cbNotifySetFastTransitionEnabled(hdd_context_t *pHddCtx, unsigned lo
 static void cbNotifySetRoamIntraBand(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
     sme_setRoamIntraBand((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->nRoamIntraBand);
+}
+
+static void cbNotifySetWESMode(hdd_context_t *pHddCtx, unsigned long NotifyId)
+{
+    // at the point this routine is called, the value in the cfg_ini table has already been updated
+    sme_UpdateWESMode((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->isWESModeEnabled);
 }
 
 static void cbNotifySetRoamScanNProbes(hdd_context_t *pHddCtx, unsigned long NotifyId)
@@ -119,7 +144,7 @@ static void cbNotifySetRoamScanHomeAwayTime(hdd_context_t *pHddCtx, unsigned lon
      if (pHddCtx->cfg_ini->nRoamScanHomeAwayTime < (scanChannelMaxTime + (2 * HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME)))
      {
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                "%s: Invalid config, Home away time(%d) is less than (twice RF switching time + channel max time)(%d)",
+                "%s: Invalid config, Home away time(%d) is less than (twice RF switching time + channel max time)(%d)"
                 " Hence enforcing home away time to disable (0)",
                 __func__, pHddCtx->cfg_ini->nRoamScanHomeAwayTime, (scanChannelMaxTime + (2 * HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME)));
          pHddCtx->cfg_ini->nRoamScanHomeAwayTime = 0;
@@ -200,7 +225,7 @@ static void cbNotifySetNeighborScanMaxChanTime(hdd_context_t *pHddCtx, unsigned 
     if (homeAwayTime < (pHddCtx->cfg_ini->nNeighborScanMaxChanTime + (2 * HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME)))
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-               "%s: Invalid config, Home away time(%d) is less than (twice RF switching time + channel max time)(%d)",
+               "%s: Invalid config, Home away time(%d) is less than (twice RF switching time + channel max time)(%d)"
                " Hence enforcing home away time to disable (0)",
                __func__, homeAwayTime, (pHddCtx->cfg_ini->nNeighborScanMaxChanTime + (2 * HDD_ROAM_SCAN_CHANNEL_SWITCH_TIME)));
         homeAwayTime = 0;
@@ -1120,6 +1145,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                          CFG_IMMEDIATE_ROAM_RSSI_DIFF_MAX,
                          cbNotifySetImmediateRoamRssiDiff, 0),
 
+   REG_DYNAMIC_VARIABLE( CFG_ENABLE_WES_MODE_NAME, WLAN_PARAM_Integer,
+                         hdd_config_t, isWESModeEnabled,
+                         VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                         CFG_ENABLE_WES_MODE_NAME_DEFAULT,
+                         CFG_ENABLE_WES_MODE_NAME_MIN,
+                         CFG_ENABLE_WES_MODE_NAME_MAX,
+                         cbNotifySetWESMode, 0),
 #endif
 #ifdef FEATURE_WLAN_OKC
    REG_DYNAMIC_VARIABLE( CFG_OKC_FEATURE_ENABLED_NAME, WLAN_PARAM_Integer,
@@ -2744,6 +2776,13 @@ REG_VARIABLE( CFG_TDLS_PUAPSD_RX_FRAME_THRESHOLD, WLAN_PARAM_Integer,
                  CFG_AMSDU_SUPPORT_IN_AMPDU_MIN,
                  CFG_AMSDU_SUPPORT_IN_AMPDU_MAX ),
 
+   REG_VARIABLE( CFG_STRICT_5GHZ_PREF_BY_MARGIN , WLAN_PARAM_Integer,
+                 hdd_config_t, nSelect5GHzMargin,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_STRICT_5GHZ_PREF_BY_MARGIN_DEFAULT,
+                 CFG_STRICT_5GHZ_PREF_BY_MARGIN_MIN,
+                 CFG_STRICT_5GHZ_PREF_BY_MARGIN_MAX ),
+
 };
 
 /*
@@ -3036,6 +3075,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RoamRssiDiff] Value = [%lu] ",pHddCtx->cfg_ini->RoamRssiDiff);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ImmediateRoamRssiDiff] Value = [%lu] ",pHddCtx->cfg_ini->nImmediateRoamRssiDiff);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [isWESModeEnabled] Value = [%lu] ",pHddCtx->cfg_ini->isWESModeEnabled);
 #endif
 #ifdef FEATURE_WLAN_OKC
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [OkcEnabled] Value = [%lu] ",pHddCtx->cfg_ini->isOkcIniFeatureEnabled);
@@ -3133,6 +3173,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gGoKeepAlivePeriod] Value = [%u]",pHddCtx->cfg_ini->goKeepAlivePeriod);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApKeepAlivePeriod]Value = [%u]",pHddCtx->cfg_ini->apKeepAlivePeriod);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAmsduSupportInAMPDU] Value = [%lu] ",pHddCtx->cfg_ini->isAmsduSupportInAMPDU);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nSelect5GHzMargin] Value = [%lu] ",pHddCtx->cfg_ini->nSelect5GHzMargin);
 
 }
 
@@ -3317,7 +3358,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
          // If successfully read from the registry, use the value read.
          // If not, use the default value.
          if ( match_status == VOS_STATUS_SUCCESS && (WLAN_PARAM_Integer == pRegEntry->RegType)) {
-            rv = kstrtoul(value_str, 10, &value);
+            rv = kstrtou32(value_str, 10, &value);
             if (rv < 0) {
                 hddLog(LOGE, "%s: Reg Parameter %s invalid. Enforcing default",
                        __func__, pRegEntry->RegName);
@@ -3325,7 +3366,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             }
          }
          else if ( match_status == VOS_STATUS_SUCCESS && (WLAN_PARAM_HexInteger == pRegEntry->RegType)) {
-            rv = kstrtoul(value_str, 16, &value);
+            rv = kstrtou32(value_str, 16, &value);
             if (rv < 0) {
                 hddLog(LOGE, "%s: Reg paramter %s invalid. Enforcing default",
                        __func__, pRegEntry->RegName);
@@ -3380,7 +3421,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
          // If not, use the default value.
          if (VOS_STATUS_SUCCESS == match_status)
          {
-            rv = kstrtol(value_str, 10, &svalue);
+            rv = kstrtos32(value_str, 10, &svalue);
             if (rv < 0) {
                 hddLog(VOS_TRACE_LEVEL_WARN, "%s: Reg Parameter %s invalid. Enforcing Default",
                        __func__, pRegEntry->RegName);
@@ -4480,8 +4521,13 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #endif
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
    smeConfig.csrConfig.isFastTransitionEnabled = pConfig->isFastTransitionEnabled;
+   if (pConfig->nSelect5GHzMargin)
+   {
+       pConfig->RoamRssiDiff = 0;
+   }
    smeConfig.csrConfig.RoamRssiDiff = pConfig->RoamRssiDiff;
    smeConfig.csrConfig.nImmediateRoamRssiDiff = pConfig->nImmediateRoamRssiDiff;
+   smeConfig.csrConfig.isWESModeEnabled = pConfig->isWESModeEnabled;
 #endif
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
    smeConfig.csrConfig.isRoamOffloadScanEnabled = pConfig->isRoamOffloadScanEnabled;
@@ -4521,6 +4567,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.enableTxLdpc = pConfig->enableTxLdpc;
 
    smeConfig.csrConfig.isAmsduSupportInAMPDU = pConfig->isAmsduSupportInAMPDU;
+   smeConfig.csrConfig.nSelect5GHzMargin = pConfig->nSelect5GHzMargin;
 
    /* update SSR config */
    sme_UpdateEnableSSR((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->enableSSR);
@@ -4660,7 +4707,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
    switch (pRegEntry->RegType)
    {
    case WLAN_PARAM_Integer:
-      rv = kstrtoul(value_str, 10, &value);
+      rv = kstrtou32(value_str, 10, &value);
       if (rv < 0)
           goto done;
       if (value < pRegEntry->VarMin)
@@ -4681,7 +4728,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
       break;
 
    case WLAN_PARAM_HexInteger:
-      rv = kstrtoul(value_str, 16, &value);
+      rv = kstrtou32(value_str, 16, &value);
       if (rv < 0)
          goto done;
       if (value < pRegEntry->VarMin)
@@ -4702,7 +4749,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
       break;
 
    case WLAN_PARAM_SignedInteger:
-      rv = kstrtol(value_str, 10, &svalue);
+      rv = kstrtos32(value_str, 10, &svalue);
       if (rv < 0)
          goto done;
       if (svalue < (v_S31_t)pRegEntry->VarMin)

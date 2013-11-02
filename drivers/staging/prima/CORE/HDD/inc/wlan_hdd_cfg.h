@@ -825,6 +825,12 @@ typedef enum
 #define CFG_IMMEDIATE_ROAM_RSSI_DIFF_MAX                    (125)
 #define CFG_IMMEDIATE_ROAM_RSSI_DIFF_DEFAULT                (0)
 
+/*This parameter is used to set Wireless Extended Security Mode.*/
+#define CFG_ENABLE_WES_MODE_NAME                            "gWESModeEnabled"
+#define CFG_ENABLE_WES_MODE_NAME_MIN                        (0)
+#define CFG_ENABLE_WES_MODE_NAME_MAX                        (1)
+#define CFG_ENABLE_WES_MODE_NAME_DEFAULT                    (0)
+
 #define CFG_ROAM_SCAN_N_PROBES                             "gRoamScanNProbes"
 #define CFG_ROAM_SCAN_N_PROBES_MIN                          (1)
 #define CFG_ROAM_SCAN_N_PROBES_MAX                          (10)
@@ -1914,6 +1920,14 @@ typedef enum
 #define CFG_AMSDU_SUPPORT_IN_AMPDU_MAX                 (1)
 #define CFG_AMSDU_SUPPORT_IN_AMPDU_DEFAULT             (0) //disabled
 
+/* Prefer connecting to 5G AP even if its RSSI is lower by
+ gSelect5GHzMargin dBm than 2.4G AP.
+This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
+#define CFG_STRICT_5GHZ_PREF_BY_MARGIN                 "gSelect5GHzMargin"
+#define CFG_STRICT_5GHZ_PREF_BY_MARGIN_MIN             (0)
+#define CFG_STRICT_5GHZ_PREF_BY_MARGIN_MAX             (60)
+#define CFG_STRICT_5GHZ_PREF_BY_MARGIN_DEFAULT         (0) //set 0 to disable
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2116,6 +2130,7 @@ typedef struct
    v_BOOL_t                     isFastTransitionEnabled;
    v_U8_t                       RoamRssiDiff;
    v_U8_t                       nImmediateRoamRssiDiff;
+   v_BOOL_t                     isWESModeEnabled;
 #endif
 #ifdef FEATURE_WLAN_OKC
    v_BOOL_t                     isOkcIniFeatureEnabled;
@@ -2313,6 +2328,7 @@ typedef struct
    v_U32_t                     configPNOScanTimerRepeatValue;
 #endif
    v_U8_t                      isAmsduSupportInAMPDU;
+   v_U8_t                      nSelect5GHzMargin;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
