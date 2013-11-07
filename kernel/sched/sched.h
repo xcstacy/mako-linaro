@@ -846,7 +846,6 @@ enum cpuacct_stat_index {
 	CPUACCT_STAT_NSTATS,
 };
 
-
 #define sched_class_highest (&stop_sched_class)
 #define for_each_class(class) \
    for (class = sched_class_highest; class; class = class->next)
