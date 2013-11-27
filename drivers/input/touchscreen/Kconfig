@@ -994,5 +994,10 @@ config TOUCHSCREEN_PREVENT_SLEEP
 	help
 	  This disables the sleep function of modified touchscreen drivers.
 
+config VERTICAL_S2W
+	tristate "Sweep2Wake for touchscreens"
+	select TOUCHSCREEN_PREVENT_SLEEP
+	default n
+
 endif
 

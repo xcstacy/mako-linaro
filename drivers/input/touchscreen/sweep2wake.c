@@ -60,14 +60,13 @@ MODULE_LICENSE("GPLv2");
 #define S2W_S2SONLY_DEFAULT	0
 #define S2W_PWRKEY_DUR          60
 
-#ifdef CONFIG_MACH_MSM8974_HAMMERHEAD
+#ifdef CONFIG_VERTICAL_S2W
 /* Hammerhead aka Nexus 5 */
-#define DEFAULT_S2W_Y_MAX               1920
-#define DEFAULT_S2W_X_MAX               1080
-#define DEFAULT_S2W_Y_LIMIT             DEFAULT_S2W_Y_MAX-130
-#define DEFAULT_S2W_X_B1                400
-#define DEFAULT_S2W_X_B2                700
-#define DEFAULT_S2W_X_FINAL             250
+#define DEFAULT_S2W_Y_LIMIT             2350
+#define DEFAULT_S2W_X_MAX               1540
+#define DEFAULT_S2W_X_B1                500
+#define DEFAULT_S2W_X_B2                1000
+#define DEFAULT_S2W_X_FINAL             300
 #else
 /* defaults */
 #define S2W_Y_LIMIT             2350
@@ -102,7 +101,7 @@ static int s2w_end_posn = (DEFAULT_S2W_X_MAX - DEFAULT_S2W_X_FINAL);
 static int s2w_threshold = DEFAULT_S2W_X_FINAL;
 //static int s2w_max_posn = DEFAULT_S2W_X_MAX;
 
-static int s2w_swap_coord = 0;
+static int s2w_swap_coord = 1;
 
 /* Read cmdline for s2w */
 static int __init read_s2w_cmdline(char *s2w)
