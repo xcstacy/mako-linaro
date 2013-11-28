@@ -388,8 +388,8 @@
 		CALL(sys_process_vm_readv)
 		CALL(sys_process_vm_writev)
 		CALL(sys_sched_setscheduler2)
-		CALL(sys_sched_setparam2)
-/* 380 */	CALL(sys_sched_getparam2)
+		CALL(sys_sched_setattr)
+/* 380 */	CALL(sys_sched_getattr)
 #ifndef syscalls_counted
 .equ syscalls_padding, ((NR_syscalls + 3) & ~3) - NR_syscalls
 #define syscalls_counted
