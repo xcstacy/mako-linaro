@@ -1146,7 +1146,7 @@ retry_private:
 		}
 		ret += op_ret;
 	}
-
+out_unlock:
 	double_unlock_hb(hb1, hb2);
 out_put_keys:
 	put_futex_key(&key2);
