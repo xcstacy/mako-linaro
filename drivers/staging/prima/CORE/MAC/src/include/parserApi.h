@@ -63,6 +63,9 @@
 #define MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE (COUNTRY_STRING_LENGTH * COUNTRY_INFO_MAX_CHANNEL)
 #define HIGHEST_24GHZ_CHANNEL_NUM  ( 14 )
 
+#define IS_24G_CH(__chNum) ((__chNum > 0) && (__chNum < 14))
+#define IS_5G_CH(__chNum) ((__chNum >= 36) && (__chNum <= 165))
+
 typedef struct sSirCountryInformation
 {
     tANI_U8 countryString[COUNTRY_STRING_LENGTH];
@@ -705,7 +708,16 @@ void PopulateDot11fWMM(tpAniSirGlobal      pMac,
 
 void PopulateDot11fWMMCaps(tDot11fIEWMMCaps *pCaps);
 
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX)
+// Fill the CCX version IE
+void PopulateDot11fCCXVersion(tDot11fIECCXVersion *pCCXVersion);
+// Fill the Radio Management Capability
+void PopulateDot11fCCXRadMgmtCap(tDot11fIECCXRadMgmtCap *pCCXRadMgmtCap);
+// Fill the CCKM IE
+tSirRetStatus PopulateDot11fCCXCckmOpaque( tpAniSirGlobal pMac,
+                                           tpSirCCKMie    pCCKMie,
+                                           tDot11fIECCXCckmOpaque *pDot11f );
+
 void PopulateDot11TSRSIE(tpAniSirGlobal  pMac,
                                tSirMacCCXTSRSIE     *pOld,
                                tDot11fIECCXTrafStrmRateSet  *pDot11f,

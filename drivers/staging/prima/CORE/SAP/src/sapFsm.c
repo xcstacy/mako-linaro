@@ -513,11 +513,7 @@ sapSignalHDDevent
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
     /* Format the Start BSS Complete event to return... */
-    if (NULL == sapContext->pfnSapEventCallback)
-    {
-        VOS_ASSERT(0);
-        return VOS_STATUS_E_FAILURE;
-    }
+    VOS_ASSERT(sapContext->pfnSapEventCallback);
 
     switch (sapHddevent)
     {
@@ -1084,6 +1080,38 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     return eSAP_STATUS_SUCCESS; /* Success.  */
 }
 
+/**
+ * FUNCTION: sapConvertSapPhyModeToCsrPhyMode
+ * Called internally by SAP
+ */
+eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode )
+{
+    switch (sapPhyMode)
+    {
+      case (eSAP_DOT11_MODE_abg):
+         return eCSR_DOT11_MODE_abg;
+      case (eSAP_DOT11_MODE_11b):
+         return eCSR_DOT11_MODE_11b;
+      case (eSAP_DOT11_MODE_11g):
+         return eCSR_DOT11_MODE_11g;
+      case (eSAP_DOT11_MODE_11n):
+         return eCSR_DOT11_MODE_11n;
+      case (eSAP_DOT11_MODE_11g_ONLY):
+         return eCSR_DOT11_MODE_11g_ONLY;
+      case (eSAP_DOT11_MODE_11n_ONLY):
+         return eCSR_DOT11_MODE_11n_ONLY;
+      case (eSAP_DOT11_MODE_11b_ONLY):
+         return eCSR_DOT11_MODE_11b_ONLY;
+#ifdef WLAN_FEATURE_11AC
+      case (eSAP_DOT11_MODE_11ac_ONLY):
+         return eCSR_DOT11_MODE_11ac_ONLY;
+      case (eSAP_DOT11_MODE_11ac):
+         return eCSR_DOT11_MODE_11ac;
+#endif
+      default:
+         return eCSR_DOT11_MODE_AUTO;
+    }
+}
 
 void sapFreeRoamProfile(tCsrRoamProfile *profile)
 {
@@ -1204,14 +1232,15 @@ sapRemoveMacFromACL(v_MACADDR_t *macList, v_U8_t *size, v_U8_t index)
 void sapPrintACL(v_MACADDR_t *macList, v_U8_t size)
 {
     int i;
+    v_BYTE_t *macArray;
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"print acl entered");
     if (size==0) return;
     for (i=0; i<size; i++)
     {
+        macArray = (macList+i)->bytes;
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                "** ACL entry %i - %02x:%02x:%02x:%02x:%02x:%02x", i,
-                (macList+i)->bytes[0], (macList+i)->bytes[1], (macList+i)->bytes[2],
-                (macList+i)->bytes[3], (macList+i)->bytes[4], (macList+i)->bytes[5]);
+                "** ACL entry %i - "MAC_ADDRESS_STR, i,
+                MAC_ADDR_ARRAY(macArray));
     }
     return;
 }
@@ -1227,8 +1256,9 @@ sapIsPeerMacAllowed(ptSapContext sapContext, v_U8_t *peerMac)
 
     if (sapSearchMacList(sapContext->denyMacList, sapContext->nDenyMac, peerMac, NULL))
     {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Peer %02x:%02x:%02x:%02x:%02x:%02x in deny list",
-                __func__, *peerMac, *(peerMac + 1), *(peerMac + 2), *(peerMac + 3), *(peerMac + 4), *(peerMac + 5));
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                  "In %s, Peer "MAC_ADDRESS_STR" in deny list",
+                  __func__, MAC_ADDR_ARRAY(peerMac));
         return VOS_STATUS_E_FAILURE;
     }
 
@@ -1239,8 +1269,9 @@ sapIsPeerMacAllowed(ptSapContext sapContext, v_U8_t *peerMac)
     // A new station CANNOT associate, unless in accept list. More stringent mode
     if (eSAP_DENY_UNLESS_ACCEPTED == sapContext->eSapMacAddrAclMode)
     {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Peer %02x:%02x:%02x:%02x:%02x:%02x denied, Mac filter mode is eSAP_DENY_UNLESS_ACCEPTED",
-                __func__,  *peerMac, *(peerMac + 1), *(peerMac + 2), *(peerMac + 3), *(peerMac + 4), *(peerMac + 5));
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                  "In %s, Peer "MAC_ADDRESS_STR" denied, Mac filter mode is eSAP_DENY_UNLESS_ACCEPTED",
+                  __func__,  MAC_ADDR_ARRAY(peerMac));
         return VOS_STATUS_E_FAILURE;
     }
 
@@ -1250,8 +1281,9 @@ sapIsPeerMacAllowed(ptSapContext sapContext, v_U8_t *peerMac)
     if (eSAP_SUPPORT_ACCEPT_AND_DENY == sapContext->eSapMacAddrAclMode)
     {
         sapSignalHDDevent(sapContext, NULL, eSAP_UNKNOWN_STA_JOIN, (v_PVOID_t)peerMac);
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Peer %02x:%02x:%02x:%02x:%02x:%02x denied, Mac filter mode is eSAP_SUPPORT_ACCEPT_AND_DENY",
-                __func__,  *peerMac, *(peerMac + 1), *(peerMac + 2), *(peerMac + 3), *(peerMac + 4), *(peerMac + 5));
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                  "In %s, Peer "MAC_ADDRESS_STR" denied, Mac filter mode is eSAP_SUPPORT_ACCEPT_AND_DENY",
+                  __func__, MAC_ADDR_ARRAY(peerMac));
         return VOS_STATUS_E_FAILURE;
     }
     return VOS_STATUS_SUCCESS;

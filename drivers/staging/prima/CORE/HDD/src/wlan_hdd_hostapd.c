@@ -91,6 +91,8 @@
 #include "wlan_btc_svc.h"
 #include <bap_hdd_main.h>
 #include "wlan_hdd_p2p.h"
+#include "cfgApi.h"
+#include "wniCfgAp.h"
 
 #define    IS_UP(_dev) \
     (((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
@@ -104,13 +106,8 @@
  */
 #define WE_SAP_MAX_STA_INFO 0x7FF
 
-struct statsContext
-{
-   struct completion completion;
-   hdd_adapter_t *pAdapter;
-   unsigned int magic;
-};
 #define SAP_24GHZ_CH_COUNT (14) 
+
 /*--------------------------------------------------------------------------- 
  *   Function definitions
  *-------------------------------------------------------------------------*/
@@ -238,7 +235,19 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
         goto exit;
     }
 
-    command = kmalloc(priv_data.total_len, GFP_KERNEL);
+    if (priv_data.total_len <= 0 ||
+        priv_data.total_len == INT_MAX)
+    {
+        /* below we allocate one more byte for command buffer.
+         * To avoid addition overflow total_len should be
+         * smaller than INT_MAX. */
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+           "%s: integer out of range\n", __func__);
+        ret = -EFAULT;
+        goto exit;
+    }
+
+    command = kmalloc((priv_data.total_len + 1), GFP_KERNEL);
     if (!command)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
@@ -252,6 +261,8 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
         ret = -EFAULT;
         goto exit;
     }
+
+    command[priv_data.total_len] = '\0';
 
     if ((SIOCDEVPRIVATE + 1) == cmd)
     {
@@ -460,6 +471,15 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
     dev = (struct net_device *)usrDataForCallback;
     pHostapdAdapter = netdev_priv(dev);
+
+    if ((NULL == pHostapdAdapter) ||
+        (WLAN_HDD_ADAPTER_MAGIC != pHostapdAdapter->magic))
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                "invalid adapter or adapter has invalid magic");
+        return eHAL_STATUS_FAILURE;
+    }
+
     pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter); 
     pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
     sapEvent = pSapEvent->sapHddEventCode;
@@ -469,7 +489,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     switch(sapEvent)
     {
         case eSAP_START_BSS_EVENT :
-            hddLog(LOG1, FL("BSS configured status = %s, channel = %lu, bc sta Id = %d\n"),
+            hddLog(LOG1, FL("BSS configured status = %s, channel = %u, bc sta Id = %d\n"),
                             pSapEvent->sapevt.sapStartBssCompleteEvent.status ? "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS",
                             pSapEvent->sapevt.sapStartBssCompleteEvent.operatingChannel,
                               pSapEvent->sapevt.sapStartBssCompleteEvent.staId);
@@ -673,7 +693,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             // Lets do abort scan to ensure smooth authentication for client
             if ((pScanInfo != NULL) && pScanInfo->mScanPending)
             {
-                hdd_abort_mac_scan(pHddCtx);
+                hdd_abort_mac_scan(pHddCtx, pHostapdAdapter->sessionId);
             }
 
             break;
@@ -980,6 +1000,7 @@ int hdd_softap_unpackIE(
     }
     return VOS_STATUS_SUCCESS;
 }
+
 int
 static iw_softap_setparam(struct net_device *dev, 
                           struct iw_request_info *info,
@@ -1052,6 +1073,39 @@ static iw_softap_setparam(struct net_device *dev,
                             "%s: QCSAP_PARAM_HIDE_SSID failed",
                             __func__);
                     return status;
+                }
+                break;
+            }
+
+        case QCSAP_PARAM_SET_MC_RATE:
+            {
+                tSirRateUpdateInd *rateUpdate;
+
+                rateUpdate = (tSirRateUpdateInd *)
+                             vos_mem_malloc(sizeof(tSirRateUpdateInd));
+                if (NULL == rateUpdate)
+                {
+                   hddLog(VOS_TRACE_LEVEL_ERROR,
+                          "%s: SET_MC_RATE indication alloc fail", __func__);
+                   ret = -1;
+                   break;
+                }
+                vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd ));
+
+                hddLog(VOS_TRACE_LEVEL_INFO, "MC Target rate %d", set_value);
+                /* Ignore unicast */
+                rateUpdate->ucastDataRate = -1;
+                rateUpdate->mcastDataRate24GHz = set_value;
+                rateUpdate->mcastDataRate5GHz = set_value;
+                rateUpdate->mcastDataRate24GHzTxFlag = 0;
+                rateUpdate->mcastDataRate5GHzTxFlag = 0;
+                status = sme_SendRateUpdateInd(hHal, rateUpdate);
+                if (eHAL_STATUS_SUCCESS != status)
+                {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                            "%s: SET_MC_RATE failed", __func__);
+                    vos_mem_free(rateUpdate);
+                    ret = -1;
                 }
                 break;
             }
@@ -1174,9 +1228,8 @@ int iw_softap_modify_acl(struct net_device *dev, struct iw_request_info *info,
     i++;
     cmd = (int)(*(value+i));
 
-    hddLog(LOG1, "%s: SAP Modify ACL arg0 %02x:%02x:%02x:%02x:%02x:%02x arg1 %d arg2 %d\n",
-            __func__, pPeerStaMac[0], pPeerStaMac[1], pPeerStaMac[2], 
-            pPeerStaMac[3], pPeerStaMac[4], pPeerStaMac[5], listType, cmd);
+    hddLog(LOG1, "%s: SAP Modify ACL arg0 " MAC_ADDRESS_STR " arg1 %d arg2 %d",
+            __func__, MAC_ADDR_ARRAY(pPeerStaMac), listType, cmd);
 
     if (WLANSAP_ModifyACL(pVosContext, pPeerStaMac,(eSapACLType)listType,(eSapACLCmdType)cmd)
             != VOS_STATUS_SUCCESS)
@@ -1215,6 +1268,12 @@ static iw_softap_set_max_tx_power(struct net_device *dev,
 
     if (NULL == value)
         return -ENOMEM;
+
+    /* Assign correct slef MAC address */
+    vos_mem_copy(bssid, pHostapdAdapter->macAddressCurrent.bytes,
+                 VOS_MAC_ADDR_SIZE);
+    vos_mem_copy(selfMac, pHostapdAdapter->macAddressCurrent.bytes,
+                 VOS_MAC_ADDR_SIZE);
 
     set_value = value[0];
     if (eHAL_STATUS_SUCCESS != sme_SetMaxTxPower(hHal, bssid, selfMac, set_value))
@@ -1276,6 +1335,78 @@ static iw_softap_set_tx_power(struct net_device *dev,
         return -EIO;
     }
 
+    return 0;
+}
+
+/**---------------------------------------------------------------------------
+
+  \brief iw_softap_set_trafficmonitor() -
+   This function dynamically enable/disable traffic monitor functonality
+   the command iwpriv wlanX setTrafficMon <value>.
+
+  \param  - dev - Pointer to the net device.
+              - addr - Pointer to the sockaddr.
+  \return - 0 for success, non zero for failure
+
+  --------------------------------------------------------------------------*/
+
+static int iw_softap_set_trafficmonitor(struct net_device *dev,
+        struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    int *isSetTrafficMon = (int *)wrqu->data.pointer;
+    hdd_context_t *pHddCtx;
+    int status;
+
+    if (NULL == pAdapter)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD adapter is Null", __func__);
+        return -ENODEV;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    status = wlan_hdd_validate_context(pHddCtx);
+
+    if (0 != status)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid", __func__);
+        return status;
+    }
+
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s : ", __func__);
+
+    if (NULL == isSetTrafficMon)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid SAP pointer from extra", __func__);
+        return -ENOMEM;
+    }
+
+    if (TRUE == *isSetTrafficMon)
+    {
+        pHddCtx->cfg_ini->enableTrafficMonitor= TRUE;
+        if (VOS_STATUS_SUCCESS != hdd_start_trafficMonitor(pAdapter))
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                       "%s: failed to Start Traffic Monitor timer ", __func__ );
+            return -EIO;
+        }
+    }
+    else if (FALSE == *isSetTrafficMon)
+    {
+        pHddCtx->cfg_ini->enableTrafficMonitor= FALSE;
+        if (VOS_STATUS_SUCCESS != hdd_stop_trafficMonitor(pAdapter))
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                       "%s: failed to Stop Traffic Monitor timer ", __func__ );
+            return -EIO;
+        }
+
+    }
     return 0;
 }
 
@@ -1345,9 +1476,8 @@ static iw_softap_disassoc_sta(struct net_device *dev,
      */
     peerMacAddr = (v_U8_t *)(extra);
 
-    hddLog(LOG1, "data %02x:%02x:%02x:%02x:%02x:%02x",
-            peerMacAddr[0], peerMacAddr[1], peerMacAddr[2],
-            peerMacAddr[3], peerMacAddr[4], peerMacAddr[5]);
+    hddLog(LOG1, "%s data "  MAC_ADDRESS_STR,
+           __func__, MAC_ADDR_ARRAY(peerMacAddr));
     hdd_softap_sta_disassoc(pHostapdAdapter, peerMacAddr);
     EXIT();
     return 0;
@@ -1366,7 +1496,7 @@ static iw_softap_ap_stats(struct net_device *dev,
 
     WLANSAP_GetStatistics((WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext, &statBuffer, (v_BOOL_t)wrqu->data.flags);
 
-    len = snprintf(pstatbuf, len,
+    len = scnprintf(pstatbuf, len,
             "RUF=%d RMF=%d RBF=%d "
             "RUB=%d RMB=%d RBB=%d "
             "TUF=%d TMF=%d TBF=%d "
@@ -2131,6 +2261,18 @@ static int iw_get_ap_freq(struct net_device *dev, struct iw_request_info *info,
    return 0;
 }
 
+static int iw_get_mode(struct net_device *dev,
+        struct iw_request_info *info,
+        union iwreq_data *wrqu,
+        char *extra)
+{
+    int status = 0;
+
+    wrqu->mode = IW_MODE_MASTER;
+
+    return status;
+}
+
 static int iw_softap_setwpsie(struct net_device *dev,
         struct iw_request_info *info,
         union iwreq_data *wrqu, 
@@ -2485,7 +2627,7 @@ VOS_STATUS hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int bu
     int len = 0;
     const char sta_info_header[] = "staId staAddress\n";
 
-    len = snprintf(pBuf, buf_len, sta_info_header);
+    len = scnprintf(pBuf, buf_len, sta_info_header);
     pBuf += len;
     buf_len -= len;
 
@@ -2493,7 +2635,7 @@ VOS_STATUS hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int bu
     {
         if(pAdapter->aStaInfo[i].isUsed)
         {
-            len = snprintf(pBuf, buf_len, "%*d .%02x:%02x:%02x:%02x:%02x:%02x\n",
+            len = scnprintf(pBuf, buf_len, "%*d .%02x:%02x:%02x:%02x:%02x:%02x\n",
                                        strlen("staId"),
                                        pAdapter->aStaInfo[i].ucSTAId,
                                        pAdapter->aStaInfo[i].macAddrSTA.bytes[0],
@@ -2643,13 +2785,26 @@ int iw_get_softap_linkspeed(struct net_device *dev,
        return valid;
    }
 
-   if ( hdd_string_to_hex ((char *)wrqu->data.pointer, wrqu->data.length, macAddress ) )
+   hddLog(VOS_TRACE_LEVEL_INFO, "%s wrqu->data.length= %d\n", __func__, wrqu->data.length);
+   status = hdd_string_to_hex ((char *)wrqu->data.pointer, wrqu->data.length, macAddress );
+
+   if (!VOS_IS_STATUS_SUCCESS(status ))
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL, FL("ERROR: Command not found"));
-      return -EINVAL;
+      hddLog(VOS_TRACE_LEVEL_ERROR, FL("String to Hex conversion Failed"));
    }
 
-   status = hdd_softap_GetStaId(pHostapdAdapter, (v_MACADDR_t *)macAddress, (void *)(&staId));
+   /* If no mac address is passed and/or its length is less than 17,
+    * link speed for first connected client will be returned.
+    */
+   if (!VOS_IS_STATUS_SUCCESS(status ) || wrqu->data.length < 17)
+   {
+      status = hdd_softap_GetConnectedStaId(pHostapdAdapter, (void *)(&staId));
+   }
+   else
+   {
+      status = hdd_softap_GetStaId(pHostapdAdapter,
+                               (v_MACADDR_t *)macAddress, (void *)(&staId));
+   }
 
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
@@ -2683,7 +2838,7 @@ int iw_get_softap_linkspeed(struct net_device *dev,
    }
 
    wrqu->data.length = len;
-   rc = snprintf(pLinkSpeed, len, "%lu", link_speed);
+   rc = snprintf(pLinkSpeed, len, "%u", link_speed);
 
    if ((rc < 0) || (rc >= len))
    {
@@ -2704,7 +2859,7 @@ static const iw_handler      hostapd_handler[] =
    (iw_handler) NULL,           /* SIOCSIWFREQ */
    (iw_handler) iw_get_ap_freq,    /* SIOCGIWFREQ */
    (iw_handler) NULL,           /* SIOCSIWMODE */
-   (iw_handler) NULL,           /* SIOCGIWMODE */
+   (iw_handler) iw_get_mode,    /* SIOCGIWMODE */
    (iw_handler) NULL,           /* SIOCSIWSENS */
    (iw_handler) NULL,           /* SIOCGIWSENS */
    (iw_handler) NULL,           /* SIOCSIWRANGE */
@@ -2767,6 +2922,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setMaxAssoc" },
    { QCSAP_PARAM_HIDE_SSID,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "hideSSID" },
+   { QCSAP_PARAM_SET_MC_RATE,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMcRate" },
   { QCSAP_IOCTL_GETPARAM,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
@@ -2872,8 +3029,17 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
         0,
         "setTxMaxPower" },
-    { QCSAP_IOCTL_DATAPATH_SNAP_SHOT,
-      IW_PRIV_TYPE_NONE | IW_PRIV_TYPE_NONE, 0, "dataSnapshot" },
+
+    {   QCSAP_IOCTL_DATAPATH_SNAP_SHOT,
+        IW_PRIV_TYPE_NONE | IW_PRIV_TYPE_NONE,
+        0,
+        "dataSnapshot" },
+
+    /* handlers for main ioctl */
+    {   QCSAP_IOCTL_SET_TRAFFIC_MONITOR,
+        IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setTrafficMon" },
 };
 
 static const iw_handler hostapd_private[] = {
@@ -2900,6 +3066,7 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_SET_TX_POWER - SIOCIWFIRSTPRIV]   = iw_softap_set_tx_power,
    [QCSAP_IOCTL_SET_MAX_TX_POWER - SIOCIWFIRSTPRIV]   = iw_softap_set_max_tx_power,
    [QCSAP_IOCTL_DATAPATH_SNAP_SHOT - SIOCIWFIRSTPRIV]  =   iw_display_data_path_snapshot,
+   [QCSAP_IOCTL_SET_TRAFFIC_MONITOR - SIOCIWFIRSTPRIV]  =  iw_softap_set_trafficmonitor,
 };
 const struct iw_handler_def hostapd_handler_def = {
    .num_standard     = sizeof(hostapd_handler) / sizeof(hostapd_handler[0]),
@@ -2955,9 +3122,9 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     ENTER();
        // Allocate the Wireless Extensions state structure   
     phostapdBuf = WLAN_HDD_GET_HOSTAP_STATE_PTR( pAdapter );
-
-    sme_SetCurrDeviceMode(pHddCtx->hHal, pAdapter->device_mode);
  
+    sme_SetCurrDeviceMode(pHddCtx->hHal, pAdapter->device_mode);
+
     // Zero the memory.  This zeros the profile structure.
     memset(phostapdBuf, 0,sizeof(hdd_hostapd_state_t));
     
@@ -2990,8 +3157,24 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     {
        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_softap_init_tx_rx failed", __func__);
     }
-    
+
+    status = hdd_wmm_adapter_init( pAdapter );
+    if (!VOS_IS_STATUS_SUCCESS(status))
+    {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+             "hdd_wmm_adapter_init() failed with status code %08d [x%08x]",
+                             status, status );
+       goto error_wmm_init;
+    }
+
+    set_bit(WMM_INIT_DONE, &pAdapter->event_flags);
+
     wlan_hdd_set_monitor_tx_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
+
+    return status;
+
+error_wmm_init:
+    hdd_softap_deinit_tx_rx( pAdapter );
     EXIT();
     return status;
 }
