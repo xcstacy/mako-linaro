@@ -48,6 +48,7 @@
 #include <linux/input/pmic8xxx-pwrkey.h>
 #endif
 
+bool prevent_sleep;
 struct touch_device_driver*     touch_device_func;
 struct workqueue_struct*        touch_wq;
 
@@ -2074,9 +2075,6 @@ static void touch_early_suspend(struct early_suspend *h)
 	struct lge_touch_data *ts =
 			container_of(h, struct lge_touch_data, early_suspend);
 #ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE) || defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
-        bool prevent_sleep = false;
-#endif
 #if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
         prevent_sleep = (s2w_switch == 1);
 #endif
@@ -2128,7 +2126,7 @@ static void touch_late_resume(struct early_suspend *h)
 			container_of(h, struct lge_touch_data, early_suspend);
 #ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
 #if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE) || defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
-        bool prevent_sleep = false;
+        prevent_sleep = false;
 #endif
 #if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
         prevent_sleep = (s2w_switch == 1);
