@@ -169,11 +169,10 @@ static void detect_sweep2wake(int sweep_coord, int sweep_height, bool st)
 		sweep_coord = swap_temp2;
 	}
 
+	// vs2w related
+	#ifdef CONFIG_VERTICAL_S2W
 	//left->right
 	if ((single_touch) && (scr_suspended == true) && (s2w_switch == 1)) {
-		prevx = 0;
-		nextx = S2W_X_B1;
-	// vs2w related
 		prev_coord = 0;
 		next_coord = s2w_start_posn;
 		if ((barrier[0] == true) ||
@@ -198,6 +197,7 @@ static void detect_sweep2wake(int sweep_coord, int sweep_height, bool st)
 				}
 			}
 		}
+
 	//power off
 	} else if ((single_touch) && (scr_suspended == false) && (s2w_switch > 0)) {
 		if (s2w_swap_coord == 1) {
@@ -373,7 +373,69 @@ static struct attribute_group s2w_parameters_attr_group =
 
 static struct kobject *s2w_parameters_kobj;
 /****************** SYSFS INTERFACE (END) ********************/
-
+#else
+        //left->right
+        if ((single_touch) && (scr_suspended == true) && (s2w_switch == 1)) {
+                prevx = 0;
+                nextx = S2W_X_B1;
+                if ((barrier[0] == true) ||
+                   ((x > prevx) &&
+                    (x < nextx) &&
+                    (y > 0))) {
+                        prevx = nextx;
+                        nextx = S2W_X_B2;
+                        barrier[0] = true;
+                        if ((barrier[1] == true) ||
+                           ((x > prevx) &&
+                            (x < nextx) &&
+                            (y > 0))) {
+                                prevx = nextx;
+                                barrier[1] = true;
+                                if ((x > prevx) &&
+                                    (y > 0)) {
+                                        if (x > (S2W_X_MAX - S2W_X_FINAL)) {
+                                                if (exec_count) {
+                                                        pr_info(LOGTAG"ON\n");
+                                                        sweep2wake_pwrtrigger();
+                                                        exec_count = false;
+                                                }
+                                        }
+                                }
+                        }
+                }
+        //right->left
+        } else if ((single_touch) && (scr_suspended == false) && (s2w_switch > 0)) {
+                scr_on_touch=true;
+                prevx = (S2W_X_MAX - S2W_X_FINAL);
+                nextx = S2W_X_B2;
+                if ((barrier[0] == true) ||
+                   ((x < prevx) &&
+                    (x > nextx) &&
+                    (y > S2W_Y_LIMIT))) {
+                        prevx = nextx;
+                        nextx = S2W_X_B1;
+                        barrier[0] = true;
+                        if ((barrier[1] == true) ||
+                           ((x < prevx) &&
+                            (x > nextx) &&
+                            (y > S2W_Y_LIMIT))) {
+                                prevx = nextx;
+                                barrier[1] = true;
+                                if ((x < prevx) &&
+                                    (y > S2W_Y_LIMIT)) {
+                                        if (x < S2W_X_FINAL) {
+                                                if (exec_count) {
+                                                        pr_info(LOGTAG"OFF\n");
+                                                        sweep2wake_pwrtrigger();
+                                                        exec_count = false;
+                                                }
+                                        }
+                                }
+                        }
+                }
+        }
+}
+#endif 
 
 static void s2w_input_callback(struct work_struct *unused) {
 
@@ -568,6 +630,7 @@ EXPORT_SYMBOL_GPL(android_touch_kobj);
 static int __init sweep2wake_init(void)
 {
 	int rc = 0;
+	#ifdef CONFIG_VERTICAL_S2W
 	int sysfs_result;
 
 	s2w_parameters_kobj = kobject_create_and_add("s2w_parameters", kernel_kobj);
@@ -582,7 +645,7 @@ static int __init sweep2wake_init(void)
 		pr_info("%s sysfs create failed!\n", __FUNCTION__);
 		kobject_put(s2w_parameters_kobj);
 	}
-
+    #endif
 	sweep2wake_pwrdev = input_allocate_device();
 	if (!sweep2wake_pwrdev) {
 		pr_err("Can't allocate suspend autotest power button\n");
