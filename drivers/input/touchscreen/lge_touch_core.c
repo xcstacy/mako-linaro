@@ -2151,7 +2151,9 @@ static void touch_late_resume(struct early_suspend *h)
 
 #ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
         if (!prevent_sleep) {
+#ifdef CONFIG_PWRKEY_SUSPEND
 		pwrkey_pressed = false;
+#endif		
 #endif
 	        touch_power_cntl(ts, ts->pdata->role->resume_pwr);
 
