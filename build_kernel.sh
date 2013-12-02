@@ -28,10 +28,32 @@ echo "${bldcya}***** Setting up Environment *****${txtrst}";
 echo "${bldcya}***** Generating Ramdisk *****${txtrst}"
 echo "0" > $TMPFILE;
 
-export ramdisk=$PARENT_DIR/hammerhead_initramfs_4.4;
-
 (
-./utilities/mkbootfs $ramdisk | gzip > ramdisk.gz
+# remove previous initramfs files
+if [ -d $INITRAMFS_TMP ]; then
+	echo "${bldcya}***** Removing old temp initramfs_source *****${txtrst}";
+	rm -rf $INITRAMFS_TMP;
+fi;
+
+	mkdir -p $INITRAMFS_TMP;
+	cp -ax $INITRAMFS_SOURCE/* $INITRAMFS_TMP;
+	# clear git repository from tmp-initramfs
+	if [ -d $INITRAMFS_TMP/.git ]; then
+		rm -rf $INITRAMFS_TMP/.git;
+	fi;
+	
+	# clear mercurial repository from tmp-initramfs
+	if [ -d $INITRAMFS_TMP/.hg ]; then
+		rm -rf $INITRAMFS_TMP/.hg;
+	fi;
+
+	# remove empty directory placeholders from tmp-initramfs
+	find $INITRAMFS_TMP -name EMPTY_DIRECTORY | parallel rm -rf {};
+
+	# remove more from from tmp-initramfs ...
+	rm -f $INITRAMFS_TMP/update* >> /dev/null;
+
+	./utilities/mkbootfs $INITRAMFS_TMP | gzip > ramdisk.gz
 
 	echo "1" > $TMPFILE;
 	echo "${bldcya}***** Ramdisk Generation Completed Successfully *****${txtrst}"
