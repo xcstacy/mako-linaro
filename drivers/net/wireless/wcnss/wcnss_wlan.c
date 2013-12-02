@@ -501,8 +501,7 @@ int wcnss_wlan_iris_xo_mode(void)
 }
 EXPORT_SYMBOL(wcnss_wlan_iris_xo_mode);
 
-
-static void wcnss_suspend_notify(void)
+void wcnss_suspend_notify(void)
 {
 	void __iomem *pmu_spare_reg;
 	u32 reg = 0;
@@ -518,7 +517,7 @@ static void wcnss_suspend_notify(void)
 	spin_unlock_irqrestore(&reg_spinlock, flags);
 }
 
-static void wcnss_resume_notify(void)
+void wcnss_resume_notify(void)
 {
 	void __iomem *pmu_spare_reg;
 	u32 reg = 0;

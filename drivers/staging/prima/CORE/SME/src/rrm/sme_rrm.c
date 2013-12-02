@@ -72,7 +72,7 @@
 
 #include "rrmGlobal.h"
 
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
 #include "csrCcx.h"
 #endif
 
@@ -159,7 +159,7 @@ void rrmIndicateNeighborReportResult(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
     /* Call the callback with the status received from caller */
     if (callback)
         callback(callbackContext, vosStatus);
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
     // We came here with IAPP AP List
     // Make sure we inform CSR of the neighbor list
     // for CCX Associations. First clear the cache.
@@ -186,7 +186,10 @@ void rrmIndicateNeighborReportResult(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
   \return - 0 for success, non zero for failure
   
   --------------------------------------------------------------------------*/
-static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac, tCsrScanResultInfo **pResultArr, tANI_U8 measurementDone )
+static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac,
+                                                  tCsrScanResultInfo **pResultArr,
+                                                  tANI_U8 measurementDone,
+                                                  tANI_U8 bss_count )
 {
    tpSirBssDescription pBssDesc = NULL;
    tpSirBeaconReportXmitInd pBeaconRep;
@@ -234,35 +237,57 @@ static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac, tCsrScanR
        while (pCurResult) 
        {
            pBssDesc = &pCurResult->BssDescriptor;
-           ie_len = GET_IE_LEN_IN_BSS( pBssDesc->length );
-           pBeaconRep->pBssDescription[msgCounter] = vos_mem_malloc ( ie_len+sizeof(tSirBssDescription) );
-           if (NULL == pBeaconRep->pBssDescription[msgCounter])
-               break;
-           vos_mem_copy( pBeaconRep->pBssDescription[msgCounter], pBssDesc, sizeof(tSirBssDescription) );
-           vos_mem_copy( &pBeaconRep->pBssDescription[msgCounter]->ieFields[0], pBssDesc->ieFields, ie_len  );
+           if(pBssDesc != NULL)
+           {
+               ie_len = GET_IE_LEN_IN_BSS( pBssDesc->length );
+               pBeaconRep->pBssDescription[msgCounter] = vos_mem_malloc (
+                                            ie_len+sizeof(tSirBssDescription));
+               if (NULL == pBeaconRep->pBssDescription[msgCounter])
+                   break;
+               vos_mem_copy( pBeaconRep->pBssDescription[msgCounter],
+                             pBssDesc,
+                             sizeof(tSirBssDescription) );
+               vos_mem_copy( &pBeaconRep->pBssDescription[msgCounter]->ieFields[0],
+                             pBssDesc->ieFields, ie_len  );
+               smsLog( pMac, LOG1,
+                   "...RRM Result Bssid = "MAC_ADDRESS_STR" chan= %d, rssi = -%d",
+                   MAC_ADDR_ARRAY(pBeaconRep->pBssDescription[msgCounter]->bssId),
+                   pBeaconRep->pBssDescription[msgCounter]->channelId,
+                   pBeaconRep->pBssDescription[msgCounter]->rssi * (-1));
 
-           pBeaconRep->numBssDesc++;
+               pBeaconRep->numBssDesc++;
 
-           if (++msgCounter >= SIR_BCN_REPORT_MAX_BSS_DESC)
-               break;
+               if (++msgCounter >= SIR_BCN_REPORT_MAX_BSS_DESC_PER_ACTION_FRAME)
+                   break;
 
-           if (csrRoamIs11rAssoc(pMac)) {
+               pCurResult = pResultArr[bssCounter + msgCounter];
+           }
+           else
+           {
+               pCurResult = NULL;
                break;
            }
-
-           pCurResult = pResultArr[msgCounter];
        }
 
        bssCounter+=msgCounter; 
-       if (!pResultArr || !pCurResult || (bssCounter>=SIR_BCN_REPORT_MAX_BSS_DESC))
-            pCurResult = NULL;
+       if (!pResultArr || (pCurResult == NULL) || (bssCounter >= bss_count))
+       {
+           pCurResult = NULL;
+           smsLog(pMac, LOG1,
+                  "Reached to the max/last BSS in pCurResult list");
+       }
        else
-            pCurResult = pResultArr[bssCounter];
+       {
+           pCurResult = pResultArr[bssCounter];
+           smsLog(pMac, LOG1,
+                  "Move to the next BSS set in pCurResult list");
+       }
 
        pBeaconRep->fMeasureDone = (pCurResult)?false:measurementDone;
 
-       smsLog(pMac, LOGW, "SME Sending BcnRepXmit to PE numBss %d",
-              pBeaconRep->numBssDesc);
+       smsLog(pMac, LOG1,
+              "SME Sending BcnRepXmit to PE numBss %d msgCounter %d bssCounter %d",
+              pBeaconRep->numBssDesc, msgCounter, bssCounter);
 
        status = palSendMBMessage(pMac->hHdd, pBeaconRep);
 
@@ -285,12 +310,15 @@ static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac, tCsrScanR
   \return - 0 for success, non zero for failure
   
   --------------------------------------------------------------------------*/
-static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac, tANI_U8 num_chan, tANI_U8* chanList, tANI_U8 measurementDone )
+static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
+                                         tANI_U8 num_chan,
+                                         tANI_U8* chanList,
+                                         tANI_U8 measurementDone )
 {
    tCsrScanResultFilter filter;
    tScanResultHandle pResult;
    tCsrScanResultInfo *pScanResult, *pNextResult;
-   tCsrScanResultInfo *pScanResultsArr[SIR_BCN_REPORT_MAX_BSS_DESC];
+   tCsrScanResultInfo *pScanResultsArr[SIR_BCN_REPORT_MAX_BSS_PER_CHANNEL];
    eHalStatus status;
    tANI_U8 counter=0;
    tpRrmSMEContext pSmeRrmContext = &pMac->rrm.rrmSmeContext;
@@ -301,7 +329,7 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac, tANI_U8 num_chan, 
 #endif
 
    vos_mem_zero( &filter, sizeof(filter) );
-   vos_mem_zero( pScanResultsArr, sizeof(pNextResult)*SIR_BCN_REPORT_MAX_BSS_DESC );
+   vos_mem_zero( pScanResultsArr, sizeof(pNextResult)*SIR_BCN_REPORT_MAX_BSS_PER_CHANNEL );
 
    filter.BSSIDs.numOfBSSIDs = 1;
    filter.BSSIDs.bssid = &pSmeRrmContext->bssId;
@@ -359,14 +387,14 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac, tANI_U8 num_chan, 
       // send a xmit indication with moreToFollow set to MEASURMENT_DONE
       // so that PE can clean any context allocated.
       if( measurementDone )
-         status = sme_RrmSendBeaconReportXmitInd( pMac, NULL, measurementDone );
+         status = sme_RrmSendBeaconReportXmitInd( pMac, NULL, measurementDone, 0 );
       return status;
    }
 
    pScanResult = sme_ScanResultGetFirst(pMac, pResult);
 
    if( NULL == pScanResult && measurementDone )
-      status = sme_RrmSendBeaconReportXmitInd( pMac, NULL, measurementDone );
+      status = sme_RrmSendBeaconReportXmitInd( pMac, NULL, measurementDone, 0 );
 
    counter=0;
    while (pScanResult)
@@ -374,13 +402,19 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac, tANI_U8 num_chan, 
       pNextResult = sme_ScanResultGetNext(pMac, pResult);
       pScanResultsArr[counter++] = pScanResult;
       pScanResult = pNextResult; //sme_ScanResultGetNext(hHal, pResult);
-      if (counter >= SIR_BCN_REPORT_MAX_BSS_DESC)
+      if (counter >= SIR_BCN_REPORT_MAX_BSS_PER_CHANNEL)
          break;
       }
 
    if (counter)
-       status = sme_RrmSendBeaconReportXmitInd( pMac, pScanResultsArr, measurementDone);
-
+   {
+       status = sme_RrmSendBeaconReportXmitInd( pMac,
+                                                pScanResultsArr,
+                                                measurementDone,
+                                                counter);
+       smsLog(pMac, LOG1, " Number of BSS Desc with RRM Scan %d ",
+              counter);
+   }
    sme_ScanResultPurge(pMac, pResult); 
 
    return status;
@@ -474,7 +508,7 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
    vos_mem_zero( &scanRequest, sizeof(scanRequest));
 
    /* set scanType, active or passive */
-
+   scanRequest.bcnRptReqScan = TRUE;
    scanRequest.scanType = pSmeRrmContext->measMode;
 
    vos_mem_copy(scanRequest.bssid,
@@ -668,7 +702,7 @@ void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
          /* Indicate measurement completion to PE */
          /* If this is not done, pCurrentReq pointer will not be freed and 
             PE will not handle subsequent Beacon requests */
-         sme_RrmSendBeaconReportXmitInd(pMac, NULL, true);
+         sme_RrmSendBeaconReportXmitInd(pMac, NULL, true, 0);
          break;
 
    }
@@ -939,13 +973,8 @@ eHalStatus sme_RrmProcessNeighborReport(tpAniSirGlobal pMac, void *pMsgBuf)
                                                 sizeof(tSirNeighborBssDescription));
 
 #if defined WLAN_VOWIFI_DEBUG
-       smsLog( pMac, LOGE, "Received neighbor report with Neighbor BSSID: %02x:%02x:%02x:%02x:%02x:%02x ",
-                    pNeighborRpt->sNeighborBssDescription[i].bssId[0], 
-                    pNeighborRpt->sNeighborBssDescription[i].bssId[1], 
-                    pNeighborRpt->sNeighborBssDescription[i].bssId[2], 
-                    pNeighborRpt->sNeighborBssDescription[i].bssId[3], 
-                    pNeighborRpt->sNeighborBssDescription[i].bssId[4], 
-                    pNeighborRpt->sNeighborBssDescription[i].bssId[5]);
+       smsLog( pMac, LOGE, "Received neighbor report with Neighbor BSSID: "MAC_ADDRESS_STR,
+                            MAC_ADDR_ARRAY(pNeighborRpt->sNeighborBssDescription[i].bssId));
 #endif
 
        /* Calculate the roam score based on the BSS Capability in the BSSID Information and store it in Neighbor report Desc */
@@ -958,13 +987,8 @@ eHalStatus sme_RrmProcessNeighborReport(tpAniSirGlobal pMac, void *pMsgBuf)
        }
        else
        {
-           smsLog(pMac, LOGE, FL("Roam score of BSSID  %02x:%02x:%02x:%02x:%02x:%02x is 0, Ignoring.."),
-                        pNeighborRpt->sNeighborBssDescription[i].bssId[0],
-                        pNeighborRpt->sNeighborBssDescription[i].bssId[1],
-                        pNeighborRpt->sNeighborBssDescription[i].bssId[2],
-                        pNeighborRpt->sNeighborBssDescription[i].bssId[3],
-                        pNeighborRpt->sNeighborBssDescription[i].bssId[4],
-                        pNeighborRpt->sNeighborBssDescription[i].bssId[5]);
+           smsLog(pMac, LOGE, FL("Roam score of BSSID  "MAC_ADDRESS_STR" is 0, Ignoring.."),
+                        MAC_ADDR_ARRAY(pNeighborRpt->sNeighborBssDescription[i].bssId));
 
            vos_mem_free(pNeighborReportDesc->pNeighborBssDescription);
            vos_mem_free(pNeighborReportDesc);
@@ -1311,7 +1335,7 @@ tRrmNeighborReportDesc* smeRrmGetNextBssEntryFromNeighborCache( tpAniSirGlobal p
    return pTempBssEntry;
 }
 
-#ifdef FEATURE_WLAN_CCX
+#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
 void csrCcxSendAdjacentApRepMsg(tpAniSirGlobal pMac, tCsrRoamSession *pSession)
 {
    tpSirAdjacentApRepInd pAdjRep;
