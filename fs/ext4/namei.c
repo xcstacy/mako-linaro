@@ -145,6 +145,14 @@ struct dx_map_entry
 	u16 size;
 };
 
+/*
+ * This goes at the end of each htree block.
+ */
+struct dx_tail {
+	u32 dt_reserved;
+	__le32 dt_checksum;	/* crc32c(uuid+inum+dirblock) */
+};
+
 static inline ext4_lblk_t dx_get_block(struct dx_entry *entry);
 static void dx_set_block(struct dx_entry *entry, ext4_lblk_t value);
 static inline unsigned dx_get_hash(struct dx_entry *entry);
@@ -1298,11 +1306,8 @@ static int add_dirent_to_buf(handle_t *handle, struct dentry *dentry,
 		de = de1;
 	}
 	de->file_type = EXT4_FT_UNKNOWN;
-	if (inode) {
-		de->inode = cpu_to_le32(inode->i_ino);
-		ext4_set_de_type(dir->i_sb, de, inode->i_mode);
-	} else
-		de->inode = 0;
+	de->inode = cpu_to_le32(inode->i_ino);
+	ext4_set_de_type(dir->i_sb, de, inode->i_mode);
 	de->name_len = namelen;
 	memcpy(de->name, name, namelen);
 	/*

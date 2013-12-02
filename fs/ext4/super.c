@@ -112,6 +112,16 @@ static struct file_system_type ext3_fs_type = {
 #define IS_EXT3_SB(sb) (0)
 #endif
 
+static int ext4_verify_csum_type(struct super_block *sb,
+				 struct ext4_super_block *es)
+{
+	if (!EXT4_HAS_RO_COMPAT_FEATURE(sb,
+					EXT4_FEATURE_RO_COMPAT_METADATA_CSUM))
+		return 1;
+
+	return es->s_checksum_type == EXT4_CRC32C_CHKSUM;
+}
+
 void *ext4_kvmalloc(size_t size, gfp_t flags)
 {
 	void *ret;
@@ -905,6 +915,8 @@ static void ext4_put_super(struct super_block *sb)
 	unlock_super(sb);
 	kobject_put(&sbi->s_kobj);
 	wait_for_completion(&sbi->s_kobj_unregister);
+	if (sbi->s_chksum_driver)
+		crypto_free_shash(sbi->s_chksum_driver);
 	kfree(sbi->s_blockgroup_lock);
 	kfree(sbi);
 }
@@ -2403,6 +2415,23 @@ static ssize_t sbi_ui_store(struct ext4_attr *a,
 	return count;
 }
 
+static ssize_t trigger_test_error(struct ext4_attr *a,
+				  struct ext4_sb_info *sbi,
+				  const char *buf, size_t count)
+{
+	int len = count;
+
+	if (!capable(CAP_SYS_ADMIN))
+		return -EPERM;
+
+	if (len && buf[len-1] == '\n')
+		len--;
+
+	if (len)
+		ext4_error(sbi->s_sb, "%.*s", len, buf);
+	return count;
+}
+
 #define EXT4_ATTR_OFFSET(_name,_mode,_show,_store,_elname) \
 static struct ext4_attr ext4_attr_##_name = {			\
 	.attr = {.name = __stringify(_name), .mode = _mode },	\
@@ -2433,6 +2462,7 @@ EXT4_RW_ATTR_SBI_UI(mb_order2_req, s_mb_order2_reqs);
 EXT4_RW_ATTR_SBI_UI(mb_stream_req, s_mb_stream_request);
 EXT4_RW_ATTR_SBI_UI(mb_group_prealloc, s_mb_group_prealloc);
 EXT4_RW_ATTR_SBI_UI(max_writeback_mb_bump, s_max_writeback_mb_bump);
+EXT4_ATTR(trigger_fs_error, 0200, NULL, trigger_test_error);
 
 static struct attribute *ext4_attrs[] = {
 	ATTR_LIST(delayed_allocation_blocks),
@@ -2447,6 +2477,7 @@ static struct attribute *ext4_attrs[] = {
 	ATTR_LIST(mb_stream_req),
 	ATTR_LIST(mb_group_prealloc),
 	ATTR_LIST(max_writeback_mb_bump),
+	ATTR_LIST(trigger_fs_error),
 	NULL,
 };
 
@@ -2979,6 +3010,7 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 		goto out_free_orig;
 	}
 	sb->s_fs_info = sbi;
+	sbi->s_sb = sb;
 	sbi->s_mount_opt = 0;
 	sbi->s_resuid = EXT4_DEF_RESUID;
 	sbi->s_resgid = EXT4_DEF_RESGID;
@@ -3018,12 +3050,32 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 	 * Note: s_es must be initialized as soon as possible because
 	 *       some ext4 macro-instructions depend on its value
 	 */
-	es = (struct ext4_super_block *) (((char *)bh->b_data) + offset);
+	es = (struct ext4_super_block *) (bh->b_data + offset);
 	sbi->s_es = es;
 	sb->s_magic = le16_to_cpu(es->s_magic);
 	if (sb->s_magic != EXT4_SUPER_MAGIC)
 		goto cantfind_ext4;
 	sbi->s_kbytes_written = le64_to_cpu(es->s_kbytes_written);
+
+	/* Check for a known checksum algorithm */
+	if (!ext4_verify_csum_type(sb, es)) {
+		ext4_msg(sb, KERN_ERR, "VFS: Found ext4 filesystem with "
+			 "unknown checksum algorithm.");
+		silent = 1;
+		goto cantfind_ext4;
+	}
+
+	/* Load the checksum driver */
+	if (EXT4_HAS_RO_COMPAT_FEATURE(sb,
+				       EXT4_FEATURE_RO_COMPAT_METADATA_CSUM)) {
+		sbi->s_chksum_driver = crypto_alloc_shash("crc32c", 0, 0);
+		if (IS_ERR(sbi->s_chksum_driver)) {
+			ext4_msg(sb, KERN_ERR, "Cannot load crc32c driver.");
+			ret = PTR_ERR(sbi->s_chksum_driver);
+			sbi->s_chksum_driver = NULL;
+			goto failed_mount;
+		}
+	}
 
 	/* Set defaults before we parse the mount options */
 	def_mount_opts = le32_to_cpu(es->s_default_mount_opts);
@@ -3186,7 +3238,7 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 			       "Can't read superblock on 2nd try");
 			goto failed_mount;
 		}
-		es = (struct ext4_super_block *)(((char *)bh->b_data) + offset);
+		es = (struct ext4_super_block *)(bh->b_data + offset);
 		sbi->s_es = es;
 		if (es->s_magic != cpu_to_le16(EXT4_SUPER_MAGIC)) {
 			ext4_msg(sb, KERN_ERR,
@@ -3378,6 +3430,7 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 					  GFP_KERNEL);
 	if (sbi->s_group_desc == NULL) {
 		ext4_msg(sb, KERN_ERR, "not enough memory");
+		ret = -ENOMEM;
 		goto failed_mount;
 	}
 
@@ -3435,6 +3488,7 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 	}
 	if (err) {
 		ext4_msg(sb, KERN_ERR, "insufficient memory");
+		ret = err;
 		goto failed_mount3;
 	}
 
@@ -3627,7 +3681,7 @@ no_journal:
 	}
 
 	ext4_ext_init(sb);
-	err = ext4_mb_init(sb, needs_recovery);
+	err = ext4_mb_init(sb);
 	if (err) {
 		ext4_msg(sb, KERN_ERR, "failed to initialize mballoc (%d)",
 			 err);
@@ -3710,6 +3764,8 @@ failed_mount2:
 		brelse(sbi->s_group_desc[i]);
 	ext4_kvfree(sbi->s_group_desc);
 failed_mount:
+	if (sbi->s_chksum_driver)
+		crypto_free_shash(sbi->s_chksum_driver);
 	if (sbi->s_proc) {
 		remove_proc_entry("options", sbi->s_proc);
 		remove_proc_entry(sb->s_id, ext4_proc_root);
@@ -3833,7 +3889,7 @@ static journal_t *ext4_get_dev_journal(struct super_block *sb,
 		goto out_bdev;
 	}
 
-	es = (struct ext4_super_block *) (((char *)bh->b_data) + offset);
+	es = (struct ext4_super_block *) (bh->b_data + offset);
 	if ((le16_to_cpu(es->s_magic) != EXT4_SUPER_MAGIC) ||
 	    !(le32_to_cpu(es->s_feature_incompat) &
 	      EXT4_FEATURE_INCOMPAT_JOURNAL_DEV)) {
@@ -4744,7 +4800,6 @@ static ssize_t ext4_quota_write(struct super_block *sb, int type,
 		return -EIO;
 	}
 
-	mutex_lock_nested(&inode->i_mutex, I_MUTEX_QUOTA);
 	bh = ext4_bread(handle, inode, blk, 1, &err);
 	if (!bh)
 		goto out;
@@ -4760,16 +4815,13 @@ static ssize_t ext4_quota_write(struct super_block *sb, int type,
 	err = ext4_handle_dirty_metadata(handle, NULL, bh);
 	brelse(bh);
 out:
-	if (err) {
-		mutex_unlock(&inode->i_mutex);
+	if (err)
 		return err;
-	}
 	if (inode->i_size < off + len) {
 		i_size_write(inode, off + len);
 		EXT4_I(inode)->i_disksize = inode->i_size;
 		ext4_mark_inode_dirty(handle, inode);
 	}
-	mutex_unlock(&inode->i_mutex);
 	return len;
 }
 
