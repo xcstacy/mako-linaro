@@ -114,7 +114,8 @@ long ext4_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		err = ext4_reserve_inode_write(handle, inode, &iloc);
 		if (err)
 			goto flags_err;
-
+		//declare variables
+		int mask, i;
 		for (i = 0, mask = 1; i < 32; i++, mask <<= 1) {
 			if (!(mask & EXT4_FL_USER_MODIFIABLE))
 				continue;
