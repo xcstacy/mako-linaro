@@ -2457,7 +2457,7 @@ static void destroy_cfs_bandwidth(struct cfs_bandwidth *cfs_b)
 	hrtimer_cancel(&cfs_b->slack_timer);
 }
 
-static void unthrottle_offline_cfs_rqs(struct rq *rq)
+void unthrottle_offline_cfs_rqs(struct rq *rq)
 {
 	struct cfs_rq *cfs_rq;
 
@@ -2516,7 +2516,7 @@ static inline struct cfs_bandwidth *tg_cfs_bandwidth(struct task_group *tg)
 	return NULL;
 }
 static inline void destroy_cfs_bandwidth(struct cfs_bandwidth *cfs_b) {}
-static inline void unthrottle_offline_cfs_rqs(struct rq *rq) {}
+void unthrottle_offline_cfs_rqs(struct rq *rq) {}
 
 #endif /* CONFIG_CFS_BANDWIDTH */
 
@@ -2532,7 +2532,7 @@ static void hrtick_start_fair(struct rq *rq, struct task_struct *p)
 
 	WARN_ON(task_rq(p) != rq);
 
-	if (rq->cfs.h_nr_running > 1) {
+	if (cfs_rq->nr_running > 1) {
 		u64 slice = sched_slice(cfs_rq, se);
 		u64 ran = se->sum_exec_runtime - se->prev_sum_exec_runtime;
 		s64 delta = slice - ran;
@@ -2556,7 +2556,8 @@ static void hrtick_start_fair(struct rq *rq, struct task_struct *p)
 
 /*
  * called from enqueue/dequeue and updates the hrtick when the
- * current task is from our class.
+ * current task is from our class and nr_running is low enough
+ * to matter.
  */
 static void hrtick_update(struct rq *rq)
 {
@@ -2565,7 +2566,8 @@ static void hrtick_update(struct rq *rq)
 	if (!hrtick_enabled(rq) || curr->sched_class != &fair_sched_class)
 		return;
 
-	hrtick_start_fair(rq, curr);
+	if (cfs_rq_of(&curr->se)->nr_running < sched_nr_latency)
+		hrtick_start_fair(rq, curr);
 }
 #else /* !CONFIG_SCHED_HRTICK */
 static inline void
@@ -5027,11 +5029,10 @@ void idle_balance(int this_cpu, struct rq *this_rq)
 	struct sched_domain *sd;
 	int pulled_task = 0;
 	unsigned long next_balance = jiffies + HZ;
-	u64 curr_cost = 0;
 
 	this_rq->idle_stamp = this_rq->clock;
 
-	if (this_rq->avg_idle < this_rq->max_idle_balance_cost)
+	if (this_rq->avg_idle < sysctl_sched_migration_cost)
 		return;
 
 	update_rq_runnable_avg(this_rq, 1);
@@ -5046,29 +5047,14 @@ void idle_balance(int this_cpu, struct rq *this_rq)
 	for_each_domain(this_cpu, sd) {
 		unsigned long interval;
 		int balance = 1;
-		u64 t0, domain_cost, max = 5*sysctl_sched_migration_cost;
 
 		if (!(sd->flags & SD_LOAD_BALANCE))
 			continue;
 
-		if (this_rq->avg_idle < curr_cost + sd->max_newidle_lb_cost)
-			break;
-
 		if (sd->flags & SD_BALANCE_NEWIDLE) {
-			t0 = sched_clock_cpu(smp_processor_id());
-
 			/* If we've pulled tasks over stop searching: */
 			pulled_task = load_balance(this_cpu, this_rq,
 						   sd, CPU_NEWLY_IDLE, &balance);
-
-			domain_cost = sched_clock_cpu(smp_processor_id()) - t0;
-			if (domain_cost > max)
-				domain_cost = max;
-
-			if (domain_cost > sd->max_newidle_lb_cost)
-				sd->max_newidle_lb_cost = domain_cost;
-
-			curr_cost += domain_cost;
 		}
 
 		interval = msecs_to_jiffies(sd->balance_interval);
@@ -5083,16 +5069,13 @@ void idle_balance(int this_cpu, struct rq *this_rq)
 
 	raw_spin_lock(&this_rq->lock);
 
-	if (!pulled_task || time_after(jiffies, this_rq->next_balance)) {
+	if (pulled_task || time_after(jiffies, this_rq->next_balance)) {
 		/*
 		 * We are going idle. next_balance may be set based on
 		 * a busy processor. So reset next_balance.
 		 */
 		this_rq->next_balance = next_balance;
 	}
-
-	if (curr_cost > this_rq->max_idle_balance_cost)
-		this_rq->max_idle_balance_cost = curr_cost;
 }
 
 /*
@@ -5631,9 +5614,6 @@ static void rq_online_fair(struct rq *rq)
 static void rq_offline_fair(struct rq *rq)
 {
 	update_sysctl();
-
-	/* Ensure any throttled groups are reachable by pick_next_task */
-	unthrottle_offline_cfs_rqs(rq);
 }
 
 #endif /* CONFIG_SMP */
