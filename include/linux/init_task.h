@@ -160,7 +160,7 @@ extern struct cred init_cred;
 		.nr_cpus_allowed = NR_CPUS,				\
 	},								\
 	.tasks		= LIST_HEAD_INIT(tsk.tasks),			\
-	INIT_PUSHABLE_TASKS(tsk)					\					\
+	INIT_PUSHABLE_TASKS(tsk)					\
 	.proxying_for	= NULL,						\
 	.proxied_by	= NULL,						\
 	.proxies	= LIST_HEAD_INIT(tsk.proxies),			\
