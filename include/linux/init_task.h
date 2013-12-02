@@ -161,6 +161,10 @@ extern struct cred init_cred;
 	},								\
 	.tasks		= LIST_HEAD_INIT(tsk.tasks),			\
 	INIT_PUSHABLE_TASKS(tsk)					\
+	.proxying_for	= NULL,						\
+	.proxied_by	= NULL,						\
+	.proxies	= LIST_HEAD_INIT(tsk.proxies),			\
+	.proxies_entry	= LIST_HEAD_INIT(tsk.proxies_entry),		\
 	.ptraced	= LIST_HEAD_INIT(tsk.ptraced),			\
 	.ptrace_entry	= LIST_HEAD_INIT(tsk.ptrace_entry),		\
 	.real_parent	= &tsk,						\
