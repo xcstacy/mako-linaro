@@ -3926,28 +3926,11 @@ static struct kmem_cache *find_mergeable(size_t size,
 	return NULL;
 }
 
-struct kmem_cache *__kmem_cache_alias(const char *name, size_t size,
+int __kmem_cache_create(struct kmem_cache *s,
+		const char *name, size_t size,
 		size_t align, unsigned long flags, void (*ctor)(void *))
 {
-	struct kmem_cache *s;
-
-	s = find_mergeable(size, align, flags, name, ctor);
-	if (s) {
-		s->refcount++;
-		/*
-		 * Adjust the object sizes so that we clear
-		 * the complete object on kzalloc.
-		 */
-		s->object_size = max(s->object_size, (int)size);
-		s->inuse = max_t(int, s->inuse, ALIGN(size, sizeof(void *)));
-
-		if (sysfs_slab_alias(s, name)) {
-			s->refcount--;
-			s = NULL;
-		}
-	}
-
-	return s;
+	 return kmem_cache_open(s, name, size, align, flags, ctor);
 }
 
 struct kmem_cache *__kmem_cache_create(const char *name, size_t size,
