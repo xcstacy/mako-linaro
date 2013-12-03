@@ -35,8 +35,8 @@ export KBUILD_BUILD_USER="NeoBuddy89";
 export KBUILD_BUILD_HOST="DragonCore";
 
 # system compiler
-# export CROSS_COMPILE=$PARENT_DIR/linaro-toolchain-4.8-2013.11/bin/arm-eabi-;
-export CROSS_COMPILE=$PARENT_DIR/linaro-toolchain-4.7-2013.11/bin/arm-eabi-;
+export CROSS_COMPILE=$PARENT_DIR/linaro-toolchain-4.8-2013.11/bin/arm-eabi-;
+# export CROSS_COMPILE=$PARENT_DIR/linaro-toolchain-4.7-2013.11/bin/arm-eabi-;
 # export CROSS_COMPILE=$PARENT_DIR/arm-eabi-4.7/bin/arm-eabi-;
 
 export NUMBEROFCPUS=`grep 'processor' /proc/cpuinfo | wc -l`;
