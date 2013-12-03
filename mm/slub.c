@@ -1500,23 +1500,21 @@ static inline void *acquire_slab(struct kmem_cache *s,
 	freelist = page->freelist;
 	counters = page->counters;
 	new.counters = counters;
-	if (mode) {
+	if (mode)
 		new.inuse = page->objects;
-		new.freelist = NULL;
-	} else {
-		new.freelist = freelist;
-	}
 
 	VM_BUG_ON(new.frozen);
 	new.frozen = 1;
 
 	if (!__cmpxchg_double_slab(s, page,
 			freelist, counters,
-			new.freelist, new.counters,
+			NULL, new.counters,
 			"acquire_slab"))
-``		return NULL;
+
+		return NULL;
 
 	remove_partial(n, page);
+	WARN_ON(!freelist);
 	return freelist;
 }
 
@@ -1559,6 +1557,7 @@ static void *get_partial_node(struct kmem_cache *s, struct kmem_cache_node *n,
 			object = t;
 			available =  page->objects - page->inuse;
 		} else {
+			page->freelist = t;
 			available = put_cpu_partial(s, page, 0);
 			stat(s, CPU_PARTIAL_NODE);
 		}
@@ -2615,19 +2614,10 @@ redo:
 
 void kmem_cache_free(struct kmem_cache *s, void *x)
 {
-	struct page *page;
-
-	page = virt_to_head_page(x);
-
-	if (kmem_cache_debug(s) && page->slab_cache != s) {
-		pr_err("kmem_cache_free: Wrong slab cache. %s but object"
-			" is from  %s\n", page->slab_cache->name, s->name);
-		WARN_ON_ONCE(1);
+	s = cache_from_obj(s, x);
+	if (!s)
 		return;
-	}
-
-	slab_free(s, page, x, _RET_IP_);
-
+	slab_free(s, virt_to_head_page(x), x, _RET_IP_);
 	trace_kmem_cache_free(_RET_IP_, x);
 }
 EXPORT_SYMBOL(kmem_cache_free);
@@ -3832,6 +3822,30 @@ static struct kmem_cache *find_mergeable(size_t size,
 	return NULL;
 }
 
+struct kmem_cache *__kmem_cache_alias(const char *name, size_t size,
+		size_t align, unsigned long flags, void (*ctor)(void *))
+{
+	struct kmem_cache *s;
+
+	s = find_mergeable(size, align, flags, name, ctor);
+	if (s) {
+		s->refcount++;
+		/*
+		 * Adjust the object sizes so that we clear
+		 * the complete object on kzalloc.
+		 */
+		s->object_size = max(s->object_size, (int)size);
+		s->inuse = max_t(int, s->inuse, ALIGN(size, sizeof(void *)));
+
+		if (sysfs_slab_alias(s, name)) {
+			s->refcount--;
+			s = NULL;
+		}
+	}
+
+	return s;
+}
+
 int __kmem_cache_create(struct kmem_cache *s, unsigned long flags)
 {
 	int err;
@@ -3852,22 +3866,6 @@ int __kmem_cache_create(struct kmem_cache *s, unsigned long flags)
 		kmem_cache_close(s);
 
 	return err;
-}
-
-struct kmem_cache *__kmem_cache_create(const char *name, size_t size,
-		size_t align, unsigned long flags, void (*ctor)(void *))
-{
-	struct kmem_cache *s;
-
-	s = kmem_cache_alloc(kmem_cache, GFP_KERNEL);
-	if (s) {
-		if (kmem_cache_open(s, name,
-				size, align, flags, ctor)) {
-			return s;
-		}
-		kmem_cache_free(kmem_cache, s);
-	}
-	return NULL;
 }
 
 #ifdef CONFIG_SMP
