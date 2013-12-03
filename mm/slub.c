@@ -1510,24 +1510,24 @@ static inline void *acquire_slab(struct kmem_cache *s,
 	 * The old freelist is the list of objects for the
 	 * per cpu allocation list.
 	 */
-	do {
-		freelist = page->freelist;
-		counters = page->counters;
-		new.counters = counters;
-		if (mode) {
-			new.inuse = page->objects;
-			new.freelist = NULL;
-		} else {
-			new.freelist = freelist;
-		}
+	freelist = page->freelist;
+	counters = page->counters;
+	new.counters = counters;
+	if (mode) {
+		new.inuse = page->objects;
+		new.freelist = NULL;
+	} else {
+		new.freelist = freelist;
+	}
 
-		VM_BUG_ON(new.frozen);
-		new.frozen = 1;
+	VM_BUG_ON(new.frozen);
+	new.frozen = 1;
 
-	} while (!__cmpxchg_double_slab(s, page,
+	if (!__cmpxchg_double_slab(s, page,
 			freelist, counters,
 			new.freelist, new.counters,
-			"lock and freeze"));
+			"acquire_slab"))
+``		return NULL;
 
 	remove_partial(n, page);
 	return freelist;
