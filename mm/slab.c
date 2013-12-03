@@ -1795,9 +1795,6 @@ void __init kmem_cache_init_late(void)
 	/* Done! */
 	slab_state = FULL;
 
-	/* Annotate slab for lockdep -- annotate the malloc caches */
-	init_lock_keys();
-
 	/*
 	 * Register a cpu startup notifier callback that initializes
 	 * cpu_cache_get for all new cpus
