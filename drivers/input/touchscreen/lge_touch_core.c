@@ -48,6 +48,9 @@
 #include <linux/input/pmic8xxx-pwrkey.h>
 #endif
 
+#ifdef CONFIG_PWRKEY_SUSPEND
+bool prevent_sleep;
+#endif
 struct touch_device_driver*     touch_device_func;
 struct workqueue_struct*        touch_wq;
 
