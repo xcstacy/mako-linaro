@@ -1337,10 +1337,11 @@ limIbssDelBssRsp(
         goto end;
     }
 
+    limIbssDelete(pMac,psessionEntry);
+
     dphHashTableClassInit(pMac, &psessionEntry->dph.dphHashTable);
     limDeletePreAuthList(pMac);
 
-    limIbssDelete(pMac,psessionEntry);
     psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
 
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
@@ -1424,6 +1425,16 @@ __limIbssSearchAndDeletePeer(tpAniSirGlobal    pMac,
       }
       pPrevNode = pTempNode;
       pTempNode = pTempNextNode;
+   }
+   /*
+    * if it is the last peer walking out, we better
+    * we set IBSS state to inactive.
+    */
+   if (0 == pMac->lim.gLimNumIbssPeers)
+   {
+       VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+            "Last STA from IBSS walked out");
+       psessionEntry->limIbssActive = false;
    }
 }
 

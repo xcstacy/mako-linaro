@@ -688,6 +688,9 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  break;
             case eSIR_IBSS_MODE:
                  psessionEntry->limSystemRole = eLIM_STA_IN_IBSS_ROLE;
+                 psessionEntry->shortSlotTimeSupported =
+                        limGetShortSlotFromPhyMode(pMac, psessionEntry,
+                                                   psessionEntry->gLimPhyMode);
                  break;
 
             case eSIR_BTAMP_AP_MODE:
@@ -3539,9 +3542,9 @@ void limProcessSmeDelBssRsp(
     (void) body;
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
     //TBD: get the sessionEntry
+    limIbssDelete(pMac,psessionEntry);
     dphHashTableClassInit(pMac, &psessionEntry->dph.dphHashTable);
     limDeletePreAuthList(pMac);
-    limIbssDelete(pMac,psessionEntry);
     limSendSmeRsp(pMac, eWNI_SME_STOP_BSS_RSP, eSIR_SME_SUCCESS,psessionEntry->smeSessionId,psessionEntry->transactionId);
     return;
 }

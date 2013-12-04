@@ -1019,9 +1019,6 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
     if (!params->head && !old)
         return -EINVAL;
 
-    if (params->tail && !params->tail_len)
-        return -EINVAL;
-
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,38))
     /* Kernel 3.0 is not updating dtim_period for set beacon */
     if (!params->dtim_period)
@@ -6331,6 +6328,7 @@ static int wlan_hdd_cfg80211_set_privacy_ibss(
     ENTER();
 
     pWextState->wpaVersion = IW_AUTH_WPA_VERSION_DISABLED;
+    vos_mem_zero(&pHddStaCtx->ibss_enc_key, sizeof(tCsrRoamSetKey));
 
     if (params->ie_len && ( NULL != params->ie) )
     {
@@ -6443,6 +6441,16 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
         hddLog (VOS_TRACE_LEVEL_ERROR,
                 "%s Interface type is not set to IBSS \n", __func__);
         return -EINVAL;
+    }
+
+    /* BSSID is provided by upper layers hence no need to AUTO generate */
+    if (NULL != params->bssid) {
+       if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IBSS_AUTO_BSSID, 0,
+                        NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE) {
+           hddLog (VOS_TRACE_LEVEL_ERROR,
+                  "%s:ccmCfgStInt faild for WNI_CFG_IBSS_AUTO_BSSID", __func__);
+           return -EIO;
+       }
     }
 
     /* Set Channel */
@@ -8784,7 +8792,7 @@ void wlan_hdd_cfg80211_lphb_ind_handler
       return;
    }
 
- /*  lphbInd = (tSirLPHBInd *)indCont;
+  /* lphbInd = (tSirLPHBInd *)indCont;
    skb = cfg80211_testmode_alloc_event_skb(
                   ((hdd_adapter_t *)pAdapter)->wdev.wiphy,
                   sizeof(tSirLPHBInd),
