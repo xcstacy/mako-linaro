@@ -875,8 +875,9 @@ void csrAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStop
         {
         case eSmeCommandScan:
             // We need to inform the requester before dropping the scan command
-            smsLog( pMac, LOGW, "%s: Drop scan reason %d callback 0x%X",
-                __func__, pCommand->u.scanCmd.reason, (unsigned int)pCommand->u.scanCmd.callback);
+            smsLog( pMac, LOGW, "%s: Drop scan reason %d callback %p",
+                    __func__, pCommand->u.scanCmd.reason,
+                    pCommand->u.scanCmd.callback);
             if (NULL != pCommand->u.scanCmd.callback)
             {
                 smsLog( pMac, LOGW, "%s callback scan requester", __func__);
@@ -11379,6 +11380,21 @@ static void csrRoamGetBssStartParmsFromBssDesc( tpAniSirGlobal pMac, tSirBssDesc
                 }
                 vos_mem_copy(pParam->operationalRateSet.rate, pIes->SuppRates.rates,
                              sizeof(*pIes->SuppRates.rates) * pIes->SuppRates.num_rates);
+            }
+            if (pIes->ExtSuppRates.present)
+            {
+                pParam->extendedRateSet.numRates = pIes->ExtSuppRates.num_rates;
+                if(pIes->ExtSuppRates.num_rates > SIR_MAC_EXTENDED_RATE_EID_MAX)
+                {
+                   smsLog(pMac, LOGE, FL("num_rates :%d is more than \
+                                         SIR_MAC_RATESET_EID_MAX, resetting to \
+                                         SIR_MAC_RATESET_EID_MAX"),
+                                         pIes->ExtSuppRates.num_rates);
+                   pIes->ExtSuppRates.num_rates = SIR_MAC_EXTENDED_RATE_EID_MAX;
+                }
+                palCopyMemory(pMac->hHdd, pParam->extendedRateSet.rate,
+                              pIes->ExtSuppRates.rates,
+                              sizeof(*pIes->ExtSuppRates.rates) * pIes->ExtSuppRates.num_rates);
             }
             if( pIes->SSID.present )
             {

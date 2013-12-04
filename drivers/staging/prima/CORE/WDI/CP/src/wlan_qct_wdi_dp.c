@@ -399,6 +399,7 @@ WDI_FillTxBd
     wpt_uint8              ucTxFlag, 
     wpt_uint8              ucProtMgmtFrame,
     wpt_uint32             uTimeStamp,
+    wpt_uint8              isEapol,
     wpt_uint8*             staIndex
 )
 {
@@ -424,7 +425,7 @@ WDI_FillTxBd
     ucSubType = (ucTypeSubtype & WDI_FRAME_SUBTYPE_MASK);
 
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN, 
-               "Type: %d/%d, MAC S: %08x. MAC D: %08x., Tid=%d, frmXlat=%d, pTxBD=%p ucTxFlag 0x%X\n",
+               "Type: %d/%d, MAC S: %08x. MAC D: %08x., Tid=%d, frmXlat=%d, pTxBD=%p ucTxFlag 0x%X",
                 ucType, ucSubType, 
                 *((wpt_uint32 *) pAddr2), 
                *((wpt_uint32 *) pDestMacAddr), 
@@ -922,7 +923,7 @@ WDI_FillTxBd
 #ifdef FEATURE_WLAN_TDLS
                   (ucSTAType == WDI_STA_ENTRY_TDLS_PEER ) &&
 #endif
-                  (ucTxFlag & WDI_TRIGGER_ENABLED_AC_MASK)))
+                  (ucTxFlag & WDI_TRIGGER_ENABLED_AC_MASK)) || isEapol)
        {
            pBd->dpuRF = BMUWQ_FW_DPU_TX;
        }
