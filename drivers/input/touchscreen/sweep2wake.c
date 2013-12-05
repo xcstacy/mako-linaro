@@ -61,11 +61,19 @@ MODULE_LICENSE("GPLv2");
 
 #ifdef CONFIG_VERTICAL_S2W
 /* Hammerhead aka Nexus 5 */
-#define DEFAULT_S2W_Y_LIMIT             2350
-#define DEFAULT_S2W_X_MAX               1540
-#define DEFAULT_S2W_X_B1                500
-#define DEFAULT_S2W_X_B2                1000
-#define DEFAULT_S2W_X_FINAL             300
+#define S2W_Y_MAX               1920
+#define S2W_X_MAX               1080
+#define S2W_Y_LIMIT             S2W_Y_MAX-130
+#define S2W_X_B1                400
+#define S2W_X_B2                700
+#define S2W_X_FINAL             250
+#elif defined(CONFIG_MACH_APQ8064_MAKO)
+/* Mako aka Nexus 4 */
+#define S2W_Y_LIMIT             2350
+#define S2W_X_MAX               1540
+#define S2W_X_B1                500
+#define S2W_X_B2                1000
+#define S2W_X_FINAL             300
 #else
 /* defaults */
 #define S2W_Y_LIMIT             2350
@@ -83,7 +91,9 @@ static int touch_x = 0, touch_y = 0;
 static bool touch_x_called = false, touch_y_called = false;
 static bool scr_suspended = false, exec_count = true;
 static bool scr_on_touch = false, barrier[2] = {false, false};
+#ifndef CONFIG_HAS_EARLYSUSPEND
 static struct notifier_block s2w_lcd_notif;
+#endif
 struct input_dev * sweep2wake_pwrdev;
 static DEFINE_MUTEX(pwrkeyworklock);
 static struct workqueue_struct *s2w_input_wq;
