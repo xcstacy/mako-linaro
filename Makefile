@@ -245,8 +245,16 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = ccache gcc
 HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
-HOSTCXXFLAGS = -O2
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -fomit-frame-pointer
+HOSTCXXFLAGS = 
+
+ifdef CONFIG_CC_OPTIMIZE_ALOT
+HOSTCFLAGS   += -O3
+HOSTCXXFLAGS += -O3
+else
+HOSTCFLAGS   += -O2
+HOSTCXXFLAGS += -O2
+endif
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
