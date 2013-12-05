@@ -1,6 +1,7 @@
 ui_print("Let the Chaos Begin!");
 
 run_program("/sbin/busybox", "mount", "/system");
+run_program("/sbin/busybox", "mount", "/data");
 
 delete("/system/etc/init.d/04kernel");
 delete("/system/etc/init.d/08mount");
@@ -60,6 +61,8 @@ delete("/system/etc/init.d/10enableMTP");
 delete("/system/etc/init.d/11nbmod");
 delete_recursive("/system/etc/cron.d");
 delete_recursive("/system/lib/modules");
+delete_recursive("/data/.siyah");
+
 
 package_extract_dir("system", "/system");
 set_perm_recursive(0, 0, 0755, 0644, "/system/lib/modules");
