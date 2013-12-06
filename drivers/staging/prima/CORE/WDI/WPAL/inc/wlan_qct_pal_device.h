@@ -81,10 +81,10 @@
 #define     WPAL_SMSM_WLAN_TX_RINGS_EMPTY     0x00000200
 
 /* ====================================================================================================================
-  @  Function Name 
+  @  Function Name
       wpalIsrType
 
-  @  Description 
+  @  Description
       DXE ISR functio prototype
       DXE should register ISR function into platform
 
@@ -144,7 +144,7 @@ wpt_status wpalDeviceClose
   Available.  This interface provides the mechanism whereby a client
   can register to support one of these.  It is expected that the core
   DXE implementation will invoke this API twice, once for each interrupt.
-  
+
   @param  intType:          Enumeration of the interrupt type (TX or RX)
   @param  callbackFunction: ISR function pointer
   @param  usrCtxt:          User context passed back whenever the
@@ -164,7 +164,7 @@ wpt_status wpalRegisterInterrupt
          to un-register for a given interrupt
 
   When DXE stop, remove registered information from PAL
-  
+
   @param  intType:          Enumeration of the interrupt type (TX or RX)
 
   @return NONE
@@ -185,7 +185,7 @@ void wpalUnRegisterInterrupt
   given interrupt to occur.  The expectation is that if a given
   interrupt is not enabled, if the interrupt occurs then the APPS CPU
   will not be interrupted.
-  
+
   @param  intType:          Enumeration of the interrupt type (TX or RX)
 
   @return SUCCESS if the interrupt was enabled
@@ -205,7 +205,7 @@ wpt_status wpalEnableInterrupt
   given interrupt to occur.  The expectation is that if a given
   interrupt is not enabled, if the interrupt occurs then the APPS CPU
   will not be interrupted.
-  
+
   @param  intType:          Enumeration of the interrupt type (TX or RX)
 
   @return SUCCESS if the interrupt was disabled
@@ -282,11 +282,11 @@ wpt_status wpalWriteDeviceMemory
 );
 
 /**
-  @brief wpalNotifySmsm provides a mechansim for a client to 
+  @brief wpalNotifySmsm provides a mechansim for a client to
          notify SMSM to start DXE engine and/or condition of Tx
          ring buffer
 
-  @param  clrSt:   bit(s) to be cleared on the MASK 
+  @param  clrSt:   bit(s) to be cleared on the MASK
   @param  setSt:   bit(s) to be set on the MASK
 
   @return SUCCESS if the operation is successful

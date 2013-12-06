@@ -356,7 +356,7 @@
 #define WNI_CFG_AP_LINK_MONITOR_TIMEOUT    297
 
 /*
- * String parameter lengths 
+ * String parameter lengths
  */
 
 #define WNI_CFG_STA_ID_LEN    6
@@ -421,7 +421,7 @@
 #define WNI_CFG_WPS_UUID_LEN    16
 
 /*
- * Integer parameter min/max/default values 
+ * Integer parameter min/max/default values
  */
 
 #define WNI_CFG_CFP_PERIOD_STAMIN    0

@@ -114,7 +114,7 @@ xor(tANI_U8 a[ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE], tANI_U32 t);
  * blocks. The first block is the IV from section 2.2.3 o the
  * RFC. Note: It is the caller's responsibility to free the returned
  * value.
- * 
+ *
  * @param plainText the plaintext data to wrap
  * @param len the length of the plaintext, which must be a multiple of
  * ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE.
@@ -161,7 +161,7 @@ aniSsmAesKeyWrap(v_U32_t cryptHandle, tANI_U8 *plainText, tANI_U32 len,
     for (j = 0; j <= 5; j++) {
         for (i = 1; i <= n; i++) {
 
-            retVal = aes(cryptHandle, keyEncKey, keyEncKeyLen, 
+            retVal = aes(cryptHandle, keyEncKey, keyEncKeyLen,
                          a,
                          r + i*ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE,
                          b);
@@ -240,8 +240,8 @@ aniSsmAesKeyUnwrap(v_U32_t cryptHandle, tANI_U8 *cipherText, tANI_U32 len,
     }
 
     vos_mem_copy(a, cipherText, sizeof(a));
-    vos_mem_copy(r + ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE, 
-           cipherText + ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE, 
+    vos_mem_copy(r + ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE,
+           cipherText + ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE,
            len - ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE);
 
     for (j = 5; j >= 0; j--) {
@@ -249,7 +249,7 @@ aniSsmAesKeyUnwrap(v_U32_t cryptHandle, tANI_U8 *cipherText, tANI_U32 len,
 
             t = n*j + i;
             xor(a, t);
-            retVal = aes_1(cryptHandle, keyEncKey, keyEncKeyLen, 
+            retVal = aes_1(cryptHandle, keyEncKey, keyEncKeyLen,
                            a,
                            r + i*ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE,
                            b);
@@ -295,7 +295,7 @@ aes(v_U32_t cryptHandle, tANI_U8 *keyBytes, tANI_U32 keyLen,
 
     // Concatenate A and R[i]
     vos_mem_copy(in, a, ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE);
-    vos_mem_copy(in + ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE, 
+    vos_mem_copy(in + ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE,
            ri, ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE);
     out = b;
 
@@ -339,7 +339,7 @@ aes_1(v_U32_t cryptHandle, tANI_U8 *keyBytes, tANI_U32 keyLen,
 
     // Concatenate A and R[i]
     vos_mem_copy(in, at, ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE);
-    vos_mem_copy(in + ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE, 
+    vos_mem_copy(in + ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE,
            ri, ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE);
     out = b;
 
@@ -370,8 +370,8 @@ aes_1(v_U32_t cryptHandle, tANI_U8 *keyBytes, tANI_U32 keyLen,
 
 
 /*
- * Put a long in host order into a char array in network order. 
- * 
+ * Put a long in host order into a char array in network order.
+ *
  */
 static inline char *aniAsfWr32(char *cp, tANI_U32 x)
 {
@@ -391,8 +391,8 @@ static inline char *aniAsfWr32(char *cp, tANI_U32 x)
 // From file : aniAsfMisc.c
 
 /*
- * Put a long in host order into a char array in network order. 
- * 
+ * Put a long in host order into a char array in network order.
+ *
  */
 char *aniAsfPut32(char *cp, tANI_U32 x)
 {

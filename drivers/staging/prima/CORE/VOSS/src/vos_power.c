@@ -44,8 +44,8 @@
   vos_power.c
 
   @brief
-  This is the interface to VOSS power APIs using for power management 
-  of the WLAN Libra module from the MSM PMIC. These implementation of 
+  This is the interface to VOSS power APIs using for power management
+  of the WLAN Libra module from the MSM PMIC. These implementation of
   these APIs is very target dependent, also these APIs should only be
   used when the WLAN Libra module is powered from the MSM PMIC and not
   from an external independent power source
@@ -297,7 +297,7 @@ VOS_PWR_SLEEP(100);
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp15 vreg enable failed. (%d)\n",__func__, rc);
             return -EIO;
         }
-#else        
+#else
         /* 1.2v switchable supply is following the clk_pwr_req signal */
         rc = pmapp_vreg_pincntrl_vote(id, PMAPP_VREG_LDO22, PMAPP_CLOCK_ID_A0, VOS_TRUE);
         if (rc) {
@@ -325,7 +325,7 @@ VOS_PWR_SLEEP(100);
             return -EIO;
         }
         msleep(1);
-#else        
+#else
         /* 1.3v switchable supply is following the clk_pwr_req signal */
         rc = pmapp_vreg_pincntrl_vote(id, PMAPP_VREG_S2, PMAPP_CLOCK_ID_A0, VOS_TRUE);
         if (rc) {
@@ -346,8 +346,8 @@ VOS_PWR_SLEEP(100);
         This is to work-around the issue where it fails sometimes when turning WIFI off and on
         though GUI. The theory is that, even though we vote off 1.2V AON, it may still on because
         it is shared by other components. When the next time to turn on WIFI, polling is turned on
-        first and when librasdioif.ko is loaded, the card is detected right away before wlan driver loads. 
-        The bus driver may have finished configuration of the device. When WLAN driver loads, 
+        first and when librasdioif.ko is loaded, the card is detected right away before wlan driver loads.
+        The bus driver may have finished configuration of the device. When WLAN driver loads,
         it resets the device that causes issues when the bus driver tries to assess the chip later.
         This setting draws more power after the driver is unloaded.
 
@@ -375,9 +375,9 @@ VOS_PWR_SLEEP(100);
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg set level failed (%d)\n", __func__, rc);
             return -EIO;
         }
-        
-        /* 1.3V sw */    
-        rc = vreg_disable(vreg_s2); 
+
+        /* 1.3V sw */
+        rc = vreg_disable(vreg_s2);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg disable failed (%d)\n", __func__, rc);
             return -EIO;
@@ -386,7 +386,7 @@ VOS_PWR_SLEEP(100);
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.3V sw is disabled \n");
 
         /* 1.2V sw */
-        rc = vreg_disable(vreg_gp15); 
+        rc = vreg_disable(vreg_gp15);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp15 vreg disable failed (%d)\n", __func__, rc);
             return -EIO;
@@ -396,7 +396,7 @@ VOS_PWR_SLEEP(100);
 #endif //#ifdef WLAN_FEATURE_VOS_POWER_VOTED_SUPPLY
 
         /* 1.2V AON */
-        rc = vreg_disable(vreg_gp16); 
+        rc = vreg_disable(vreg_gp16);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp16 vreg disable failed (%d)\n", __func__, rc);
             return -EIO;
@@ -408,7 +408,7 @@ VOS_PWR_SLEEP(100);
         /* Cannot turn off 2.9V due to the PAD issue on Volans */
 
         /* 2.9V */
-        rc = vreg_disable(vreg_wlan); 
+        rc = vreg_disable(vreg_wlan);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg disable failed (%d)\n", __func__, rc);
             return -EIO;
@@ -424,7 +424,7 @@ VOS_PWR_SLEEP(100);
 
 #ifdef MSM_PLATFORM_7x27_FFA
 
-#define MPP_4_CHIP_PWD_L 3 //MPP4 is hooked to Deep Sleep Signal 
+#define MPP_4_CHIP_PWD_L 3 //MPP4 is hooked to Deep Sleep Signal
 
 //Helper routine to power up Libra keypad on the 7x27 FFA
 int vos_chip_power_7x27_keypad( int on )
@@ -476,7 +476,7 @@ int vos_chip_power_7x27_keypad( int on )
       msleep(100);
 
       // Pull MPP4 high to turn on various supply voltages.
-      rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
+      rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L,
          MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_HIGH));
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: MPP_4 pull high failed (%d)",__func__, rc);
@@ -484,14 +484,14 @@ int vos_chip_power_7x27_keypad( int on )
       }
 
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Enabled power supply for WLAN", __func__);
- 
+
       msleep(500);
    }
-   else 
+   else
    {
 
        // Pull MPP4 low to place the chip in reset.
-       rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
+       rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L,
           MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_LOW));
        if (rc) {
           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: MPP_4 pull low failed (%d)",__func__, rc);
@@ -533,8 +533,8 @@ int vos_chip_power_7x27_keypad( int on )
   @brief vos_chipPowerUp() - This API will power up the Libra chip
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   The Libra SDIO core will have been initialized if the operation completes
@@ -544,14 +544,14 @@ int vos_chip_power_7x27_keypad( int on )
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -591,22 +591,22 @@ VOS_STATUS vos_chipPowerUp
   @brief vos_chipPowerDown() - This API will power down the Libra chip
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -648,8 +648,8 @@ VOS_STATUS vos_chipPowerDown
   @brief vos_chipReset() - This API will reset the Libra chip
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   A hard reset will involve a powerDown followed by a PowerUp; a soft reset
@@ -659,20 +659,20 @@ VOS_STATUS vos_chipPowerDown
   successfully
 
   @param status [out] : whether this operation will complete sync or async
-  @param soft [in] : VOS_TRUE if a soft reset is desired 
+  @param soft [in] : VOS_TRUE if a soft reset is desired
                      VOS_FALSE for a hard reset i.e. powerDown followed by powerUp
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
   VOS_STATUS_E_NOSUPPORT - soft reset asked for but not supported
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -696,22 +696,22 @@ VOS_STATUS vos_chipReset
   @brief vos_chipVoteOnPASupply() - This API will power up the PA supply
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -728,28 +728,28 @@ VOS_STATUS vos_chipVoteOnPASupply
 
 
 /**
-  @brief vos_chipVoteOffPASupply() - This API will vote to turn off the 
-  PA supply. Even if we succeed in voting, there is a chance PA supply will not 
+  @brief vos_chipVoteOffPASupply() - This API will vote to turn off the
+  PA supply. Even if we succeed in voting, there is a chance PA supply will not
   be turned off. This will be treated the same as a failure.
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
-                         because the voting algorithm decided not to power down PA  
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be
+                         because the voting algorithm decided not to power down PA
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -766,26 +766,26 @@ VOS_STATUS vos_chipVoteOffPASupply
 
 
 /**
-  @brief vos_chipAssertDeepSleep() - This API will assert the deep 
+  @brief vos_chipAssertDeepSleep() - This API will assert the deep
   sleep signal to Libra
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -799,7 +799,7 @@ VOS_STATUS vos_chipAssertDeepSleep
 {
 #ifdef FIXME_VOLANS
 #ifdef MSM_PLATFORM_7x27_FFA
-   int rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
+   int rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L,
       MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_LOW));
    if (rc) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
@@ -829,22 +829,22 @@ VOS_STATUS vos_chipAssertDeepSleep
   signal to Libra
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -858,7 +858,7 @@ VOS_STATUS vos_chipDeAssertDeepSleep
 {
 #ifdef FIXME_VOLANS
 #ifdef MSM_PLATFORM_7x27_FFA
-   int rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
+   int rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L,
       MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_HIGH));
    if (rc) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
@@ -887,22 +887,22 @@ VOS_STATUS vos_chipDeAssertDeepSleep
   after exit from deep sleep.
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -972,22 +972,22 @@ VOS_STATUS vos_chipExitDeepSleepVREGHandler
   @brief vos_chipVoteOnRFSupply() - This API will power up the RF supply
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -1055,28 +1055,28 @@ VOS_STATUS vos_chipVoteOnRFSupply
 }
 
 /**
-  @brief vos_chipVoteOffRFSupply() - This API will vote to turn off the 
-  RF supply. Even if we succeed in voting, there is a chance RF supply will not 
+  @brief vos_chipVoteOffRFSupply() - This API will vote to turn off the
+  RF supply. Even if we succeed in voting, there is a chance RF supply will not
   be turned off as RF rails could be shared with other modules (outside WLAN)
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
-                         because the voting algorithm decided not to power down PA  
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be
+                         because the voting algorithm decided not to power down PA
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -1128,7 +1128,7 @@ VOS_STATUS vos_chipVoteOffRFSupply
           "level failed (%d)",__func__, rc);
    }
 
-   rc = vreg_disable(vreg_s4); 
+   rc = vreg_disable(vreg_s4);
    if (rc) {
       printk(KERN_ERR "%s: s4 vreg disable failed (%d)\n", __func__, rc);
    }
@@ -1145,22 +1145,22 @@ VOS_STATUS vos_chipVoteOffRFSupply
   used by Base band Analog.
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -1207,23 +1207,23 @@ VOS_STATUS vos_chipVoteOnBBAnalogSupply
   @brief vos_chipVoteOffBBAnalogSupply() - This API will vote off the BB Analog supply.
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
-                         because the voting algorithm decided not to power down PA  
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be
+                         because the voting algorithm decided not to power down PA
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -1264,22 +1264,22 @@ VOS_STATUS vos_chipVoteOffBBAnalogSupply
   PMIC. This API will be used when Libra uses the TCXO from PMIC on the MSM
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -1298,23 +1298,23 @@ VOS_STATUS vos_chipVoteOnXOBuffer
   @brief vos_chipVoteOffXOBuffer() - This API will vote off PMIC XO buffer.
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
-                         because the voting algorithm decided not to power down PA  
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be
+                         because the voting algorithm decided not to power down PA
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -1333,8 +1333,8 @@ VOS_STATUS vos_chipVoteOffXOBuffer
   @brief vos_chipVoteXOCore - This API will vote PMIC XO Core.
 
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   @param status [out] : whether this operation will complete sync or async
@@ -1342,15 +1342,15 @@ VOS_STATUS vos_chipVoteOffXOBuffer
   @param user_data [in] : user supplied context callback is called with
   @param force_enable [in] : Force enable XO CORE or not
 
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
-                         because the voting algorithm decided not to power down PA  
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be
+                         because the voting algorithm decided not to power down PA
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 
@@ -1370,30 +1370,30 @@ VOS_STATUS vos_chipVoteXOCore
 
 /**
   @brief vos_chipVoteFreqFor1p3VSupply() - This API will vote for frequency for 1.3V RF supply.
-  
+
   This operation may be asynchronous. If so, the supplied callback will
-  be invoked when operation is complete with the result. The callback will 
-  be called with the user supplied data. If the operation is known to be 
+  be invoked when operation is complete with the result. The callback will
+  be called with the user supplied data. If the operation is known to be
   sync, there is no need to supply a callback and user data.
 
   EVM issue is observed with 1.6Mhz freq for 1.3V supply in wlan standalone case.
-  During concurrent operation (e.g. WLAN and WCDMA) this issue is not observed. 
+  During concurrent operation (e.g. WLAN and WCDMA) this issue is not observed.
   To workaround, wlan will vote for 3.2Mhz during startup and will vote for 1.6Mhz
   during exit.
-   
+
   @param status [out] : whether this operation will complete sync or async
   @param callback [in] : user supplied callback invoked when operation completes
   @param user_data [in] : user supplied context callback is called with
   @param freq [in]     :  Frequency for 1.3V Supply for which WLAN driver needs to vote for.
-  @return 
-  VOS_STATUS_E_INVAL - status is NULL 
-  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+  @return
+  VOS_STATUS_E_INVAL - status is NULL
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback
                        and user_data has not been specified (status will be
-                       set to VOS_CALL_ASYNC) 
+                       set to VOS_CALL_ASYNC)
   VOS_STATUS_E_ALREADY - operation needs to complete async but another request
-                         is already in progress (status will be set to VOS_CALL_ASYNC)  
-  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
-                         because the voting algorithm decided not to power down PA  
+                         is already in progress (status will be set to VOS_CALL_ASYNC)
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be
+                         because the voting algorithm decided not to power down PA
   VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
                        OR operation started successfully if status is ASYNC (will be set)
 

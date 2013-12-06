@@ -43,10 +43,10 @@
 //
 //  File:         polFile.h
 //
-//  Description:  Structures that define the firmware file format.                
+//  Description:  Structures that define the firmware file format.
 //
 //  Author:       Larry Cawley
-// 
+//
 //  Copyright 2002, Woodside Networks, Inc.  All rights reserved.
 //
 //  Change History:
@@ -58,7 +58,7 @@
 
 
 
-   
+
 // File format
 //
 //  byte 0        1        2       3
@@ -85,7 +85,7 @@
 // |                                    |                             |
 // | Directory Entry 1 Length           |   DirEntryLength            |
 // +------------------------------------+                        <----+
-// |            . . .                   |                        . . . 
+// |            . . .                   |                        . . .
 // +------------------------------------+                        <----+
 // |                                    |                             |
 // | Directory Entry n Type             |                             |
@@ -117,7 +117,7 @@
 // +---------+---------+
 //
 //
-//         
+//
 //
 
 

@@ -43,17 +43,17 @@
 #define __WLAN_QCT_PAL_TIMER_H
 
 /**=========================================================================
-  
+
   \file  wlan_qct_pal_timer.h
-  
+
   \brief define synchronization objects PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
-               
+
    Definitions for platform independent.
-  
+
    Copyright 2010-2011 (c) Qualcomm, Incorporated.  All Rights Reserved.
-   
+
    Qualcomm Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 #include "wlan_qct_pal_type.h"

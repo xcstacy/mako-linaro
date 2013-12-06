@@ -387,10 +387,10 @@ typedef PACKED_PRE struct PACKED_POST
     uint8     nv_TxBBFSel9MHz       : 1;
     uint8     hwParam1              : 7;
     uint8     hwParam2;
-    
+
     uint16    custom_tcxo_reg8;
     uint16    custom_tcxo_reg9;
-    
+
     uint32    hwParam3;
     uint32    hwParam4;
     uint32    hwParam5;
@@ -545,7 +545,7 @@ typedef enum
 #ifdef WCN_PRONTO
     HAL_PHY_RATE_VHT_20MHZ_MCS_1NSS_NGI_86_5_MBPS,
 #endif
-    
+
     /*11AC rate 20MHZ Shortl GI*/
     HAL_PHY_RATE_VHT_20MHZ_MCS_1NSS_SGI_7_2_MBPS,
     HAL_PHY_RATE_VHT_20MHZ_MCS_1NSS_SGI_14_4_MBPS,
@@ -559,7 +559,7 @@ typedef enum
 #ifdef WCN_PRONTO
     HAL_PHY_RATE_VHT_20MHZ_MCS_1NSS_SGI_96_1_MBPS,
 #endif
-    
+
     /*11AC rates 40MHZ normal GI*/
     HAL_PHY_RATE_VHT_40MHZ_MCS_1NSS_CB_NGI_13_5_MBPS ,
     HAL_PHY_RATE_VHT_40MHZ_MCS_1NSS_CB_NGI_27_MBPS,
@@ -571,7 +571,7 @@ typedef enum
     HAL_PHY_RATE_VHT_40MHZ_MCS_1NSS_CB_NGI_135_MBPS,
     HAL_PHY_RATE_VHT_40MHZ_MCS_1NSS_CB_NGI_162_MBPS,
     HAL_PHY_RATE_VHT_40MHZ_MCS_1NSS_CB_NGI_180_MBPS,
-    
+
     /*11AC rates 40MHZ short GI*/
     HAL_PHY_RATE_VHT_40MHZ_MCS_1NSS_CB_SGI_15_MBPS ,
     HAL_PHY_RATE_VHT_40MHZ_MCS_1NSS_CB_SGI_30_MBPS,
@@ -583,7 +583,7 @@ typedef enum
     HAL_PHY_RATE_VHT_40MHZ_MCS_1NSS_CB_SGI_150_MBPS,
     HAL_PHY_RATE_VHT_40MHZ_MCS_1NSS_CB_SGI_180_MBPS,
     HAL_PHY_RATE_VHT_40MHZ_MCS_1NSS_CB_SGI_200_MBPS,
-    
+
     /*11AC rates 80 MHZ normal GI*/
     HAL_PHY_RATE_VHT_80MHZ_MCS_1NSS_CB_NGI_29_3_MBPS ,
     HAL_PHY_RATE_VHT_80MHZ_MCS_1NSS_CB_NGI_58_5_MBPS,
@@ -595,7 +595,7 @@ typedef enum
     HAL_PHY_RATE_VHT_80MHZ_MCS_1NSS_CB_NGI_292_5_MBPS,
     HAL_PHY_RATE_VHT_80MHZ_MCS_1NSS_CB_NGI_351_MBPS,
     HAL_PHY_RATE_VHT_80MHZ_MCS_1NSS_CB_NGI_390_MBPS,
-    
+
     /*11AC rates 80 MHZ short GI*/
     HAL_PHY_RATE_VHT_80MHZ_MCS_1NSS_CB_SGI_32_5_MBPS ,
     HAL_PHY_RATE_VHT_80MHZ_MCS_1NSS_CB_SGI_65_MBPS,
@@ -629,7 +629,7 @@ typedef PACKED_PRE struct PACKED_POST
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    uint8 skuID; 
+    uint8 skuID;
     uint8 tpcMode2G;
     uint8 tpcMode5G;
     uint8 reserved1;

@@ -110,7 +110,7 @@ static struct qfprom_blow_data blow_data[] = {
 	{QFPROM_SPARE_REGION_25, 0x013302A1, 0x0132DD1B}	/* Test Code */
 };
 
-/* this api handle diag command(fusing check command) from ATD 
+/* this api handle diag command(fusing check command) from ATD
  * if fusing value 0 ==> is not fused
  * if fusing value 1 ==> fused (secure boot enable, jtag disable,
  * oem config, hw secondary key, RW permission)
@@ -167,7 +167,7 @@ err_mem:
 	return sprintf(buf, "%x\n", fusing);
 }
 
-/* this api handle diag command(fusing command) from ATD 
+/* this api handle diag command(fusing command) from ATD
  * this api fuse secure boot, jtag disable, oem config,
  * secondary hw key, R/W permission
  * this api check secondary hw key status before fusing R/W permission
@@ -415,7 +415,7 @@ static const struct attribute_group qfprom_attribute_group = {
 };
 
 /* We cant access qfporm address range 0x70xxxxx using qfuse_single_read_row api
- * so we read the range using io read 
+ * so we read the range using io read
  */
 u32 qfprom_secondary_hwkey_status(void)
 {
@@ -431,7 +431,7 @@ u32 qfprom_secondary_hwkey_status(void)
 
 #if RANDOM_BY_TZBSP
 /* Create random key(8byte size) by tzbsp
- * if return value =0, error to create random key by tzbsp 
+ * if return value =0, error to create random key by tzbsp
  * if return value >0, success to create random key by bzbsp
  */
 u32 qfprom_create_random(void)
@@ -497,7 +497,7 @@ int qfprom_blow_secondary_hwkey_region(void)
 	return ret;
 }
 
-/* if return value == 0, success 
+/* if return value == 0, success
  * if return value < 0, scm call fail
  * if return value > 0, status error to write qfprom
  * This API can use in range 0x700XXX
@@ -572,7 +572,7 @@ error_buf:
 	return ret;
 }
 
-/* if return value == 0, success 
+/* if return value == 0, success
  * if return value < 0, scm call fail
  * if return value > 0, status error to read qfprom
  * This API can use in range 0x700XXX

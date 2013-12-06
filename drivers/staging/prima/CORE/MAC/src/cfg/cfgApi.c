@@ -65,7 +65,7 @@ static tANI_U32  __gCfgIBufMax[CFG_STA_IBUF_MAX_SIZE]          ;
 static tANI_U32  __gCfgIBuf[CFG_STA_IBUF_MAX_SIZE]             ;
 static tANI_U8   __gCfgSBuf[CFG_STA_SBUF_MAX_SIZE]             ;
 static tANI_U8   __gSBuffer[CFG_MAX_STR_LEN]                   ;
-static tANI_U32  __gParamList[WNI_CFG_MAX_PARAM_NUM + 
+static tANI_U32  __gParamList[WNI_CFG_MAX_PARAM_NUM +
                               WNI_CFG_GET_PER_STA_STAT_RSP_NUM];
 
 static void Notify(tpAniSirGlobal, tANI_U16, tANI_U32);
@@ -119,7 +119,7 @@ wlan_cfgInit(tpAniSirGlobal pMac)
 {
     // Set status to not-ready
     pMac->cfg.gCfgStatus = CFG_INCOMPLETE;
-  
+
      // Send CFG_DNLD_REQ to host
     PELOGW(cfgLog(pMac, LOGW, FL("Sending CFG_DNLD_REQ"));)
     cfgSendHostMsg(pMac, WNI_CFG_DNLD_REQ, WNI_CFG_DNLD_REQ_LEN,
@@ -138,7 +138,7 @@ tSirRetStatus cfgInit(tpAniSirGlobal pMac)
    pMac->cfg.gSBuffer     = __gSBuffer;
    pMac->cfg.gCfgEntry    = __gCfgEntry;
    pMac->cfg.gParamList   = __gParamList;
-        
+
    return (eSIR_SUCCESS);
 }
 
@@ -432,9 +432,9 @@ cfgIncrementInt(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 value)
  * FUNCTION:
  * This function is called to set a string parameter.
  *
- * LOGIC: 
+ * LOGIC:
  * This function invokes the cfgSetStrNotify function passing the notify
- * boolean value set to TRUE. This basically means that HAL needs to be 
+ * boolean value set to TRUE. This basically means that HAL needs to be
  * notified. This is true in the case of non-integrated SOC's or Libra/Volans.
  * In the case of Prima the cfgSetStrNotify is invoked with the boolean value
  * set to FALSE.
@@ -454,7 +454,7 @@ cfgIncrementInt(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 value)
  *
  */
 
-tSirRetStatus cfgSetStr(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U8 *pStr, 
+tSirRetStatus cfgSetStr(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U8 *pStr,
                                           tANI_U32 length)
 {
    return cfgSetStrNotify( pMac, cfgId, pStr, length, TRUE );
@@ -489,7 +489,7 @@ tSirRetStatus cfgSetStr(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U8 *pStr,
  */
 
 tSirRetStatus
-cfgSetStrNotify(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U8 *pStr, 
+cfgSetStrNotify(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U8 *pStr,
                                           tANI_U32 length, int notifyMod)
 {
     tANI_U8       *pDst, *pDstEnd;
@@ -803,7 +803,7 @@ cfgGetDot11dTransmitPower(tpAniSirGlobal pMac, tANI_U16   cfgId,
     tANI_U8    count = 0;
     tPowerdBm  maxTxPwr = WDA_MAX_TXPOWER_INVALID;
     eHalStatus    status;
-    
+
     /* At least one element is present */
     if(cfgLength < sizeof(tSirMacChanInfo))
     {
@@ -824,7 +824,7 @@ cfgGetDot11dTransmitPower(tpAniSirGlobal pMac, tANI_U16   cfgId,
     {
         palFreeMemory(pMac->hHdd, pCountryInfo);
         pCountryInfo = NULL;
-            
+
         cfgLog(pMac, LOGP, FL("Failed to retrieve 11d configuration parameters while retrieving 11d tuples"));
         goto error;
     }
@@ -837,7 +837,7 @@ cfgGetDot11dTransmitPower(tpAniSirGlobal pMac, tANI_U16   cfgId,
         maxChannels = pCountryInfo[count++];
         maxTxPwr = pCountryInfo[count++];
 
-        if((channel >= firstChannel) && 
+        if((channel >= firstChannel) &&
             (channel < (firstChannel + maxChannels)))
         {
             break;
@@ -847,7 +847,7 @@ cfgGetDot11dTransmitPower(tpAniSirGlobal pMac, tANI_U16   cfgId,
 error:
     if(NULL != pCountryInfo)
         palFreeMemory(pMac->hHdd, pCountryInfo);
-       
+
     return maxTxPwr;
 }
 
@@ -874,7 +874,7 @@ tPowerdBm cfgGetRegulatoryMaxTransmitPower(tpAniSirGlobal pMac, tANI_U8 channel)
     else
         rfBand = eRF_BAND_2_4_GHZ;
 
-    
+
     /* Get the max transmit power for current channel for the current regulatory domain */
     switch (rfBand)
     {
@@ -991,7 +991,7 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
             return eSIR_FAILURE;
         }
         /* When in STA mode, we need to check if short slot is enabled as well as check if the current operating
-         * mode is short slot time and then decide whether to enable short slot or not. It is safe to check both 
+         * mode is short slot time and then decide whether to enable short slot or not. It is safe to check both
          * cfg values to determine short slot value in this funcn since this funcn is always used after assoc when
          * these cfg values are already set based on peer's capability. Even in case of IBSS, its value is set to
          * correct value either in delBSS as part of deleting the previous IBSS or in start BSS as part of coalescing
@@ -1049,8 +1049,8 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
     }
 #endif
     //DSSS-OFDM
-    //FIXME : no config defined yet. 
-    
+    //FIXME : no config defined yet.
+
     // Block ack bit
     if (wlan_cfgGetInt(pMac, WNI_CFG_BLOCK_ACK_ENABLED, &val) != eSIR_SUCCESS)
     {

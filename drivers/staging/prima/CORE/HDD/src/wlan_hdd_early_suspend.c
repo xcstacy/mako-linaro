@@ -1169,7 +1169,7 @@ void hdd_unregister_mcast_bcast_filter(hdd_context_t *pHddCtx)
       return;
    }
 
-   if (WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER == 
+   if (WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER ==
                                             pHddCtx->cfg_ini->nEnableSuspend)
    {
       pmcDeregisterDeviceStateUpdateInd(smeContext, hdd_PowerStateChangedCB);

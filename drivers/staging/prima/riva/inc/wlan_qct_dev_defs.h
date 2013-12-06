@@ -106,7 +106,7 @@
 /* In Pronto 1.0 TPE descriptor size is increased to 1K per station
  * but not the cMEM allocated for hardware descriptors. Due to this
  * memory limitation the number of stations are limited to 9 and BSS
- * to 2 respectively. 
+ * to 2 respectively.
  *
  * In Pronto 2.0, TPE descriptor size is reverted
  * back to 512 bytes and hence more stations and BSSs can be supported
@@ -205,7 +205,7 @@
 #define HAL_MAX_ASSOC_ID            HAL_NUM_STA
 
 #define WLANHAL_TX_BD_HEADER_SIZE   40  //FIXME_PRIMA - Revisit
-#define WLANHAL_RX_BD_HEADER_SIZE   76  
+#define WLANHAL_RX_BD_HEADER_SIZE   76
 
 /*
  * From NOVA Mac Arch document
@@ -279,7 +279,7 @@ typedef enum sBmuWqId {
     BMUWQ_BMU_CMEM_IDLE_BD = 27,
     /* Total BMU WQ count in Pronto */
     BMUWQ_NUM = 28,
-    
+
     //WQs 17 through 22 are enabled in Pronto. So, set not supported mask to 0.
     BMUWQ_NOT_SUPPORTED_MASK = 0x0,
 #else
@@ -297,11 +297,11 @@ typedef enum sBmuWqId {
     BMUWQ_BMU_WQ2 = BMUWQ_RXP_UNKNWON_ADDR,
     BMUWQ_FW_DPU_TX = 5,
 
-    //WQ where all the frames with addr1/addr2/addr3 with value 254/255 go to. 
+    //WQ where all the frames with addr1/addr2/addr3 with value 254/255 go to.
     BMUWQ_FW_RECV_EXCEPTION = 14, //using BMUWQ_FW_MESSAGE WQ for this purpose.
 
-    //WQ where all frames with unknown Addr2 filter exception cases frames will pushed if FW wants host to 
-    //send deauth to the sender. 
+    //WQ where all frames with unknown Addr2 filter exception cases frames will pushed if FW wants host to
+    //send deauth to the sender.
     BMUWQ_HOST_RX_UNKNOWN_ADDR2_FRAMES = 15, //using BMUWQ_FW_DXECH2_0 for this purpose.
 
     /* ====== Unused/Reserved WQ ====== */
@@ -355,13 +355,13 @@ typedef enum
     BTQM_QUEUE_TX_TID_7,
 
 
-    /* Queue Id <-> BO 
+    /* Queue Id <-> BO
        */
     BTQM_QUEUE_TX_nQOS = BTQM_QID8,
-    BTQM_QUEUE_SELF_STA_BCAST_MGMT = BTQM_QID10,    
+    BTQM_QUEUE_SELF_STA_BCAST_MGMT = BTQM_QID10,
     BTQM_QUEUE_SELF_STA_UCAST_MGMT = BTQM_QID9,
     BTQM_QUEUE_SELF_STA_UCAST_DATA = BTQM_QID9,
-    BTQM_QUEUE_NULL_FRAME          = BTQM_QID9,      
+    BTQM_QUEUE_NULL_FRAME          = BTQM_QID9,
     BTQM_QUEUE_SELF_STA_PROBE_RSP =  BTQM_QID9,
     BTQM_QUEUE_TX_AC_BE = BTQM_QUEUE_TX_TID_0,
     BTQM_QUEUE_TX_AC_BK = BTQM_QUEUE_TX_TID_2,

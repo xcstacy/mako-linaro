@@ -135,7 +135,7 @@ static int aio_setup_ring(struct kioctx *ctx)
 	info->mmap_size = nr_pages * PAGE_SIZE;
 	dprintk("attempting mmap of %lu bytes\n", info->mmap_size);
 	down_write(&ctx->mm->mmap_sem);
-	info->mmap_base = do_mmap(NULL, 0, info->mmap_size, 
+	info->mmap_base = do_mmap(NULL, 0, info->mmap_size,
 				  PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE,
 				  0);
 	if (IS_ERR((void *)info->mmap_base)) {
@@ -147,7 +147,7 @@ static int aio_setup_ring(struct kioctx *ctx)
 
 	dprintk("mmap address: 0x%08lx\n", info->mmap_base);
 	info->nr_pages = get_user_pages(current, ctx->mm,
-					info->mmap_base, nr_pages, 
+					info->mmap_base, nr_pages,
 					1, 0, info->ring_pages, NULL);
 	up_write(&ctx->mm->mmap_sem);
 
@@ -314,8 +314,8 @@ out_freectx:
 }
 
 /* kill_ctx
- *	Cancels all outstanding aio requests on an aio context.  Used 
- *	when the processes owning a context have all exited to encourage 
+ *	Cancels all outstanding aio requests on an aio context.  Used
+ *	when the processes owning a context have all exited to encourage
  *	the rapid destruction of the kioctx.
  */
 static void kill_ctx(struct kioctx *ctx)
@@ -401,10 +401,10 @@ static inline void exit_aio_ctx(struct mm_struct *mm, struct kioctx *ctx)
 	put_ioctx(ctx);
 }
 
-/* exit_aio: called when the last user of mm goes away.  At this point, 
- * there is no way for any new requests to be submited or any of the 
- * io_* syscalls to be called on the context.  However, there may be 
- * outstanding requests which hold references to the context; as they 
+/* exit_aio: called when the last user of mm goes away.  At this point,
+ * there is no way for any new requests to be submited or any of the
+ * io_* syscalls to be called on the context.  However, there may be
+ * outstanding requests which hold references to the context; as they
  * go away, they will call put_ioctx and release any pinned memory
  * associated with the request (held via struct page * references).
  */
@@ -955,7 +955,7 @@ static void try_queue_kicked_iocb(struct kiocb *iocb)
  */
 void kick_iocb(struct kiocb *iocb)
 {
-	/* sync iocbs are easy: they can only ever be executing from a 
+	/* sync iocbs are easy: they can only ever be executing from a
 	 * single context. */
 	if (is_sync_kiocb(iocb)) {
 		kiocbSetKicked(iocb);
@@ -969,7 +969,7 @@ EXPORT_SYMBOL(kick_iocb);
 
 /* aio_complete
  *	Called when the io request on the given iocb is complete.
- *	Returns true if this is the last user of the request.  The 
+ *	Returns true if this is the last user of the request.  The
  *	only other user of the request can be the cancellation code.
  */
 int aio_complete(struct kiocb *iocb, long res, long res2)
@@ -1075,7 +1075,7 @@ put_rq:
 EXPORT_SYMBOL(aio_complete);
 
 /* aio_read_evt
- *	Pull an event off of the ioctx's event ring.  Returns the number of 
+ *	Pull an event off of the ioctx's event ring.  Returns the number of
  *	events fetched (0 or 1 ;-)
  *	FIXME: make this use cmpxchg.
  *	TODO: make the ringbuffer user mmap()able (requires FIXME).
@@ -1166,7 +1166,7 @@ static int read_events(struct kioctx *ctx,
 	struct aio_timeout	to;
 	int			retry = 0;
 
-	/* needed to zero any padding within an entry (there shouldn't be 
+	/* needed to zero any padding within an entry (there shouldn't be
 	 * any, but C is fun!
 	 */
 	memset(&ent, 0, sizeof(ent));
@@ -1269,7 +1269,7 @@ out:
 	return i ? i : ret;
 }
 
-/* Take an ioctx and remove it from the list of ioctx's.  Protects 
+/* Take an ioctx and remove it from the list of ioctx's.  Protects
  * against races with itself via ->dead.
  */
 static void io_destroy(struct kioctx *ioctx)
@@ -1302,10 +1302,10 @@ static void io_destroy(struct kioctx *ioctx)
  *	Create an aio_context capable of receiving at least nr_events.
  *	ctxp must not point to an aio_context that already exists, and
  *	must be initialized to 0 prior to the call.  On successful
- *	creation of the aio_context, *ctxp is filled in with the resulting 
+ *	creation of the aio_context, *ctxp is filled in with the resulting
  *	handle.  May fail with -EINVAL if *ctxp is not initialized,
- *	if the specified nr_events exceeds internal limits.  May fail 
- *	with -EAGAIN if the specified nr_events exceeds the user's limit 
+ *	if the specified nr_events exceeds internal limits.  May fail
+ *	with -EAGAIN if the specified nr_events exceeds the user's limit
  *	of available events.  May fail with -ENOMEM if insufficient kernel
  *	resources are available.  May fail with -EFAULT if an invalid
  *	pointer is passed for ctxp.  Will fail with -ENOSYS if not
@@ -1342,7 +1342,7 @@ out:
 }
 
 /* sys_io_destroy:
- *	Destroy the aio_context specified.  May cancel any outstanding 
+ *	Destroy the aio_context specified.  May cancel any outstanding
  *	AIOs and block on completion.  Will fail with -ENOSYS if not
  *	implemented.  May fail with -EINVAL if the context pointed to
  *	is invalid.

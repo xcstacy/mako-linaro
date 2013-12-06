@@ -45,8 +45,8 @@
  * Date:    10/25/2002
  *
  * History:-
- * Date: 04/08/2008     Modified by: Santosh Mandiganal         
- * Modification Information: Added the logDump.h header file and defined the 
+ * Date: 04/08/2008     Modified by: Santosh Mandiganal
+ * Modification Information: Added the logDump.h header file and defined the
  *                        dumpTablecurrentId, dumpTableEntry.
  * --------------------------------------------------------------------------
  *
@@ -90,7 +90,7 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include "csrInternal.h"
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
-#include "oemDataInternal.h" 
+#include "oemDataInternal.h"
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -310,7 +310,7 @@ typedef struct sAniSirLim
     tANI_U8                gLimBackgroundScanDisable;      //based on BG timer
     tANI_U8                gLimForceBackgroundScanDisable; //debug control flag
     tANI_U8                gLimBackgroundScanTerminate;    //controlled by SME
-    tANI_U8                gLimReportBackgroundScanResults;//controlled by SME    
+    tANI_U8                gLimReportBackgroundScanResults;//controlled by SME
 
     /// Place holder for current channel ID
     /// being scanned
@@ -386,7 +386,7 @@ typedef struct sAniSirLim
     tLimScanChnInfo scanChnInfo;
 
     //////////////////////////////////////     SCAN/LEARN RELATED START ///////////////////////////////////////////
-    tSirMacAddr         gSelfMacAddr;   //added for BT-AMP Support 
+    tSirMacAddr         gSelfMacAddr;   //added for BT-AMP Support
 
     //////////////////////////////////////////     BSS RELATED END ///////////////////////////////////////////
     // Place holder for StartBssReq message
@@ -500,7 +500,7 @@ typedef struct sAniSirLim
     // Debug counter to track different parse problem
     tANI_U32    gLim11bStaAssocRejectCount;
 
-#endif    
+#endif
 
     //Time stamp of the last beacon received from the BSS to which STA is connected.
     tANI_U64 gLastBeaconTimeStamp;
@@ -539,9 +539,9 @@ typedef struct sAniSirLim
     // LIM to HAL SCAN Management Message Interface states
     tLimLimHalScanState gLimHalScanState;
 //WLAN_SUSPEND_LINK Related
-    SUSPEND_RESUME_LINK_CALLBACK gpLimSuspendCallback; 
+    SUSPEND_RESUME_LINK_CALLBACK gpLimSuspendCallback;
     tANI_U32 *gpLimSuspendData;
-    SUSPEND_RESUME_LINK_CALLBACK gpLimResumeCallback; 
+    SUSPEND_RESUME_LINK_CALLBACK gpLimResumeCallback;
     tANI_U32 *gpLimResumeData;
 //end WLAN_SUSPEND_LINK Related
     tANI_U8    fScanDisabled;
@@ -626,31 +626,31 @@ typedef struct sAniSirLim
     tANI_U8   gLimProcessDefdMsgs;
 
     // UAPSD flag used on AP
-    tANI_U8  gUapsdEnable;          
+    tANI_U8  gUapsdEnable;
 
-    /* Used on STA, this is a static UAPSD mask setting  
-     * derived  from SME_JOIN_REQ and SME_REASSOC_REQ. If a 
-     * particular AC bit is set, it means the AC is both  
-     * trigger enabled and delivery enabled. 
+    /* Used on STA, this is a static UAPSD mask setting
+     * derived  from SME_JOIN_REQ and SME_REASSOC_REQ. If a
+     * particular AC bit is set, it means the AC is both
+     * trigger enabled and delivery enabled.
      */
-    tANI_U8  gUapsdPerAcBitmask;   
+    tANI_U8  gUapsdPerAcBitmask;
 
-    /* Used on STA, this is a dynamic UPASD mask setting 
-     * derived from AddTS Rsp and DelTS frame. If a 
+    /* Used on STA, this is a dynamic UPASD mask setting
+     * derived from AddTS Rsp and DelTS frame. If a
      * particular AC bit is set, it means AC is trigger
-     * enabled. 
+     * enabled.
      */
-    tANI_U8  gUapsdPerAcTriggerEnableMask;  
+    tANI_U8  gUapsdPerAcTriggerEnableMask;
 
     /* Used on STA, dynamic UPASD mask setting
-     * derived from AddTS Rsp and DelTs frame. If 
-     * a particular AC bit is set, it means AC is 
-     * delivery enabled. 
-     */ 
-    tANI_U8  gUapsdPerAcDeliveryEnableMask; 
-    
+     * derived from AddTS Rsp and DelTs frame. If
+     * a particular AC bit is set, it means AC is
+     * delivery enabled.
+     */
+    tANI_U8  gUapsdPerAcDeliveryEnableMask;
+
     /* Used on STA for AC downgrade. This is a dynamic mask
-     * setting which keep tracks of ACs being admitted. 
+     * setting which keep tracks of ACs being admitted.
      * If bit is set to 0: That partiular AC is not admitted
      * If bit is set to 1: That particular AC is admitted
      */
@@ -691,10 +691,10 @@ typedef struct sAniSirLim
     // currently attempting
     //tLimMlmJoinReq       *gpLimMlmJoinReq;
 
-    // Reason code to determine the channel change context while sending 
-    // WDA_CHNL_SWITCH_REQ message to HAL       
+    // Reason code to determine the channel change context while sending
+    // WDA_CHNL_SWITCH_REQ message to HAL
     tANI_U32 channelChangeReasonCode;
-    
+
     /// MAC level Pre-authentication related globals
     tSirMacChanNum        gLimPreAuthChannelNumber;
     tAniAuthType          gLimPreAuthType;
@@ -870,18 +870,18 @@ typedef struct sAniSirLim
 
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
     ////////////////////////////////  TDLS RELATED         //////////////////////////////////////////
-    
-    tSirTdlsDisReq gLimTdlsDisReq ; 
+
+    tSirTdlsDisReq gLimTdlsDisReq ;
     //tLimDisResultList *gTdlsDisResultList ;
     tLimDisResultList *gLimTdlsDisResultList ;
     tANI_U8 gLimTdlsDisStaCount ;
     tANI_U8 gAddStaDisRspWait ;
 
     tLimTdlsLinkSetupInfo  gLimTdlsLinkSetupInfo;
-    
+
     /* to track if direct link is b/g/n, this can be independent of AP link */
 #ifdef FEATURE_WLAN_TDLS_NEGATIVE
-    tANI_U32 gLimTdlsNegativeBehavior;  
+    tANI_U32 gLimTdlsNegativeBehavior;
 #endif
 #endif
 #ifdef FEATURE_WLAN_TDLS
@@ -892,7 +892,7 @@ typedef struct sAniSirLim
 
     // wsc info required to form the wsc IE
     tLimWscIeInfo wscIeInfo;
-    tpPESession gpSession ;   //Pointer to  session table   
+    tpPESession gpSession ;   //Pointer to  session table
     /*
     * sessionID and transactionID from SME is stored here for those messages, for which
     * there is no session context in PE, e.g. Scan related messages.
@@ -932,7 +932,7 @@ typedef struct sLimMgmtFrameRegistration
 typedef struct sRrmContext
 {
   tRrmSMEContext rrmSmeContext;
-  tRrmPEContext  rrmPEContext; 
+  tRrmPEContext  rrmPEContext;
 }tRrmContext, *tpRrmContext;
 #endif
 
@@ -940,19 +940,19 @@ typedef struct sRrmContext
 typedef struct sFTContext
 {
   tftSMEContext ftSmeContext;
-  tftPEContext  ftPEContext; 
+  tftPEContext  ftPEContext;
 } tftContext, *tpFTContext;
 #endif
 
 //Check if this definition can actually move here even for Volans. In that case
 //this featurization can be removed.
-/** ------------------------------------------------------------------------- * 
+/** ------------------------------------------------------------------------- *
 
     \typedef tDriverType
-    
+
     \brief   Indicate the driver type to the mac, and based on this do
              appropriate initialization.
-    
+
     -------------------------------------------------------------------------- */
 
 typedef enum
@@ -962,13 +962,13 @@ typedef enum
     eDRIVER_TYPE_DVT         = 2
 } tDriverType;
 
-/** ------------------------------------------------------------------------- * 
+/** ------------------------------------------------------------------------- *
 
     \typedef tMacOpenParameters
-    
-    \brief Parameters needed for Enumeration of all status codes returned by the higher level 
+
+    \brief Parameters needed for Enumeration of all status codes returned by the higher level
     interface functions.
-    
+
     -------------------------------------------------------------------------- */
 
 typedef struct sMacOpenParameters
@@ -983,13 +983,13 @@ typedef enum
 {
     HAL_STOP_TYPE_SYS_RESET,
     HAL_STOP_TYPE_SYS_DEEP_SLEEP,
-    HAL_STOP_TYPE_RF_KILL   
+    HAL_STOP_TYPE_RF_KILL
 }tHalStopType;
 
 typedef struct sHalMacStartParameters
 {
     // parametes for the Firmware
-    //tHalFirmwareParameters FW;    
+    //tHalFirmwareParameters FW;
     tDriverType  driverType;
 
 } tHalMacStartParameters;
@@ -1057,12 +1057,12 @@ typedef struct sAniSirGlobal
     /* logDump specific */
     tANI_U32 dumpTablecurrentId;
     /* Instead of static allocation I will dyanamically allocate memory for dumpTableEntry
-        Thinking of using linkedlist  */ 
+        Thinking of using linkedlist  */
     tDumpModuleEntry *dumpTableEntry[MAX_DUMP_TABLE_ENTRY];
 #ifdef FEATURE_WLAN_TDLS
     v_BOOL_t isTdlsPowerSaveProhibited;
 #endif
-    
+
 } tAniSirGlobal;
 
 #ifdef FEATURE_WLAN_TDLS

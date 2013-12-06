@@ -268,7 +268,7 @@ typedef enum {
    PTT_MAX_MSG_ID = PTT_MSG_EXIT
 } ePttMsgId;
 
-enum 
+enum
 {
    PTT_MSG_PRIMA_GENERIC_CMD_FAST_SET_CHANNEL = 0x0,
 };

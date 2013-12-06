@@ -56,7 +56,7 @@ static int update_cpu_max_freq(int cpu, uint32_t max_freq)
 
 	if (cpu_online(cpu)) {
 		struct cpufreq_policy policy;
-		
+
 		ret = cpufreq_get_policy(&policy, cpu);
 
 		if (ret)
@@ -79,7 +79,7 @@ static void limit_cpu_freqs(uint32_t max_freq)
 {
 	int ret;
     int cpu;
-    
+
 	/* Update new limits */
 	for_each_possible_cpu(cpu) {
 		ret = update_cpu_max_freq(cpu, max_freq);
@@ -94,7 +94,7 @@ static void check_temp(struct work_struct *work)
 {
 	struct tsens_device tsens_dev;
 	long temp = 0;
-    
+
 	tsens_dev.sensor_num = msm_thermal_info.sensor_id;
 	tsens_get_temp(&tsens_dev, &temp);
 
@@ -109,7 +109,7 @@ static void check_temp(struct work_struct *work)
 		cpu_stats.throttling = true;
 		limit_cpu_freqs(cpu_stats.thermal_steps[1]);
 	}
-    
+
 	else if (temp >= (temp_threshold + 15))
 	{
 		cpu_stats.throttling = true;
@@ -143,19 +143,19 @@ static void check_temp(struct work_struct *work)
 int __devinit msm_thermal_init(struct msm_thermal_data *pdata)
 {
 	int ret = 0;
-    
+
 	BUG_ON(!pdata);
 	BUG_ON(pdata->sensor_id >= TSENS_MAX_SENSORS);
 	memcpy(&msm_thermal_info, pdata, sizeof(struct msm_thermal_data));
-    
+
 	wq = alloc_workqueue("msm_thermal_workqueue", WQ_FREEZABLE | WQ_UNBOUND, 0);
-    
+
     if (!wq)
         return -ENOMEM;
-    
+
 	INIT_DELAYED_WORK(&check_temp_work, check_temp);
 	queue_delayed_work(wq, &check_temp_work, HZ*30);
-    
+
 	return ret;
 }
 
@@ -165,21 +165,21 @@ static int __devinit msm_thermal_dev_probe(struct platform_device *pdev)
 	char *key = NULL;
 	struct device_node *node = pdev->dev.of_node;
 	struct msm_thermal_data data;
-    
+
 	memset(&data, 0, sizeof(struct msm_thermal_data));
 	key = "qcom,sensor-id";
 	ret = of_property_read_u32(node, key, &data.sensor_id);
 	if (ret)
 		goto fail;
 	WARN_ON(data.sensor_id >= TSENS_MAX_SENSORS);
-    
+
 fail:
 	if (ret)
 		pr_err("%s: Failed reading node=%s, key=%s\n",
 		       __func__, node->full_name, key);
 	else
 		ret = msm_thermal_init(&data);
-    
+
 	return ret;
 }
 

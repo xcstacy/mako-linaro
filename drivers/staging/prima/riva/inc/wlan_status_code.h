@@ -166,14 +166,14 @@ typedef enum
 
    /* Message from SLM has failure status */
    eHAL_STATUS_FW_SEND_MSG_FAILED,
-   
+
    /* BSS disconnect status : beacon miss */
    eHAL_STATUS_BSS_DISCONN_BEACON_MISS,
    /* BSS disconnect status : deauth */
    eHAL_STATUS_BSS_DISCONN_DEAUTH,
    /* BSS disconnect status : disassoc */
    eHAL_STATUS_BSS_DISCONN_DISASSOC,
-   
+
    /* Max status value */
    eHAL_STATUS_MAX_VALUE = WLAN_STATUS_MAX_ENUM_SIZE
 

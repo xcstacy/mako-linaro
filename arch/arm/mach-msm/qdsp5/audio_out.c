@@ -231,7 +231,7 @@ static int audio_enable(struct audio *audio)
 	MM_DBG("\n"); /* Macro prints the file name and function */
 
 	if (audio->enabled)
-		return 0;	
+		return 0;
 
 	/* refuse to start if we're not ready */
 	if (!audio->out[0].used || !audio->out[1].used)
@@ -249,7 +249,7 @@ static int audio_enable(struct audio *audio)
 	cfg.codec = RPC_AUD_DEF_CODEC_PCM;
 	cfg.snd_method = RPC_SND_METHOD_MIDI;
 
-	audio_prevent_sleep(audio);	
+	audio_prevent_sleep(audio);
 	rc = audmgr_enable(&audio->audmgr, &cfg);
 	if (rc < 0) {
 		audio_allow_sleep(audio);
@@ -386,7 +386,7 @@ static int audio_dsp_out_enable(struct audio *audio, int yes)
 	audpp_cmd_pcm_intf cmd;
 
 	memset(&cmd, 0, sizeof(cmd));
-	cmd.cmd_id	= AUDPP_CMD_PCM_INTF_2; 
+	cmd.cmd_id	= AUDPP_CMD_PCM_INTF_2;
 	cmd.object_num	= AUDPP_CMD_PCM_INTF_OBJECT_NUM;
 	cmd.config	= AUDPP_CMD_PCM_INTF_CONFIG_CMD_V;
 	cmd.intf_type	= AUDPP_CMD_PCM_INTF_RX_ENA_ARMTODSP_V;
@@ -411,14 +411,14 @@ static int audio_dsp_out_enable(struct audio *audio, int yes)
 		cmd.sample_rate		= audio->out_sample_rate;
 		cmd.channel_mode	= audio->out_channel_mode;
 	}
-	
+
 	return audpp_send_queue2(&cmd, sizeof(cmd));
 }
 
 static int audio_dsp_send_buffer(struct audio *audio, unsigned idx, unsigned len)
 {
 	audpp_cmd_pcm_intf_send_buffer cmd;
-	
+
 	cmd.cmd_id		= AUDPP_CMD_PCM_INTF_2;
 	cmd.host_pcm_object	= AUDPP_CMD_PCM_INTF_OBJECT_NUM;
 	cmd.config		= AUDPP_CMD_PCM_INTF_BUFFER_CMD_V;
@@ -770,7 +770,7 @@ static ssize_t audio_write(struct file *file, const char __user *buf,
 	LOG(EV_RETURN,(buf > start) ? (buf - start) : rc);
 	if (buf > start)
 		return buf - start;
-	return rc;	
+	return rc;
 }
 
 static int audio_release(struct inode *inode, struct file *file)
@@ -803,7 +803,7 @@ static int audio_open(struct inode *inode, struct file *file)
 	}
 
 	if (!audio->data) {
-		audio->data = dma_alloc_coherent(NULL, DMASZ, 
+		audio->data = dma_alloc_coherent(NULL, DMASZ,
 						 &audio->phys, GFP_KERNEL);
 		if (!audio->data) {
 			MM_ERR("could not allocate DMA buffers\n");
@@ -824,7 +824,7 @@ static int audio_open(struct inode *inode, struct file *file)
 	audio->out[0].data = audio->data + 0;
 	audio->out[0].addr = audio->phys + 0;
 	audio->out[0].size = BUFSZ;
-	
+
 	audio->out[1].data = audio->data + BUFSZ;
 	audio->out[1].addr = audio->phys + BUFSZ;
 	audio->out[1].size = BUFSZ;

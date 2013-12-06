@@ -934,14 +934,14 @@ int get_num_freqs(void)
 {
 	int i;
 	int count = 0;
-	
+
 	for (i = 0; drv.acpu_freq_tbl[i].use_for_scaling; i++)
 		count++;
-		
+
 	return count;
 }
 
-ssize_t acpuclk_get_vdd_levels_str(char *buf) 
+ssize_t acpuclk_get_vdd_levels_str(char *buf)
 {
 
 	int i, len = 0;
@@ -957,7 +957,7 @@ ssize_t acpuclk_get_vdd_levels_str(char *buf)
 	return len;
 }
 
-ssize_t acpuclk_set_vdd(char *buf) 
+ssize_t acpuclk_set_vdd(char *buf)
 {
 	unsigned int cur_volt;
 	char size_cur[get_num_freqs()];
@@ -966,23 +966,23 @@ ssize_t acpuclk_set_vdd(char *buf)
 
 	if (!buf)
 		return -EINVAL;
-		
+
 	for (i = 0; i < ARRAY_SIZE(size_cur); i++) {
 		ret = sscanf(buf, "%d", &cur_volt);
 
 		if (ret != 1)
 			return -EINVAL;
-			
+
 		if (cur_volt > MAX_VDD) {
 			pr_info("Voltage Control: new volt is %d and its higher than %d so we set it to MAX_VDD(%d).\n", cur_volt, MAX_VDD, MAX_VDD);
 			cur_volt = MAX_VDD;
 		} else if (cur_volt < MIN_VDD) {
 			pr_info("Voltage Control: new volt is %d and its lower than %d so we set it to MIN_VDD(%d).\n", cur_volt, MIN_VDD, MIN_VDD);
 			cur_volt = MIN_VDD;
-		}	
-				
+		}
+
 		drv.acpu_freq_tbl[i].vdd_core = cur_volt*1000;
-			
+
 		ret = sscanf(buf, "%s", size_cur);
 		buf += (strlen(size_cur)+1);
 	}

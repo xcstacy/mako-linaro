@@ -43,22 +43,22 @@
 #define HDD_INCLUDES_H__
 
 /**===========================================================================
-  
+
   \file  wlan_hdd_includes.h
-  
-  \brief Internal includes for the Linux HDD 
-  
+
+  \brief Internal includes for the Linux HDD
+
                Copyright 2008 (c) Qualcomm, Incorporated.
                All Rights Reserved.
                Qualcomm Confidential and Proprietary.
-  
+
   ==========================================================================*/
-  
+
 /* $HEADER$ */
-  
-/*--------------------------------------------------------------------------- 
+
+/*---------------------------------------------------------------------------
   Include files
-  -------------------------------------------------------------------------*/ 
+  -------------------------------------------------------------------------*/
 
 // throw all the includes in here f to get the .c files  in the HDD to compile.
 
@@ -85,7 +85,7 @@
 #ifdef FEATURE_OEM_DATA_SUPPORT
 /*include for oem data req specific structures*/
 /*and function declarations*/
-#include "wlan_hdd_oemdata.h" 
+#include "wlan_hdd_oemdata.h"
 #endif
 
 #endif    // end #if !defined( HDD_INCLUDES_H__ )

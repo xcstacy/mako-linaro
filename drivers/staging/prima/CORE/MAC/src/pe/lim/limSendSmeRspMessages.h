@@ -66,7 +66,7 @@ void limSendSmeScanRsp(tpAniSirGlobal, tANI_U16, tSirResultCodes,tANI_U8, tANI_U
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 void limSendSmeLfrScanRsp(tpAniSirGlobal, tANI_U16, tSirResultCodes,tANI_U8, tANI_U16);
 #endif
-void limPostSmeScanRspMessage(tpAniSirGlobal, tANI_U16, tSirResultCodes,tANI_U8,tANI_U16); 
+void limPostSmeScanRspMessage(tpAniSirGlobal, tANI_U16, tSirResultCodes,tANI_U8,tANI_U16);
 void limSendSmeAuthRsp(tpAniSirGlobal, tSirResultCodes,
                        tSirMacAddr, tAniAuthType, tANI_U16,tpPESession,tANI_U8,tANI_U16);
 
@@ -89,7 +89,7 @@ void limHandleDeleteBssRsp(tpAniSirGlobal pMac,tpSirMsgQ MsgQ);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 void
-limSendSmeAggrQosRsp(tpAniSirGlobal pMac, tpSirAggrQosRsp aggrQosRsp, 
+limSendSmeAggrQosRsp(tpAniSirGlobal pMac, tpSirAggrQosRsp aggrQosRsp,
                      tANI_U8 smesessionId);
 #endif /*WLAN_FEATURE_VOWIFI_11R*/
 

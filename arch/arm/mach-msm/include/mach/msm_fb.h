@@ -77,7 +77,7 @@ struct msm_mddi_client_data {
 			     uint32_t reg);
 	uint32_t (*remote_read)(struct msm_mddi_client_data *, uint32_t reg);
 	void (*auto_hibernate)(struct msm_mddi_client_data *, int);
-	/* custom data that needs to be passed from the board file to a 
+	/* custom data that needs to be passed from the board file to a
 	 * particular client */
 	void *private_client_data;
 	struct resource *fb_resource;

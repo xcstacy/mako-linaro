@@ -89,8 +89,8 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_BOOLEAN agPktsDisabled; //802.11ag
    tANI_BOOLEAN bPktsDisabled;  //802.11b
    tANI_BOOLEAN slrPktsDisabled;  //deprecated in Riva
-   tANI_BOOLEAN n40PktsDisabled; //11N 40 
-   tANI_BOOLEAN ac80PktsDisabled; //11AC 80 
+   tANI_BOOLEAN n40PktsDisabled; //11N 40
+   tANI_BOOLEAN ac80PktsDisabled; //11AC 80
    tANI_BOOLEAN rsvd;
 } sRxTypesDisabled;
 
@@ -161,10 +161,10 @@ typedef PACKED_PRE struct PACKED_POST {
    //Tx Frame Gen Service
    tANI_BOOLEAN frameGenEnabled;
    tANI_BOOLEAN phyDbgFrameGen; //this says use phyDbg for frames - leave this in place until we know that PhyDbg will suffice
-   
+
    // for FTM PER feature
    tANI_U8 tx_mode;
-   
+
    tANI_U8 reserved[1];
 
    //Rx Gain Service

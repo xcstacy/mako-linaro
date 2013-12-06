@@ -52,7 +52,7 @@
                All Rights Reserved.
 <<<<<<< HEAD:CORE/HDD/inc/wlan_hdd_dp_utils.h
                Qualcomm Confidential and Proprietary.
-  
+
 =======
                Qualcomm Technologies Confidential and Proprietary.
 
@@ -87,7 +87,7 @@ typedef struct hdd_list_s
    hdd_list_node_t anchor;
    v_SIZE_t count;
    v_SIZE_t max_size;
-   spinlock_t lock; 
+   spinlock_t lock;
 } hdd_list_t;
 
 typedef struct
@@ -98,7 +98,7 @@ typedef struct
 } skb_list_node_t;
 
 //FIXME Need a helper function to cleanup skbs in a queue. Required for cleanup/shutdown
-  
+
 /**-----------------------------------------------------------------------------
   Function declarations and documenation
  ----------------------------------------------------------------------------*/

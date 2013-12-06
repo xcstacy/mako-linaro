@@ -107,7 +107,7 @@ static int update_average_load(unsigned int cpu)
 	cur_max = get_cur_max(cpu);
 	cpufreq_get_policy(&cpu_policy, cpu);
 
-	/* 
+	/*
 	 * if max freq is changed by the user this load calculator
 	 * needs to adjust itself otherwise its going to be all wrong
 	 * This will also calculate correctly if the device is thermal throttled
@@ -170,7 +170,7 @@ static int __init msm_rq_stats_init(void)
 		pcpu->policy_max = cpu_policy.max;
 		pcpu->cur_freq = acpuclk_get_rate(cpu);
 		cpumask_copy(pcpu->related_cpus, cpu_policy.cpus);
-	}	
+	}
 
 	return 0;
 }

@@ -46,15 +46,15 @@
 
 
 /**=========================================================================
-  
+
   \file  smeRrmInternal.h
-  
+
   \brief prototype for SME RRM APIs
-  
+
    Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
-   
+
    Qualcomm Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -69,7 +69,7 @@
 #include "palTimer.h"
 #include "rrmGlobal.h"
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
 typedef struct sRrmConfigParam
@@ -118,7 +118,7 @@ typedef struct sRrmSMEContext
    vos_timer_t IterMeasTimer;
    tDblLinkList neighborReportCache;
    tRrmNeighborRequestControlInfo neighborReqControlInfo;
-}tRrmSMEContext, *tpRrmSMEContext; 
+}tRrmSMEContext, *tpRrmSMEContext;
 
 typedef struct sRrmNeighborReq
 {

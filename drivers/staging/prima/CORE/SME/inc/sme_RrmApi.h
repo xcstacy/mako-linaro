@@ -45,15 +45,15 @@
 
 
 /**=========================================================================
-  
+
   \file  sme_RrmApi.h
-  
+
   \brief prototype for SME RRM APIs
-  
+
    Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
-   
+
    Qualcomm Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -72,7 +72,7 @@
 
 
 //APIs
-eHalStatus sme_RrmMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type, 
+eHalStatus sme_RrmMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type,
                                 void *pMsgBuf);
 
 VOS_STATUS rrmClose (tpAniSirGlobal pMac);

@@ -47,7 +47,7 @@
  * History:-
  * Date         Modified by    Modification Information
  * --------------------------------------------------------------------
- * 
+ *
  */
 
 #ifndef __LIM_DEBUG_H__
@@ -65,7 +65,7 @@ void limLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...) ;
 #ifdef LIM_DEBUG_TDLS
 #define LIM_LOG_TDLS(x0) x0
 #else
-#define LIM_LOG_TDLS(x0) 
+#define LIM_LOG_TDLS(x0)
 #endif
 
 #endif

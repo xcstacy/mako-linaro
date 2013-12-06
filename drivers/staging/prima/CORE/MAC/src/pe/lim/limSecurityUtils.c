@@ -103,7 +103,7 @@ limIsAuthAlgoSupported(tpAniSirGlobal pMac, tAniAuthType authType, tpPESession p
            if((psessionEntry->authType == eSIR_OPEN_SYSTEM) || (psessionEntry->authType == eSIR_AUTO_SWITCH))
               return true;
            else
-              return false; 
+              return false;
         }
 
         if (wlan_cfgGetInt(pMac, WNI_CFG_OPEN_SYSTEM_AUTH_ENABLE,
@@ -130,7 +130,7 @@ limIsAuthAlgoSupported(tpAniSirGlobal pMac, tAniAuthType authType, tpPESession p
                 algoEnable = true;
             else
                 algoEnable = false;
-            
+
         }
         else
 
@@ -333,7 +333,7 @@ limReleasePreAuthNode(tpAniSirGlobal pMac, tpLimPreAuthNode pAuthNode)
 {
     pAuthNode->fFree = 1;
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, eLIM_PRE_AUTH_CLEANUP_TIMER));
-    tx_timer_deactivate(&pAuthNode->timer);                
+    tx_timer_deactivate(&pAuthNode->timer);
     pMac->lim.gLimNumPreAuthContexts--;
 } /*** end limReleasePreAuthNode() ***/
 
@@ -460,7 +460,7 @@ limRestoreFromAuthState(tpAniSirGlobal pMac, tSirResultCodes resultCode, tANI_U1
     mlmAuthCnf.authType   = pMac->lim.gpLimMlmAuthReq->authType;
     mlmAuthCnf.resultCode = resultCode;
     mlmAuthCnf.protStatusCode = protStatusCode;
-    
+
     /* Update PE session ID*/
     mlmAuthCnf.sessionId = sessionEntry->peSessionId;
 
@@ -470,7 +470,7 @@ limRestoreFromAuthState(tpAniSirGlobal pMac, tSirResultCodes resultCode, tANI_U1
     pMac->lim.gpLimMlmAuthReq = NULL;
 
     sessionEntry->limMlmState = sessionEntry->limPrevMlmState;
-    
+
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, sessionEntry->peSessionId, sessionEntry->limMlmState));
 
 
@@ -881,7 +881,7 @@ tANI_U32 val = 0;
   {
       limLog( pMac, LOG1,
           FL( "numKeys = %d is more than SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS" ), pMlmSetKeysReq->numKeys);
-      
+
       // Respond to SME with error code
       mlmSetKeysCnf.resultCode = eSIR_SME_INVALID_PARAMETERS;
       goto end;
@@ -891,7 +891,7 @@ tANI_U32 val = 0;
 
   if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
           (void **) &pSetBssKeyParams,
-         sizeof( tSetBssKeyParams )))     
+         sizeof( tSetBssKeyParams )))
   {
     limLog( pMac, LOGE,
         FL( "Unable to PAL allocate memory during SET_BSSKEY" ));
@@ -903,7 +903,7 @@ tANI_U32 val = 0;
   else
     palZeroMemory( pMac->hHdd,
         (void *) pSetBssKeyParams,
-         sizeof( tSetBssKeyParams ));     
+         sizeof( tSetBssKeyParams ));
 
   // Update the WDA_SET_BSSKEY_REQ parameters
   pSetBssKeyParams->bssIdx = psessionEntry->bssIdx;
@@ -920,12 +920,12 @@ tANI_U32 val = 0;
   /* Update PE session Id*/
   pSetBssKeyParams->sessionId = psessionEntry ->peSessionId;
 
-  if(pMlmSetKeysReq->key[0].keyId && 
-     ((pMlmSetKeysReq->edType == eSIR_ED_WEP40) || 
+  if(pMlmSetKeysReq->key[0].keyId &&
+     ((pMlmSetKeysReq->edType == eSIR_ED_WEP40) ||
       (pMlmSetKeysReq->edType == eSIR_ED_WEP104))
     )
   {
-    /* IF the key id is non-zero and encryption type is WEP, Send all the 4 
+    /* IF the key id is non-zero and encryption type is WEP, Send all the 4
      * keys to HAL with filling the key at right index in pSetBssKeyParams->key. */
     pSetBssKeyParams->numKeys = SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS;
     palCopyMemory( pMac->hHdd,
@@ -1020,7 +1020,7 @@ tANI_U32 val = 0;
   pSetStaKeyParams->staIdx = staIdx;
   pSetStaKeyParams->encType = pMlmSetKeysReq->edType;
 
-  
+
   if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_SINGLE_TID_RC, &val))
   {
      limLog( pMac, LOGP, FL( "Unable to read WNI_CFG_SINGLE_TID_RC" ));
@@ -1040,11 +1040,11 @@ tANI_U32 val = 0;
    */
 
   pSetStaKeyParams->defWEPIdx = defWEPIdx;
-    
+
   /** Store the Previous MlmState*/
   sessionEntry->limPrevMlmState = sessionEntry->limMlmState;
   SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-    
+
   if(sessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE && !pMlmSetKeysReq->key[0].unicast) {
       sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_BCASTKEY_STATE;
       msgQ.type = WDA_SET_STA_BCASTKEY_REQ;
@@ -1067,7 +1067,7 @@ tANI_U32 val = 0;
           tANI_U32 i;
 
           for(i=0; i < SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS ;i++)
-          { 
+          {
               palCopyMemory( pMac->hHdd,
                              (tANI_U8 *) &pSetStaKeyParams->key[i],
                              (tANI_U8 *) &pMlmSetKeysReq->key[i], sizeof( tSirKeys ));
@@ -1076,7 +1076,7 @@ tANI_U32 val = 0;
           sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
           MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, sessionEntry->peSessionId, sessionEntry->limMlmState));
       }else {
-          /*This case the keys are coming from upper layer so need to fill the 
+          /*This case the keys are coming from upper layer so need to fill the
           * key at the default wep key index and send to the HAL */
           palCopyMemory( pMac->hHdd,
                              (tANI_U8 *) &pSetStaKeyParams->key[defWEPIdx],
@@ -1086,8 +1086,8 @@ tANI_U32 val = 0;
       break;
   case eSIR_ED_TKIP:
   case eSIR_ED_CCMP:
-#ifdef FEATURE_WLAN_WAPI 
-  case eSIR_ED_WPI: 
+#ifdef FEATURE_WLAN_WAPI
+  case eSIR_ED_WPI:
 #endif
       {
           palCopyMemory( pMac->hHdd, (tANI_U8 *) &pSetStaKeyParams->key,
@@ -1098,7 +1098,7 @@ tANI_U32 val = 0;
       break;
   }
 
-  
+
   //
   // FIXME_GEN4
   // A global counter (dialog token) is required to keep track of
@@ -1153,7 +1153,7 @@ tSirRetStatus      retCode;
 
   if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
           (void **) &pRemoveBssKeyParams,
-         sizeof( tRemoveBssKeyParams )))     
+         sizeof( tRemoveBssKeyParams )))
   {
     limLog( pMac, LOGE,
         FL( "Unable to PAL allocate memory during REMOVE_BSSKEY" ));
@@ -1165,7 +1165,7 @@ tSirRetStatus      retCode;
   else
     palZeroMemory( pMac->hHdd,
         (void *) pRemoveBssKeyParams,
-         sizeof( tRemoveBssKeyParams ));     
+         sizeof( tRemoveBssKeyParams ));
 
   // Update the WDA_REMOVE_BSSKEY_REQ parameters
   pRemoveBssKeyParams->bssIdx = psessionEntry->bssIdx;
@@ -1201,7 +1201,7 @@ tSirRetStatus      retCode;
     mlmRemoveKeysCnf.resultCode = eSIR_SME_HAL_SEND_MESSAGE_FAIL;
   }
   else
-    return; 
+    return;
 
 end:
   limPostSmeRemoveKeyCnf( pMac,

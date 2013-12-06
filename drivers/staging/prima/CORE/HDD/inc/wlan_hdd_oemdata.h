@@ -42,15 +42,15 @@
 #ifdef FEATURE_OEM_DATA_SUPPORT
 
 /**===========================================================================
-  
+
   \file  wlan_hdd_oemdata.h
-  
+
   \brief Internal includes for the oem data
-  
+
                Copyright 2008 (c) Qualcomm, Incorporated.
                All Rights Reserved.
                Qualcomm Confidential and Proprietary.
-  
+
   ==========================================================================*/
 
 

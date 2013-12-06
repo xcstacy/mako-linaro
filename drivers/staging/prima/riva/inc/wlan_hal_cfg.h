@@ -27,7 +27,7 @@
  *
  *  @author:   Kumar Anand
  *
- *             Copyright (C) 2010, Qualcomm Technologies, Inc. 
+ *             Copyright (C) 2010, Qualcomm Technologies, Inc.
  *             All rights reserved.
  *
  *=========================================================================*/
@@ -100,28 +100,28 @@
 #define QWLAN_HAL_CFG_RPE_AGING_THRESHOLD_FOR_AC3_REG    46
 #define QWLAN_HAL_CFG_NO_OF_ONCHIP_REORDER_SESSIONS      47
 #define QWLAN_HAL_CFG_PS_LISTEN_INTERVAL                 48
-#define QWLAN_HAL_CFG_PS_HEART_BEAT_THRESHOLD            49 
-#define QWLAN_HAL_CFG_PS_NTH_BEACON_FILTER               50 
-#define QWLAN_HAL_CFG_PS_MAX_PS_POLL                     51 
+#define QWLAN_HAL_CFG_PS_HEART_BEAT_THRESHOLD            49
+#define QWLAN_HAL_CFG_PS_NTH_BEACON_FILTER               50
+#define QWLAN_HAL_CFG_PS_MAX_PS_POLL                     51
 #define QWLAN_HAL_CFG_PS_MIN_RSSI_THRESHOLD              52
-#define QWLAN_HAL_CFG_PS_RSSI_FILTER_PERIOD              53 
+#define QWLAN_HAL_CFG_PS_RSSI_FILTER_PERIOD              53
 #define QWLAN_HAL_CFG_PS_BROADCAST_FRAME_FILTER_ENABLE   54
 #define QWLAN_HAL_CFG_PS_IGNORE_DTIM                     55
 #define QWLAN_HAL_CFG_PS_ENABLE_BCN_EARLY_TERM           56
 #define QWLAN_HAL_CFG_DYNAMIC_PS_POLL_VALUE              57
-#define QWLAN_HAL_CFG_PS_NULLDATA_AP_RESP_TIMEOUT        58 
+#define QWLAN_HAL_CFG_PS_NULLDATA_AP_RESP_TIMEOUT        58
 #define QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN                 59
 #define QWLAN_HAL_CFG_TELE_BCN_TRANS_LI                  60
 #define QWLAN_HAL_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS        61
 #define QWLAN_HAL_CFG_TELE_BCN_MAX_LI                    62
 #define QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS          63
 #define QWLAN_HAL_CFG_TX_PWR_CTRL_ENABLE                 64
-#define QWLAN_HAL_CFG_VALID_RADAR_CHANNEL_LIST           65 
-#define QWLAN_HAL_CFG_TX_POWER_24_20                     66 
+#define QWLAN_HAL_CFG_VALID_RADAR_CHANNEL_LIST           65
+#define QWLAN_HAL_CFG_TX_POWER_24_20                     66
 #define QWLAN_HAL_CFG_TX_POWER_24_40                     67
 #define QWLAN_HAL_CFG_TX_POWER_50_20                     68
 #define QWLAN_HAL_CFG_TX_POWER_50_40                     69
-#define QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING         70 
+#define QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING         70
 #define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL     71
 #define QCOM_WLAN_CFG_MAX_TX_POWER_2_4                   72
 #define QCOM_WLAN_CFG_MAX_TX_POWER_5                     73
@@ -440,7 +440,7 @@
 
 
 
-/* ACM, AIFSN, [CWmin, CWmax, TxOp]-11A/11B/11G 
+/* ACM, AIFSN, [CWmin, CWmax, TxOp]-11A/11B/11G
  * Cwmin and Cwmax are two bytes each, MSB first. So Cwmax of [03 FF] is
  * equivalent to 0x03ff = 1023*/
 #define QWLAN_HAL_CFG_EDCA_PROFILE_ACM_IDX       0   /* byte[0] */
@@ -450,7 +450,7 @@
 #define QWLAN_HAL_CFG_EDCA_PROFILE_TXOPA_IDX     6   /* byte[6] */
 #define QWLAN_HAL_CFG_EDCA_PROFILE_CWMINB_IDX    7   /* byte[7] & byte [8]   */
 #define QWLAN_HAL_CFG_EDCA_PROFILE_CWMAXB_IDX    9   /* byte[9] & byte [10]  */
-#define QWLAN_HAL_CFG_EDCA_PROFILE_TXOPB_IDX     11  /* byte[11]*/  
+#define QWLAN_HAL_CFG_EDCA_PROFILE_TXOPB_IDX     11  /* byte[11]*/
 #define QWLAN_HAL_CFG_EDCA_PROFILE_CWMING_IDX    12  /* byte[12] & byte [13] */
 #define QWLAN_HAL_CFG_EDCA_PROFILE_CWMAXG_IDX    14  /* byte[14] & byte [15] */
 #define QWLAN_HAL_CFG_EDCA_PROFILE_TXOPG_IDX     16  /* byte[16]*/
@@ -582,24 +582,24 @@
 #define QWLAN_HAL_CFG_RADAR_CHANNEL_LIST_LEN    20
 
 /* QWLAN_HAL_CFG_TX_POWER_24_20 */
-#define QWLAN_WLAN_TX_POWER_24_20_DEFAULT    299 
-#define QWLAN_WLAN_TX_POWER_24_20_MIN        299 
-#define QWLAN_WLAN_TX_POWER_24_20_MAX        299 
+#define QWLAN_WLAN_TX_POWER_24_20_DEFAULT    299
+#define QWLAN_WLAN_TX_POWER_24_20_MIN        299
+#define QWLAN_WLAN_TX_POWER_24_20_MAX        299
 
 /* QWLAN_HAL_CFG_TX_POWER_24_40 */
 #define QWLAN_WLAN_TX_POWER_24_40_DEFAULT    300
-#define QWLAN_WLAN_TX_POWER_24_40_MIN        299 
-#define QWLAN_WLAN_TX_POWER_24_40_MAX        299 
+#define QWLAN_WLAN_TX_POWER_24_40_MIN        299
+#define QWLAN_WLAN_TX_POWER_24_40_MAX        299
 
 /* QWLAN_HAL_CFG_TX_POWER_50_20 */
 #define QWLAN_WLAN_TX_POWER_50_20_DEFAULT    301
-#define QWLAN_WLAN_TX_POWER_50_20_MIN        299 
-#define QWLAN_WLAN_TX_POWER_50_20_MAX        299 
+#define QWLAN_WLAN_TX_POWER_50_20_MIN        299
+#define QWLAN_WLAN_TX_POWER_50_20_MAX        299
 
 /* QWLAN_HAL_CFG_TX_POWER_50_40 */
 #define QWLAN_WLAN_TX_POWER_50_40_DEFAULT    302
-#define QWLAN_WLAN_TX_POWER_50_40_MIN        299 
-#define QWLAN_WLAN_TX_POWER_50_40_MAX        299 
+#define QWLAN_WLAN_TX_POWER_50_40_MIN        299
+#define QWLAN_WLAN_TX_POWER_50_40_MAX        299
 
 /* QCOM_WLAN_CFG_MAX_TX_POWER_2_4 */
 #define QCOM_WLAN_CFG_MAX_TX_POWER_2_4_LEN      128

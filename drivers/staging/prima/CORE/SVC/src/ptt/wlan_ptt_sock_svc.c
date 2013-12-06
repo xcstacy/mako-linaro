@@ -148,8 +148,8 @@ static void ptt_sock_proc_reg_req(tAniHdr *wmsg, int radio)
    //send reg response message to the application
    rspmsg.ret = ANI_NL_MSG_OK;
    rspmsg.regReq.type = reg_req->type;
-   /*Save the pid*/    
-   pAdapterHandle->ptt_pid = reg_req->pid;   
+   /*Save the pid*/
+   pAdapterHandle->ptt_pid = reg_req->pid;
    rspmsg.regReq.pid= reg_req->pid;
    rspmsg.wniHdr.type = cpu_to_be16(ANI_MSG_APP_REG_RSP);
    rspmsg.wniHdr.length = cpu_to_be16(sizeof(rspmsg));

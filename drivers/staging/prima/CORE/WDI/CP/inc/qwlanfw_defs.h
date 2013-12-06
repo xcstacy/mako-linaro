@@ -47,7 +47,7 @@
  *
  *  @author:   Gagan Jain
  *
- *             Copyright (C) 2010, Qualcomm, Inc. 
+ *             Copyright (C) 2010, Qualcomm, Inc.
  *             All rights reserved.
  *
  *=========================================================================*/
@@ -58,7 +58,7 @@
 /*-------------------------------------------------------------------------
   Include Files
 -------------------------------------------------------------------------*/
-#include "wlan_qct_pal_type.h" 
+#include "wlan_qct_pal_type.h"
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants

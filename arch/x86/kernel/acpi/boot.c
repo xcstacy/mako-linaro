@@ -1503,7 +1503,7 @@ void __init acpi_boot_table_init(void)
 	 * If acpi_disabled, bail out
 	 */
 	if (acpi_disabled)
-		return; 
+		return;
 
 	/*
 	 * Initialize the ACPI boot-time table parser.

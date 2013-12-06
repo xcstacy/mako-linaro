@@ -39,21 +39,21 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-/**========================================================================= 
+/**=========================================================================
 
-                       EDIT HISTORY FOR FILE 
-   
-   
-  This section contains comments describing changes made to the module. 
-  Notice that changes are listed in reverse chronological order. 
-   
-   
-  $Header:$   $DateTime: $ $Author: $ 
-   
-   
-  when        who    what, where, why 
+                       EDIT HISTORY FOR FILE
+
+
+  This section contains comments describing changes made to the module.
+  Notice that changes are listed in reverse chronological order.
+
+
+  $Header:$   $DateTime: $ $Author: $
+
+
+  when        who    what, where, why
   --------    ---    --------------------------------------------------------
-  03/29/11    tbh    Created module. 
+  03/29/11    tbh    Created module.
 
   ==========================================================================*/
 
@@ -139,7 +139,7 @@ static int wlan_suspend(hdd_context_t* pHddCtx)
    }
 
    /*
-     Suspending MC Thread, Rx Thread and Tx Thread as the platform driver is going to Suspend.     
+     Suspending MC Thread, Rx Thread and Tx Thread as the platform driver is going to Suspend.
    */
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Suspending Mc, Rx and Tx Threads",__func__);
 
@@ -224,7 +224,7 @@ static int wlan_suspend(hdd_context_t* pHddCtx)
 
    /* Set the Mc Thread as Suspended */
    pHddCtx->isMcThreadSuspended = TRUE;
-   
+
    /* Set the Station state as Suspended */
    pHddCtx->isWlanSuspended = TRUE;
 
@@ -334,7 +334,7 @@ int hddDevSuspendHdlr(struct device *dev)
 /*----------------------------------------------------------------------------
 
    @brief Function to resume the wlan driver.
-   This function will get called by platform driver Resume on System Resume 
+   This function will get called by platform driver Resume on System Resume
 
    @param dev    platform_func_device
 
@@ -378,7 +378,7 @@ static const struct dev_pm_ops pm_ops = {
  *
 
    @brief Registration function.
-        Register suspend, resume callback functions with platform driver. 
+        Register suspend, resume callback functions with platform driver.
 
    @param hdd_context_t pHddCtx
         Global hdd context
@@ -461,7 +461,7 @@ void hddDevTmTxBlockTimeoutHandler(void *usrData)
    pHddCtx->tmInfo.txFrameCount = 0;
 
    /* Resume TX flow */
-    
+
    netif_tx_start_all_queues(staAdapater->dev);
 
    mutex_unlock(&pHddCtx->tmInfo.tmOperationLock);
@@ -477,7 +477,7 @@ void hddDevTmTxBlockTimeoutHandler(void *usrData)
    @param dev : Device context
           changedTmLevel : Changed new TM level
 
-   @return 
+   @return
 
 ----------------------------------------------------------------------------*/
 void hddDevTmLevelChangedHandler(struct device *dev, int changedTmLevel)
@@ -534,7 +534,7 @@ void hddDevTmLevelChangedHandler(struct device *dev, int changedTmLevel)
          if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(staAdapater)))
          {
             sme_RoamDisconnect(pHddCtx->hHal,
-                               staAdapater->sessionId, 
+                               staAdapater->sessionId,
                                eCSR_DISCONNECT_REASON_UNSPECIFIED);
          }
       }
@@ -567,7 +567,7 @@ VOS_STATUS hddDevTmRegisterNotifyCallback(hdd_context_t *pHddCtx)
 
    /* Set Default TM Level as Lowest, do nothing */
    pHddCtx->tmInfo.currentTmLevel = WLAN_HDD_TM_LEVEL_0;
-   vos_mem_zero(&pHddCtx->tmInfo.tmAction, sizeof(hdd_tmLevelAction_t)); 
+   vos_mem_zero(&pHddCtx->tmInfo.tmAction, sizeof(hdd_tmLevelAction_t));
    vos_timer_init(&pHddCtx->tmInfo.txSleepTimer,
                   VOS_TIMER_TYPE_SW,
                   hddDevTmTxBlockTimeoutHandler,

@@ -881,7 +881,7 @@ int read_bytes_from_xdr_buf(struct xdr_buf *buf, unsigned int base, void *obj, u
 	struct xdr_buf subbuf;
 	int status;
 	subbuf.pages = 0;
-	subbuf.page_base = 0; 
+	subbuf.page_base = 0;
 
 	status = xdr_buf_subsegment(buf, &subbuf, base, len);
 	if (status != 0)
@@ -914,7 +914,7 @@ int write_bytes_to_xdr_buf(struct xdr_buf *buf, unsigned int base, void *obj, un
 	struct xdr_buf subbuf;
 	int status;
 	subbuf.pages = 0;
-	subbuf.page_base = 0; 
+	subbuf.page_base = 0;
 
 	status = xdr_buf_subsegment(buf, &subbuf, base, len);
 	if (status != 0)
@@ -955,7 +955,7 @@ int xdr_buf_read_netobj(struct xdr_buf *buf, struct xdr_netobj *obj, unsigned in
 {
 	struct xdr_buf subbuf;
 	subbuf.pages = 0;
-	subbuf.page_base = 0; 
+	subbuf.page_base = 0;
 
 	if (xdr_decode_word(buf, offset, &obj->len))
 		return -EFAULT;

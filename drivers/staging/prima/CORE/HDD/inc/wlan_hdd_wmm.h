@@ -106,7 +106,7 @@ typedef enum
    HDD_LINUX_AC_BK = 3
 
 } hdd_wmm_linuxac_t;
- 
+
 /*! @brief types of classification supported
 */
 typedef enum
@@ -214,7 +214,7 @@ typedef struct
 } hdd_wmm_status_t;
 
 extern const v_U8_t hdd_QdiscAcToTlAC[];
-extern const v_U8_t hddWmmUpToAcMap[]; 
+extern const v_U8_t hddWmmUpToAcMap[];
 extern const v_U8_t hddLinuxUpToAcMap[];
 
 /**============================================================================
@@ -375,7 +375,7 @@ v_BOOL_t hdd_wmm_is_active( hdd_adapter_t* pAdapter );
   @param handle    : [in]  handle to uniquely identify a TS
   @param pTspec    : [in]  pointer to the traffic spec
 
-  @return          : HDD_WLAN_WMM_STATUS_* 
+  @return          : HDD_WLAN_WMM_STATUS_*
   ===========================================================================*/
 hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
                                      v_U32_t handle,
@@ -388,7 +388,7 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
   @param pAdapter  : [in]  pointer to adapter context
   @param handle    : [in]  handle to uniquely identify a TS
 
-  @return          : HDD_WLAN_WMM_STATUS_* 
+  @return          : HDD_WLAN_WMM_STATUS_*
   ===========================================================================*/
 hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
                                      v_U32_t handle );
@@ -400,7 +400,7 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
   @param pAdapter  : [in]  pointer to adapter context
   @param handle    : [in]  handle to uniquely identify a TS
 
-  @return          : HDD_WLAN_WMM_STATUS_* 
+  @return          : HDD_WLAN_WMM_STATUS_*
   ===========================================================================*/
 hdd_wlan_wmm_status_e hdd_wmm_checkts( hdd_adapter_t* pAdapter,
                                        v_U32_t handle );

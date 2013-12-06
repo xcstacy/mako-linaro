@@ -32,7 +32,7 @@
   * Fri Jun  7 17:41:21 2013 from the following file(s):
   *
   * dot11f.frms
-  * 
+  *
   * PLEASE DON'T EDIT THIS FILE BY HAND!
   *
   *
@@ -493,7 +493,7 @@ static tANI_U32 GetContainerIesLen(tpAniSirGlobal pCtx,
 
     *pnConsumed = len;
     return DOT11F_PARSE_SUCCESS;
-   
+
 }
 
 
@@ -540,7 +540,7 @@ tANI_U32 dot11fUnpackTlvCommonFunc2(tpAniSirGlobal  pCtx, tANI_U8 *pBuf, tANI_U1
     return status;
 
 } /* End dot11fUnpackTlvCommonFunc2. */
-                                           
+
 void dot11fUnpackFfCommonFunc(tpAniSirGlobal pCtx,
                             tANI_U8 *pBuf, tANI_U16 *pDstField)
 {
@@ -553,7 +553,7 @@ tANI_U32 dot11fUnpackIeCommonFunc(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ie
 {
     tANI_U32 status = DOT11F_PARSE_SUCCESS;
     (void)ielen;
-    (void)pBuf; 
+    (void)pBuf;
     if ((*pDstPresent)) status = DOT11F_DUPLICATE_IE;
     *pDstPresent = 1;
     *pDstField = *pBuf;
@@ -1822,7 +1822,7 @@ tANI_U32 dot11fUnpackIePropSuppRates(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8
     if (pDst->present) status = DOT11F_DUPLICATE_IE;
     pDst->present = 1;
     for (i = 0; i < ielen; i++) {
-        if ((DOT11F_IS_BG_RATE(pBuf[i] & 0x7F)) && 
+        if ((DOT11F_IS_BG_RATE(pBuf[i] & 0x7F)) &&
             (rate_indx < 12)) {
             pDst->rates[rate_indx++] = pBuf[i];
         }
@@ -3173,7 +3173,7 @@ tANI_U32 dot11fUnpackIeExtSuppRates(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 
     if (pDst->present) status = DOT11F_DUPLICATE_IE;
     pDst->present = 1;
     for (i = 0; i < ielen; i++) {
-        if ((DOT11F_IS_BG_RATE(pBuf[i] & 0x7F)) && 
+        if ((DOT11F_IS_BG_RATE(pBuf[i] & 0x7F)) &&
             (rate_indx < 12)) {
             pDst->rates[rate_indx++] = pBuf[i];
         }
@@ -4652,7 +4652,7 @@ tANI_U32 dot11fUnpackIeSuppRates(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     if (pDst->present) status = DOT11F_DUPLICATE_IE;
     pDst->present = 1;
     for (i = 0; i < ielen; i++) {
-        if ((DOT11F_IS_BG_RATE(pBuf[i] & 0x7F)) && 
+        if ((DOT11F_IS_BG_RATE(pBuf[i] & 0x7F)) &&
             (rate_indx < 12)) {
             pDst->rates[rate_indx++] = pBuf[i];
         }
@@ -19879,7 +19879,7 @@ static tANI_U32 UnpackCore(tpAniSirGlobal pCtx,
     pIe = &IEs[0];
     while (0xff != pIe->eid)
     {
-        pfFound = (tFRAMES_BOOL*)(pFrm + pIe->offset + 
+        pfFound = (tFRAMES_BOOL*)(pFrm + pIe->offset +
                                   pIe->presenceOffset);
         *pfFound = 0U;
         if (pIe->countOffset)
@@ -20424,12 +20424,12 @@ static tANI_U32 UnpackCore(tpAniSirGlobal pCtx,
                 case SigIeRICDataDesc:
                         //reset the pointers back since this is a container IE and it doesnt have its own EID and Len.
                         pBufRemaining -= 2; nBufRemaining += 2;
-                        if ( pIe && pIe->noui ) 
-                            { 
+                        if ( pIe && pIe->noui )
+                            {
                                 pBufRemaining -= pIe->noui;
                                 nBufRemaining += pIe->noui;
                                 len += pIe->noui;
-                            } 
+                            }
                         status |= GetContainerIesLen(pCtx, pBufRemaining, nBufRemaining, &len, IES_RICDataDesc);
                         if (status != DOT11F_PARSE_SUCCESS && status != DOT11F_UNKNOWN_IES ) break;
                         status |= dot11fUnpackIeRICDataDesc(pCtx, pBufRemaining, len, ( tDot11fIERICDataDesc* )(pFrm + pIe->offset + sizeof(tDot11fIERICDataDesc)*countOffset) );
@@ -20571,7 +20571,7 @@ MandatoryCheck:
     {
         if (pIe->fMandatory)
         {
-            pfFound = (tFRAMES_BOOL*)(pFrm + pIe->offset + 
+            pfFound = (tFRAMES_BOOL*)(pFrm + pIe->offset +
                                       pIe->presenceOffset);
             if (!*pfFound)
             {
@@ -20624,8 +20624,8 @@ static tANI_U32 UnpackTlvCore( tpAniSirGlobal   pCtx,
         // Look for a matching TLV definition,
         pTlv = FindTLVDefn( pCtx, pBufRemaining, nBufRemaining, TLVs );
         // consume the type,
-        if ( pTlv ) 
-        { 
+        if ( pTlv )
+        {
            if ( pTlv->sType == 2)
            {
               framesntohs(pCtx, &id, pBufRemaining, pTlv->fMsb);
@@ -20641,12 +20641,12 @@ static tANI_U32 UnpackTlvCore( tpAniSirGlobal   pCtx,
            if ( pTlv->sLen == 2)
            {
               framesntohs(pCtx, &len, pBufRemaining, pTlv->fMsb);
-              if ( 2 > nBufRemaining ) 
+              if ( 2 > nBufRemaining )
               {
                   FRAMES_LOG0( pCtx, FRLOGE, FRFL("This frame reports "
                                                   "fewer two byte(s) remaining.\n") );
-                  status |= DOT11F_INCOMPLETE_TLV; 
-                  FRAMES_DBG_BREAK(); 
+                  status |= DOT11F_INCOMPLETE_TLV;
+                  FRAMES_DBG_BREAK();
                   goto MandatoryCheck;
               }
               pBufRemaining += 2;
@@ -20658,8 +20658,8 @@ static tANI_U32 UnpackTlvCore( tpAniSirGlobal   pCtx,
               nBufRemaining -= 1;
            }
         }
-        else 
-        { 
+        else
+        {
            pBufRemaining += TLVs[0].sType;
            nBufRemaining -= TLVs[0].sType;
            framesntohs(pCtx, &len, pBufRemaining, (TLVs[0].sType == 2));
@@ -20673,7 +20673,7 @@ static tANI_U32 UnpackTlvCore( tpAniSirGlobal   pCtx,
            }
            pBufRemaining += 2;
            nBufRemaining -= 2;
-        } 
+        }
 
         if ( pTlv && pTlv->pec )
         {
@@ -22097,7 +22097,7 @@ static tANI_U32 GetPackedSizeCore(tpAniSirGlobal pCtx,
     tANI_U32 byteCount = 0;
     tANI_U8  pIePresent = 0;
     tANI_U32 offset = 0;
-    
+
     status = DOT11F_PARSE_SUCCESS;
 
     (void)pCtx; /* Shutup the compiler if we have no FFs nor IEs... */
@@ -24744,7 +24744,7 @@ tANI_U32 dot11fPackIeAPName(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->name ), pSrc->num_name);
         *pnConsumed += pSrc->num_name;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -24777,7 +24777,7 @@ tANI_U32 dot11fPackIeBPIndicator(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->type;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -24807,7 +24807,7 @@ tANI_U32 dot11fPackIeCondensedCountryStr(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, pSrc->countryStr, 2);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -24851,7 +24851,7 @@ tANI_U32 dot11fPackIeGTK(tpAniSirGlobal pCtx,
         pBuf += 8;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->key ), pSrc->num_key);
         *pnConsumed += pSrc->num_key;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -24881,7 +24881,7 @@ tANI_U32 dot11fPackIeHCF(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->enabled;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -24983,7 +24983,7 @@ tANI_U32 dot11fPackIeLoadBalance(tpAniSirGlobal pCtx,
         pBuf += 6;
         *pBuf = pSrc->channel;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25016,7 +25016,7 @@ tANI_U32 dot11fPackIeLoadInfo(tpAniSirGlobal pCtx,
         pBuf += 2;
         frameshtons(pCtx, pBuf, pSrc->channel_util, 1);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25046,7 +25046,7 @@ tANI_U32 dot11fPackIePropAssocType(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->type;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25076,7 +25076,7 @@ tANI_U32 dot11fPackIePropCapability(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         frameshtons(pCtx, pBuf, pSrc->capability, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25115,7 +25115,7 @@ tANI_U32 dot11fPackIePropChannSwitchAnn(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->channel_switch_count;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25232,7 +25232,7 @@ tANI_U32 dot11fPackIePropEDCAParams(tpAniSirGlobal pCtx,
         nBuf -=  1 ;
         frameshtons(pCtx, pBuf, pSrc->acvo_txoplimit, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25271,7 +25271,7 @@ tANI_U32 dot11fPackIePropQuietBSS(tpAniSirGlobal pCtx,
         pBuf += 2;
         frameshtons(pCtx, pBuf, pSrc->quiet_offset, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25301,7 +25301,7 @@ tANI_U32 dot11fPackIePropSuppRates(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->rates ), pSrc->num_rates);
         *pnConsumed += pSrc->num_rates;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25331,7 +25331,7 @@ tANI_U32 dot11fPackIeR0KH_ID(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->PMK_R0_ID ), pSrc->num_PMK_R0_ID);
         *pnConsumed += pSrc->num_PMK_R0_ID;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25361,7 +25361,7 @@ tANI_U32 dot11fPackIeR1KH_ID(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, pSrc->PMK_R1_ID, 6);
         *pnConsumed += 6;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25394,7 +25394,7 @@ tANI_U32 dot11fPackIeTSFInfo(tpAniSirGlobal pCtx,
         pBuf += 2;
         frameshtons(pCtx, pBuf, pSrc->BeaconIntvl, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25434,7 +25434,7 @@ tANI_U32 dot11fPackIeTaurus(tpAniSirGlobal pCtx,
         tmp98__ |= ( pSrc->rsvd << 12 );
         frameshtons(pCtx, pBuf, tmp98__, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  2 ;
         break;
     }
@@ -25474,7 +25474,7 @@ tANI_U32 dot11fPackIeTitan(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->rev_fcs_state;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25504,7 +25504,7 @@ tANI_U32 dot11fPackIeTriggerStaBgScan(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->enable;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25540,7 +25540,7 @@ tANI_U32 dot11fPackIeVersion(tpAniSirGlobal pCtx,
         pBuf += 1;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->build_version ), pSrc->num_build_version);
         *pnConsumed += pSrc->num_build_version;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25570,7 +25570,7 @@ tANI_U32 dot11fPackIeWDS(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->wdsData ), pSrc->num_wdsData);
         *pnConsumed += pSrc->num_wdsData;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25603,7 +25603,7 @@ tANI_U32 dot11fPackIeAPChannelReport(tpAniSirGlobal pCtx,
         pBuf += 1;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->channelList ), pSrc->num_channelList);
         *pnConsumed += pSrc->num_channelList;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25633,7 +25633,7 @@ tANI_U32 dot11fPackIeBcnReportingDetail(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->reportingDetail;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25663,7 +25663,7 @@ tANI_U32 dot11fPackIeBeaconReportFrmBody(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->reportedFields ), pSrc->num_reportedFields);
         *pnConsumed += pSrc->num_reportedFields;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25696,7 +25696,7 @@ tANI_U32 dot11fPackIeBeaconReporting(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->threshold;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25729,7 +25729,7 @@ tANI_U32 dot11fPackIeMeasurementPilot(tpAniSirGlobal pCtx,
         pBuf += 1;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->vendorSpecific ), pSrc->num_vendorSpecific);
         *pnConsumed += pSrc->num_vendorSpecific;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25762,7 +25762,7 @@ tANI_U32 dot11fPackIeMultiBssid(tpAniSirGlobal pCtx,
         pBuf += 1;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->vendorSpecific ), pSrc->num_vendorSpecific);
         *pnConsumed += pSrc->num_vendorSpecific;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25798,7 +25798,7 @@ tANI_U32 dot11fPackIeRICData(tpAniSirGlobal pCtx,
         pBuf += 1;
         frameshtons(pCtx, pBuf, pSrc->statusCode, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25831,7 +25831,7 @@ tANI_U32 dot11fPackIeRICDescriptor(tpAniSirGlobal pCtx,
         pBuf += 1;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->variableData ), pSrc->num_variableData);
         *pnConsumed += pSrc->num_variableData;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25916,7 +25916,7 @@ tANI_U32 dot11fPackIeRRMEnabledCap(tpAniSirGlobal pCtx,
         tmp103__ |= ( pSrc->reserved << 2 );
         *pBuf = tmp103__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -25947,7 +25947,7 @@ tANI_U32 dot11fPackIeRequestedInfo(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->requested_eids ), pSrc->num_requested_eids);
         *pnConsumed += pSrc->num_requested_eids;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -25977,7 +25977,7 @@ tANI_U32 dot11fPackIeSSID(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->ssid ), pSrc->num_ssid);
         *pnConsumed += pSrc->num_ssid;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26026,7 +26026,7 @@ tANI_U32 dot11fPackIeSchedule(tpAniSirGlobal pCtx,
         pBuf += 2;
         frameshtons(pCtx, pBuf, pSrc->spec_interval, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26076,7 +26076,7 @@ tANI_U32 dot11fPackIeTCLAS(tpAniSirGlobal pCtx,
                 pBuf += 6;
                 frameshtons(pCtx, pBuf, pSrc->info.EthParams.type, 0);
                 *pnConsumed += 2;
-                // fieldsEndFlag = 1 
+                // fieldsEndFlag = 1
             break;
             case 1:
                 *pBuf = pSrc->info.IpParams.version;
@@ -26105,7 +26105,7 @@ tANI_U32 dot11fPackIeTCLAS(tpAniSirGlobal pCtx,
                         pBuf += 1;
                         *pBuf = pSrc->info.IpParams.params.IpV4Params.reserved;
                         *pnConsumed += 1;
-                        // fieldsEndFlag = 1 
+                        // fieldsEndFlag = 1
                     break;
                     case 6:
                         DOT11F_MEMCPY(pCtx, pBuf, pSrc->info.IpParams.params.IpV6Params.source, 16);
@@ -26122,14 +26122,14 @@ tANI_U32 dot11fPackIeTCLAS(tpAniSirGlobal pCtx,
                         pBuf += 2;
                         DOT11F_MEMCPY(pCtx, pBuf, pSrc->info.IpParams.params.IpV6Params.flow_label, 3);
                         *pnConsumed += 3;
-                        // fieldsEndFlag = 1 
+                        // fieldsEndFlag = 1
                     break;
                 }
             break;
             case 2:
                 frameshtons(pCtx, pBuf, pSrc->info.Params8021dq.tag_type, 0);
                 *pnConsumed += 2;
-                // fieldsEndFlag = 1 
+                // fieldsEndFlag = 1
             break;
         }
         break;
@@ -26161,7 +26161,7 @@ tANI_U32 dot11fPackIeTCLASSPROC(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->processing;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26191,7 +26191,7 @@ tANI_U32 dot11fPackIeTSDelay(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         frameshtonl(pCtx, pBuf, pSrc->delay, 0);
         *pnConsumed += 4;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26290,7 +26290,7 @@ tANI_U32 dot11fPackIeTSPEC(tpAniSirGlobal pCtx,
         pBuf += 2;
         frameshtons(pCtx, pBuf, pSrc->medium_time, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26352,7 +26352,7 @@ tANI_U32 dot11fPackIeWMMSchedule(tpAniSirGlobal pCtx,
         pBuf += 2;
         frameshtons(pCtx, pBuf, pSrc->spec_interval, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26415,7 +26415,7 @@ tANI_U32 dot11fPackIeWMMTCLAS(tpAniSirGlobal pCtx,
                 pBuf += 6;
                 frameshtons(pCtx, pBuf, pSrc->info.EthParams.type, 0);
                 *pnConsumed += 2;
-                // fieldsEndFlag = 1 
+                // fieldsEndFlag = 1
             break;
             case 1:
                 *pBuf = pSrc->info.IpParams.version;
@@ -26444,7 +26444,7 @@ tANI_U32 dot11fPackIeWMMTCLAS(tpAniSirGlobal pCtx,
                         pBuf += 1;
                         *pBuf = pSrc->info.IpParams.params.IpV4Params.reserved;
                         *pnConsumed += 1;
-                        // fieldsEndFlag = 1 
+                        // fieldsEndFlag = 1
                     break;
                     case 6:
                         DOT11F_MEMCPY(pCtx, pBuf, pSrc->info.IpParams.params.IpV6Params.source, 10);
@@ -26461,14 +26461,14 @@ tANI_U32 dot11fPackIeWMMTCLAS(tpAniSirGlobal pCtx,
                         pBuf += 2;
                         DOT11F_MEMCPY(pCtx, pBuf, pSrc->info.IpParams.params.IpV6Params.flow_label, 3);
                         *pnConsumed += 3;
-                        // fieldsEndFlag = 1 
+                        // fieldsEndFlag = 1
                     break;
                 }
             break;
             case 2:
                 frameshtons(pCtx, pBuf, pSrc->info.Params8021dq.tag_type, 0);
                 *pnConsumed += 2;
-                // fieldsEndFlag = 1 
+                // fieldsEndFlag = 1
             break;
         }
         break;
@@ -26513,7 +26513,7 @@ tANI_U32 dot11fPackIeWMMTCLASPROC(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->processing;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26556,7 +26556,7 @@ tANI_U32 dot11fPackIeWMMTSDelay(tpAniSirGlobal pCtx,
         pBuf += 1;
         frameshtonl(pCtx, pBuf, pSrc->delay, 0);
         *pnConsumed += 4;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26668,7 +26668,7 @@ tANI_U32 dot11fPackIeWMMTSPEC(tpAniSirGlobal pCtx,
         pBuf += 2;
         frameshtons(pCtx, pBuf, pSrc->medium_time, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26778,7 +26778,7 @@ tANI_U32 dot11fPackIeCCXCckmOpaque(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->data ), pSrc->num_data);
         *pnConsumed += pSrc->num_data;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26823,7 +26823,7 @@ tANI_U32 dot11fPackIeCCXRadMgmtCap(tpAniSirGlobal pCtx,
         tmp112__ |= ( pSrc->reserved << 3 );
         *pBuf = tmp112__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -26868,7 +26868,7 @@ tANI_U32 dot11fPackIeCCXTrafStrmMet(tpAniSirGlobal pCtx,
         pBuf += 1;
         frameshtons(pCtx, pBuf, pSrc->msmt_interval, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26909,7 +26909,7 @@ tANI_U32 dot11fPackIeCCXTrafStrmRateSet(tpAniSirGlobal pCtx,
         pBuf += 1;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->tsrates ), pSrc->num_tsrates);
         *pnConsumed += pSrc->num_tsrates;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26950,7 +26950,7 @@ tANI_U32 dot11fPackIeCCXTxmitPower(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->reserved;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -26988,7 +26988,7 @@ tANI_U32 dot11fPackIeCCXVersion(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->version;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27027,7 +27027,7 @@ tANI_U32 dot11fPackIeCFParams(tpAniSirGlobal pCtx,
         pBuf += 2;
         frameshtons(pCtx, pBuf, pSrc->cfp_durremaining, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27057,7 +27057,7 @@ tANI_U32 dot11fPackIeChallengeText(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->text ), pSrc->num_text);
         *pnConsumed += pSrc->num_text;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27093,7 +27093,7 @@ tANI_U32 dot11fPackIeChanSwitchAnn(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->switchCount;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27129,7 +27129,7 @@ tANI_U32 dot11fPackIeCountry(tpAniSirGlobal pCtx,
         if ( pSrc->num_triplets )        {
             DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->triplets ), ( pSrc->num_triplets * 3 ));
             *pnConsumed += ( pSrc->num_triplets * 3 );
-            // fieldsEndFlag = 1 
+            // fieldsEndFlag = 1
         }
         else break;
         break;
@@ -27161,7 +27161,7 @@ tANI_U32 dot11fPackIeDSParams(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->curr_channel;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27278,7 +27278,7 @@ tANI_U32 dot11fPackIeEDCAParamSet(tpAniSirGlobal pCtx,
         nBuf -=  1 ;
         frameshtons(pCtx, pBuf, pSrc->acvo_txoplimit, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27314,7 +27314,7 @@ tANI_U32 dot11fPackIeERPInfo(tpAniSirGlobal pCtx,
         tmp121__ |= ( pSrc->unused << 3 );
         *pBuf = tmp121__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -27410,7 +27410,7 @@ tANI_U32 dot11fPackIeExtCap(tpAniSirGlobal pCtx,
         tmp124__ |= ( pSrc->reserved7 << 15 );
         frameshtons(pCtx, pBuf, tmp124__, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  2 ;
         break;
     }
@@ -27441,7 +27441,7 @@ tANI_U32 dot11fPackIeExtChanSwitchAnn(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->secondaryChannelOffset;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27471,7 +27471,7 @@ tANI_U32 dot11fPackIeExtSuppRates(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->rates ), pSrc->num_rates);
         *pnConsumed += pSrc->num_rates;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27510,7 +27510,7 @@ tANI_U32 dot11fPackIeFHParamSet(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->hop_index;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27543,7 +27543,7 @@ tANI_U32 dot11fPackIeFHParams(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->nchannels;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27585,7 +27585,7 @@ tANI_U32 dot11fPackIeFHPattTable(tpAniSirGlobal pCtx,
         pBuf += 1;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->randtable ), pSrc->num_randtable);
         *pnConsumed += pSrc->num_randtable;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27671,7 +27671,7 @@ tANI_U32 dot11fPackIeFTTimeoutInterval(tpAniSirGlobal pCtx,
         pBuf += 1;
         frameshtonl(pCtx, pBuf, pSrc->timeoutValue, 0);
         *pnConsumed += 4;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27780,7 +27780,7 @@ tANI_U32 dot11fPackIeHTCaps(tpAniSirGlobal pCtx,
         nBuf -=  1 ;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->rsvd ), pSrc->num_rsvd);
         *pnConsumed += pSrc->num_rsvd;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27851,7 +27851,7 @@ tANI_U32 dot11fPackIeHTInfo(tpAniSirGlobal pCtx,
         pBuf += 16;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->rsvd ), pSrc->num_rsvd);
         *pnConsumed += pSrc->num_rsvd;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27881,7 +27881,7 @@ tANI_U32 dot11fPackIeIBSSParams(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         frameshtons(pCtx, pBuf, pSrc->atim, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27917,7 +27917,7 @@ tANI_U32 dot11fPackIeLinkIdentifier(tpAniSirGlobal pCtx,
         pBuf += 6;
         DOT11F_MEMCPY(pCtx, pBuf, pSrc->RespStaAddr, 6);
         *pnConsumed += 6;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -27987,7 +27987,7 @@ tANI_U32 dot11fPackIeMeasurementReport(tpAniSirGlobal pCtx,
                     tmp135__ |= ( pSrc->report.Basic.unused << 5 );
                     *pBuf = tmp135__;
                     *pnConsumed += 1;
-                    // fieldsEndFlag  = 1 
+                    // fieldsEndFlag  = 1
                     nBuf -=  1 ;
                 break;
                 case 1:
@@ -28002,7 +28002,7 @@ tANI_U32 dot11fPackIeMeasurementReport(tpAniSirGlobal pCtx,
                     pBuf += 2;
                     *pBuf = pSrc->report.CCA.cca_busy_fraction;
                     *pnConsumed += 1;
-                    // fieldsEndFlag = 1 
+                    // fieldsEndFlag = 1
                 break;
                 case 2:
                     *pBuf = pSrc->report.RPIHistogram.channel;
@@ -28037,7 +28037,7 @@ tANI_U32 dot11fPackIeMeasurementReport(tpAniSirGlobal pCtx,
                     pBuf += 1;
                     *pBuf = pSrc->report.RPIHistogram.rpi7_density;
                     *pnConsumed += 1;
-                    // fieldsEndFlag = 1 
+                    // fieldsEndFlag = 1
                 break;
                 case 5:
                     *pBuf = pSrc->report.Beacon.regClass;
@@ -28143,7 +28143,7 @@ tANI_U32 dot11fPackIeMeasurementRequest(tpAniSirGlobal pCtx,
                 pBuf += 8;
                 frameshtons(pCtx, pBuf, pSrc->measurement_request.Basic.meas_duration, 0);
                 *pnConsumed += 2;
-                // fieldsEndFlag = 1 
+                // fieldsEndFlag = 1
             break;
             case 1:
                 *pBuf = pSrc->measurement_request.CCA.channel_no;
@@ -28154,7 +28154,7 @@ tANI_U32 dot11fPackIeMeasurementRequest(tpAniSirGlobal pCtx,
                 pBuf += 8;
                 frameshtons(pCtx, pBuf, pSrc->measurement_request.CCA.meas_duration, 0);
                 *pnConsumed += 2;
-                // fieldsEndFlag = 1 
+                // fieldsEndFlag = 1
             break;
             case 2:
                 *pBuf = pSrc->measurement_request.RPIHistogram.channel_no;
@@ -28165,7 +28165,7 @@ tANI_U32 dot11fPackIeMeasurementRequest(tpAniSirGlobal pCtx,
                 pBuf += 8;
                 frameshtons(pCtx, pBuf, pSrc->measurement_request.RPIHistogram.meas_duration, 0);
                 *pnConsumed += 2;
-                // fieldsEndFlag = 1 
+                // fieldsEndFlag = 1
             break;
             case 5:
                 *pBuf = pSrc->measurement_request.Beacon.regClass;
@@ -28232,7 +28232,7 @@ tANI_U32 dot11fPackIeMobilityDomain(tpAniSirGlobal pCtx,
         tmp138__ |= ( pSrc->reserved << 2 );
         *pBuf = tmp138__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -28343,7 +28343,7 @@ tANI_U32 dot11fPackIeOperatingMode(tpAniSirGlobal pCtx,
         tmp141__ |= ( pSrc->rxNSSType << 7 );
         *pBuf = tmp141__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -28898,7 +28898,7 @@ tANI_U32 dot11fPackIeP2PIEOpaque(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->data ), pSrc->num_data);
         *pnConsumed += pSrc->num_data;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29275,7 +29275,7 @@ tANI_U32 dot11fPackIePTIControl(tpAniSirGlobal pCtx,
         pBuf += 1;
         frameshtons(pCtx, pBuf, pSrc->sequence_control, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29312,7 +29312,7 @@ tANI_U32 dot11fPackIePUBufferStatus(tpAniSirGlobal pCtx,
         tmp142__ |= ( pSrc->reserved << 4 );
         *pBuf = tmp142__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -29346,7 +29346,7 @@ tANI_U32 dot11fPackIePowerCaps(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->maxTxPower;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29376,7 +29376,7 @@ tANI_U32 dot11fPackIePowerConstraints(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->localPowerConstraints;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29412,7 +29412,7 @@ tANI_U32 dot11fPackIeQBSSLoad(tpAniSirGlobal pCtx,
         pBuf += 1;
         frameshtons(pCtx, pBuf, pSrc->avail, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29449,7 +29449,7 @@ tANI_U32 dot11fPackIeQOSCapsAp(tpAniSirGlobal pCtx,
         tmp143__ |= ( pSrc->reserved << 7 );
         *pBuf = tmp143__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -29489,7 +29489,7 @@ tANI_U32 dot11fPackIeQOSCapsStation(tpAniSirGlobal pCtx,
         tmp144__ |= ( pSrc->more_data_ack << 7 );
         *pBuf = tmp144__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -29529,7 +29529,7 @@ tANI_U32 dot11fPackIeQuiet(tpAniSirGlobal pCtx,
         pBuf += 2;
         frameshtons(pCtx, pBuf, pSrc->offset, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29559,7 +29559,7 @@ tANI_U32 dot11fPackIeRCPIIE(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->rcpi;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29653,7 +29653,7 @@ tANI_U32 dot11fPackIeRSN(tpAniSirGlobal pCtx,
         else break;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->pmkid ), ( pSrc->pmkid_count * 16 ));
         *pnConsumed += ( pSrc->pmkid_count * 16 );
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29683,7 +29683,7 @@ tANI_U32 dot11fPackIeRSNIIE(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         *pBuf = pSrc->rsni;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29713,7 +29713,7 @@ tANI_U32 dot11fPackIeRSNOpaque(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->data ), pSrc->num_data);
         *pnConsumed += pSrc->num_data;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29743,7 +29743,7 @@ tANI_U32 dot11fPackIeSuppChannels(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->bands ), ( pSrc->num_bands * 2 ));
         *pnConsumed += ( pSrc->num_bands * 2 );
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29773,7 +29773,7 @@ tANI_U32 dot11fPackIeSuppRates(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->rates ), pSrc->num_rates);
         *pnConsumed += pSrc->num_rates;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29812,7 +29812,7 @@ tANI_U32 dot11fPackIeTIM(tpAniSirGlobal pCtx,
         pBuf += 1;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->vbmp ), pSrc->num_vbmp);
         *pnConsumed += pSrc->num_vbmp;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29845,7 +29845,7 @@ tANI_U32 dot11fPackIeTPCReport(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->link_margin;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -29946,7 +29946,7 @@ tANI_U32 dot11fPackIeVHTCaps(tpAniSirGlobal pCtx,
         tmp147__ |= ( pSrc->reserved3 << 13 );
         frameshtons(pCtx, pBuf, tmp147__, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  2 ;
         break;
     }
@@ -29989,7 +29989,7 @@ tANI_U32 dot11fPackIeVHTExtBssLoad(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->OneSixtyMHzUtil;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -30028,7 +30028,7 @@ tANI_U32 dot11fPackIeVHTOperation(tpAniSirGlobal pCtx,
         pBuf += 1;
         frameshtons(pCtx, pBuf, pSrc->basicMCSSet, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -30092,7 +30092,7 @@ tANI_U32 dot11fPackIeWAPI(tpAniSirGlobal pCtx,
         else break;
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->bkid ), ( pSrc->bkid_count * 16 ));
         *pnConsumed += ( pSrc->bkid_count * 16 );
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -30122,7 +30122,7 @@ tANI_U32 dot11fPackIeWAPIOpaque(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->data ), pSrc->num_data);
         *pnConsumed += pSrc->num_data;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -30165,7 +30165,7 @@ tANI_U32 dot11fPackIeWFATPC(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->linkMargin;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -30203,7 +30203,7 @@ tANI_U32 dot11fPackIeWFDIEOpaque(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->data ), pSrc->num_data);
         *pnConsumed += pSrc->num_data;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -30253,7 +30253,7 @@ tANI_U32 dot11fPackIeWMMCaps(tpAniSirGlobal pCtx,
         tmp149__ |= ( pSrc->more_ack << 7 );
         *pBuf = tmp149__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -30302,7 +30302,7 @@ tANI_U32 dot11fPackIeWMMInfoAp(tpAniSirGlobal pCtx,
         tmp150__ |= ( pSrc->uapsd << 7 );
         *pBuf = tmp150__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -30355,7 +30355,7 @@ tANI_U32 dot11fPackIeWMMInfoStation(tpAniSirGlobal pCtx,
         tmp151__ |= ( pSrc->reserved2 << 7 );
         *pBuf = tmp151__;
         *pnConsumed += 1;
-        // fieldsEndFlag  = 1 
+        // fieldsEndFlag  = 1
         nBuf -=  1 ;
         break;
     }
@@ -30486,7 +30486,7 @@ tANI_U32 dot11fPackIeWMMParams(tpAniSirGlobal pCtx,
         nBuf -=  1 ;
         frameshtons(pCtx, pBuf, pSrc->acvo_txoplimit, 0);
         *pnConsumed += 2;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -30554,7 +30554,7 @@ tANI_U32 dot11fPackIeWPA(tpAniSirGlobal pCtx,
         if ( pSrc->caps )        {
             frameshtons(pCtx, pBuf, pSrc->caps, 0);
             *pnConsumed += 2;
-            // fieldsEndFlag = 1 
+            // fieldsEndFlag = 1
         }
         else break;
         break;
@@ -30594,7 +30594,7 @@ tANI_U32 dot11fPackIeWPAOpaque(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->data ), pSrc->num_data);
         *pnConsumed += pSrc->num_data;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -30673,7 +30673,7 @@ tANI_U32 dot11fPackIeWiderBWChanSwitchAnn(tpAniSirGlobal pCtx,
         pBuf += 1;
         *pBuf = pSrc->newCenterChanFreq1;
         *pnConsumed += 1;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -30883,7 +30883,7 @@ tANI_U32 dot11fPackIeWscIEOpaque(tpAniSirGlobal pCtx,
         ++pBuf; ++(*pnConsumed);
         DOT11F_MEMCPY(pCtx, pBuf, &( pSrc->data ), pSrc->num_data);
         *pnConsumed += pSrc->num_data;
-        // fieldsEndFlag = 1 
+        // fieldsEndFlag = 1
         break;
     }
     (void)pCtx;
@@ -44620,7 +44620,7 @@ static tANI_U32 PackCore(tpAniSirGlobal pCtx,
     pIe = &( IEs[0] );
     while ( 0xff != pIe->eid )
     {
-        pfFound = (tFRAMES_BOOL*)(pSrc + pIe->offset + 
+        pfFound = (tFRAMES_BOOL*)(pSrc + pIe->offset +
                                   pIe->presenceOffset);
         if ( *pfFound && pIe->minSize > nBufRemaining )
         {

@@ -481,7 +481,7 @@ struct inode *proc_get_inode(struct super_block *sb, struct proc_dir_entry *de)
 	} else
 	       pde_put(de);
 	return inode;
-}			
+}
 
 int proc_fill_super(struct super_block *s)
 {
@@ -491,7 +491,7 @@ int proc_fill_super(struct super_block *s)
 	s->s_magic = PROC_SUPER_MAGIC;
 	s->s_op = &proc_sops;
 	s->s_time_gran = 1;
-	
+
 	pde_get(&proc_root);
 	s->s_root = d_make_root(proc_get_inode(s, &proc_root));
 	if (s->s_root)

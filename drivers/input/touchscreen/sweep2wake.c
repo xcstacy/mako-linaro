@@ -445,7 +445,7 @@ static struct kobject *s2w_parameters_kobj;
                 }
         }
 }
-#endif 
+#endif
 
 static void s2w_input_callback(struct work_struct *unused) {
 

@@ -709,7 +709,7 @@ static inline void double_spin_unlock(raw_spinlock_t *lock1,
  * the error introduced by to_ratio() and from_ratio() we keep track of the
  * contribution to rt_free_bw from each rt_rq, and we sum it back before
  * subtracting the new contribution.
- */ 
+ */
 static inline void rt_update_bw(struct rt_rq *rt_rq, struct rt_edf_tree *tree,
 				s64 diff, u64 rt_period)
 {

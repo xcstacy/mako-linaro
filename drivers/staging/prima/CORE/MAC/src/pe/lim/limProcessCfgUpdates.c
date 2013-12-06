@@ -346,11 +346,11 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
                     pMac->lim.gLimBackgroundScanStarted = TRUE;
                     pMac->lim.gLimBackgroundScanTerminate = FALSE;
                 }
-               
+
                PELOG3(limLog(pMac, LOG3,
                        FL("Updated Background scan period"));)
             }
-            
+
             break;
 
         case WNI_CFG_BG_SCAN_CHANNEL_LIST:
@@ -385,12 +385,12 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         break;
     }
     case WNI_CFG_GREENFIELD_CAPABILITY:
-        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT Cap Info CFG"));)
             break;
         }
-        if (wlan_cfgGetInt(pMac, WNI_CFG_GREENFIELD_CAPABILITY, &val2) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_GREENFIELD_CAPABILITY, &val2) != eSIR_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve GreenField CFG"));)
             break;
@@ -403,12 +403,12 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         break;
 
     case WNI_CFG_HT_RX_STBC:
-        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve WNI_CFG_HT_CAP_INFO "));)
             break;
         }
-        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_RX_STBC, &val2) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_RX_STBC, &val2) != eSIR_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve WNI_CFG_HT_RX_STBC"));)
             break;
@@ -439,12 +439,12 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         break;
 
     case WNI_CFG_SHORT_GI_20MHZ:
-        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS)
             {
                 PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT Cap CFG"));)
                 break;
             }
-        if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_GI_20MHZ, &val2) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_GI_20MHZ, &val2) != eSIR_SUCCESS)
             {
                 PELOGE(limLog(pMac, LOGE, FL("could not retrieve shortGI 20Mhz CFG"));)
                 break;
@@ -456,12 +456,12 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
             PELOGE(limLog(pMac, LOGE, FL("could not update HT Cap Info CFG"));)
         break;
     case WNI_CFG_SHORT_GI_40MHZ:
-        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS)
             {
                 PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT Cap CFG"));)
                 break;
             }
-        if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_GI_40MHZ, &val2) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_GI_40MHZ, &val2) != eSIR_SUCCESS)
             {
                 PELOGE(limLog(pMac, LOGE, FL("could not retrieve shortGI 40Mhz CFG"));)
                 break;
@@ -473,12 +473,12 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
             PELOGE(limLog(pMac, LOGE, FL("could not update HT Cap Info CFG"));)
         break;
     case WNI_CFG_MPDU_DENSITY:
-        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_AMPDU_PARAMS, &val1) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_AMPDU_PARAMS, &val1) != eSIR_SUCCESS)
             {
                 PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT AMPDU Param CFG"));)
                 break;
             }
-        if (wlan_cfgGetInt(pMac, WNI_CFG_MPDU_DENSITY, &val2) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_MPDU_DENSITY, &val2) != eSIR_SUCCESS)
             {
                 PELOGE(limLog(pMac, LOGE, FL("could not retrieve MPDU Density CFG"));)
                 break;
@@ -491,12 +491,12 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
 
         break;
     case WNI_CFG_MAX_RX_AMPDU_FACTOR:
-        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_AMPDU_PARAMS, &val1) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_HT_AMPDU_PARAMS, &val1) != eSIR_SUCCESS)
             {
                 PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT AMPDU Param CFG"));)
                 break;
             }
-        if (wlan_cfgGetInt(pMac, WNI_CFG_MAX_RX_AMPDU_FACTOR, &val2) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_MAX_RX_AMPDU_FACTOR, &val2) != eSIR_SUCCESS)
             {
                 PELOGE(limLog(pMac, LOGE, FL("could not retrieve AMPDU Factor CFG"));)
                 break;
@@ -507,19 +507,19 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         if(cfgSetInt(pMac,  WNI_CFG_HT_AMPDU_PARAMS, *(tANI_U8*)pAmpduParamInfo) != eSIR_SUCCESS)
             PELOGE(limLog(pMac, LOGE, FL("could not update HT AMPDU Param CFG"));)
         break;
-  
+
     case WNI_CFG_HEART_BEAT_THRESHOLD:
         if (wlan_cfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &val1) != eSIR_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve WNI_CFG_HEART_BEAT_THRESHOLD CFG"));)
                 break;
         }
-        if(!val1) 
+        if(!val1)
         {
             limDeactivateAndChangeTimer(pMac, eLIM_HEART_BEAT_TIMER);
             pMac->sys.gSysEnableLinkMonitorMode = 0;
-        } 
-        else 
+        }
+        else
         {
             tANI_U16 sessionId;
             pMac->sys.gSysEnableLinkMonitorMode = 1;
@@ -541,12 +541,12 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
                 else if ( pMac->lim.gpSession[sessionId].valid )
                 {
                     PELOGW(limLog(pMac, LOGW, "HB link monitoring not reactivated-"
-                           "session=%d, limMlmState=%d, gPmmState=%d", 
+                           "session=%d, limMlmState=%d, gPmmState=%d",
                            sessionId, pMac->lim.gpSession[sessionId].limMlmState,
                            pMac->pmm.gPmmState);)
                 }
             }
-        }        
+        }
     case WNI_CFG_MAX_PS_POLL:
     case WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE:
     case WNI_CFG_MIN_RSSI_THRESHOLD:
@@ -563,7 +563,7 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
                 break;
             }
 
-            /* This context should be valid if power-save configuration message has been already dispathed 
+            /* This context should be valid if power-save configuration message has been already dispathed
              * during initialization process. Re-using the present configuration mask
              */
             palCopyMemory(pMac->hHdd, pPowerSaveConfig, (tANI_U8 *)&pMac->pmm.gPmmCfg, sizeof(tSirPowerSaveCfg));
@@ -577,7 +577,7 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
 
 
      case WNI_CFG_DOT11_MODE:
-        if (wlan_cfgGetInt(pMac, WNI_CFG_DOT11_MODE, &val1) != eSIR_SUCCESS) 
+        if (wlan_cfgGetInt(pMac, WNI_CFG_DOT11_MODE, &val1) != eSIR_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve Dot11 Mode  CFG"));)
             break;
@@ -592,7 +592,7 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         }
         pMac->lim.gAddBA_Declined = (tANI_U8)val1;
         break;
-        
+
     case WNI_CFG_SCAN_IN_POWERSAVE:
         if(wlan_cfgGetInt(pMac, WNI_CFG_SCAN_IN_POWERSAVE, &val1) != eSIR_SUCCESS) {
             limLog( pMac, LOGE, FL( "Unable to get WNI_CFG_SCAN_IN_POWERSAVE " ));
@@ -671,7 +671,7 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
     psessionEntry->limSentCapsChangeNtf = false;
 
     limGetPhyMode(pMac, &phyMode, psessionEntry);
-        
+
     // Set default keyId and keys
     limSetDefaultKeyIdAndKeys(pMac);
 
@@ -679,7 +679,7 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
     psessionEntry->shortSlotTimeSupported = limGetShortSlotFromPhyMode(pMac, psessionEntry, phyMode);
 
-    limSetCfgProtection(pMac, psessionEntry);    
+    limSetCfgProtection(pMac, psessionEntry);
 
 
     /* Added for BT - AMP Support */
@@ -688,7 +688,7 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
          (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)||
          (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) )
     {
-        /* This check is required to ensure the beacon generation is not done 
+        /* This check is required to ensure the beacon generation is not done
            as a part of join request for a BT-AMP station */
 
         if(psessionEntry->statypeForBss == STA_ENTRY_SELF)
@@ -763,7 +763,7 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
         limLog(pMac, LOGP, FL("cfg get hcf enabled failed"));
     psessionEntry->limHcfEnabled = (val) ? 1 : 0;
 
-    // Update the ADD BA Declined configuration 
+    // Update the ADD BA Declined configuration
     if(wlan_cfgGetInt(pMac, WNI_CFG_ADDBA_REQ_DECLINE, &val) != eSIR_SUCCESS)
         limLog( pMac, LOGP, FL( "Unable to get ADDBA_REQ_DECLINE cfg" ));
     pMac->lim.gAddBA_Declined = (val) ?  0xff : 0x0;
@@ -792,11 +792,11 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
     pMac->lim.gLimAssocStaLimit = (tANI_U16)val;
 
 #if defined WLAN_FEATURE_VOWIFI
-    rrmUpdateConfig( pMac, psessionEntry ); 
+    rrmUpdateConfig( pMac, psessionEntry );
 #endif
     PELOG1(limLog(pMac, LOG1, FL("Updated Lim shadow state based on CFG"));)
 
-    
+
 }
 
 

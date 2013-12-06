@@ -6,20 +6,20 @@
        Q D S P 5  A U D I O   P O S T   P R O C E S S I N G   M S G
 
 GENERAL DESCRIPTION
-  Messages sent by AUDPPTASK to ARM 
+  Messages sent by AUDPPTASK to ARM
 
 REFERENCES
   None
 
 EXTERNALIZED FUNCTIONS
-  None  
-  
+  None
+
 Copyright (c) 1992-2009, The Linux Foundation. All rights reserved.
 
 This software is licensed under the terms of the GNU General Public
 License version 2, as published by the Free Software Foundation, and
 may be copied, distributed, and modified under those terms.
- 
+
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -32,7 +32,7 @@ GNU General Public License for more details.
 
 This section contains comments describing changes made to this file.
 Notice that changes are listed in reverse chronological order.
-  
+
  $Header: //source/qcom/qct/multimedia2/Audio/drivers/QDSP5Driver/QDSP5Interface/main/latest/qdsp5audppmsg.h#4 $
 
 ===========================================================================*/
@@ -41,7 +41,7 @@ Notice that changes are listed in reverse chronological order.
  * AUDPPTASK uses audPPuPRlist to send messages to the ARM
  * Location : MEMA
  * Buffer Size : 45
- * No of Buffers in a queue : 5 for gaming audio and 1 for other images 
+ * No of Buffers in a queue : 5 for gaming audio and 1 for other images
  */
 
 /*
@@ -273,7 +273,7 @@ typedef struct{
  * MSG to AUDPP enable or disable feedback form DSP to ARM
  */
 
-#define AUDPP_MSG_CFG_MSG	0x0007  
+#define AUDPP_MSG_CFG_MSG	0x0007
 #define AUDPP_MSG_CFG_MSG_LEN	\
     sizeof(audpp_msg_cfg_msg)
 
@@ -281,7 +281,7 @@ typedef struct{
 #define AUDPP_MSG_ENA_DIS	0x0000
 
 typedef struct{
-  /*   Enabled  - 0xffff 
+  /*   Enabled  - 0xffff
    **  Disabled - 0
    */
   unsigned short enabled;

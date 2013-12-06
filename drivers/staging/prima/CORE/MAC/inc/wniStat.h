@@ -45,7 +45,7 @@
  * This file wniStat.h contains statistics related definitions
  * exported by Sirius software modules.
  *
- * Author:      Kevin Nguyen 
+ * Author:      Kevin Nguyen
  * Date:        08/21/2002
  * History:-
  * Date            Modified by    Modification Information
@@ -57,7 +57,7 @@
 
 
 // WNI Statistic Parameter ID
-#define WNI_STAT_RTS_SUCC_CNT              1 
+#define WNI_STAT_RTS_SUCC_CNT              1
 #define WNI_STAT_RTS_FAILED_CNT            2
 #define WNI_STAT_PACKET_CNT                3
 #define WNI_STAT_MULTI_CNT                 4
@@ -69,7 +69,7 @@
 #define WNI_STAT_PKT255_CNT               10
 #define WNI_STAT_PKT511_CNT               11
 #define WNI_STAT_PKT1023_CNT              12
-#define WNI_STAT_PKT1518_CNT              13 
+#define WNI_STAT_PKT1518_CNT              13
 #define WNI_STAT_PKT2047_CNT              14
 #define WNI_STAT_PKT4095_CNT              15
 #define WNI_STAT_FRAG_CNT                 16
@@ -91,5 +91,5 @@
 #define WNI_STAT_LAST_ID      WNI_STAT_CURRENT_TX_RATE
 
 
-#endif 
+#endif
 

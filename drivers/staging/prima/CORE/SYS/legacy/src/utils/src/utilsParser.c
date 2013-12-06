@@ -87,7 +87,7 @@ void ConvertQOSCaps(tpAniSirGlobal                pMac,
     pOld->type    = 46;
     pOld->length  = 1;
 
-    pOld->qosInfo.count   = pNew->count;   
+    pOld->qosInfo.count   = pNew->count;
 }
 
 
@@ -104,7 +104,7 @@ void ConvertQOSCapsStation(tpAniSirGlobal              pMac,
     pOld->qosInfo.acbe_uapsd  = pNew->acbe_uapsd;
     pOld->qosInfo.acbk_uapsd  = pNew->acbk_uapsd;
     pOld->qosInfo.acvi_uapsd  = pNew->acvi_uapsd;
-    pOld->qosInfo.acvo_uapsd  = pNew->acvo_uapsd;    
+    pOld->qosInfo.acvo_uapsd  = pNew->acvo_uapsd;
 }
 
 tSirRetStatus ConvertWPA(tpAniSirGlobal  pMac,
@@ -151,7 +151,7 @@ tSirRetStatus ConvertWscOpaque( tpAniSirGlobal      pMac,
 {
     // This is awful, I know, but the old code just rammed the IE into
     // an opaque array.  Note that we need to explicitly add the vendorIE and OUI !
-    tANI_U8 curAddIELen = pOld->length; 
+    tANI_U8 curAddIELen = pOld->length;
 
     pOld->length    = curAddIELen + pNew->num_data + 6;
     pOld->addIEdata[ curAddIELen++ ] = 0xdd;
@@ -171,7 +171,7 @@ tSirRetStatus ConvertP2POpaque( tpAniSirGlobal      pMac,
 {
     // This is awful, I know, but the old code just rammed the IE into
     // an opaque array.  Note that we need to explicitly add the vendorIE and OUI !
-    tANI_U8 curAddIELen = pOld->length; 
+    tANI_U8 curAddIELen = pOld->length;
 
     pOld->length    = curAddIELen + pNew->num_data + 6;
     pOld->addIEdata[ curAddIELen++ ] = 0xdd;
@@ -192,7 +192,7 @@ tSirRetStatus ConvertWFDOpaque( tpAniSirGlobal      pMac,
 {
     // This is awful, I know, but the old code just rammed the IE into
     // an opaque array.  Note that we need to explicitly add the vendorIE and OUI !
-    tANI_U8 curAddIELen = pOld->length; 
+    tANI_U8 curAddIELen = pOld->length;
 
     pOld->length    = curAddIELen + pNew->num_data + 6;
     pOld->addIEdata[ curAddIELen++ ] = 0xdd;
@@ -609,7 +609,7 @@ void ConvertWMMSchedule(tpAniSirGlobal        pMac,
 }
 
 /**
-    @brief   :    This functions converts the given buffer till given size to Big endian format assuming the 
+    @brief   :    This functions converts the given buffer till given size to Big endian format assuming the
                      bus is 32 bit. The size should be four byte aligned.
     @param :    ptr to be converted, size
     @return  :    void
@@ -657,7 +657,7 @@ void CreateScanDataNullFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr,
                               (void *)selfMacAddr, sizeof(tSirMacAddr));
     palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->bssId,
                               (void *)bssid, sizeof(tSirMacAddr));
-    
+
     return;
 }
 
@@ -669,7 +669,7 @@ void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSirMac
     macMgmtHdr->fc.order = 0;
     macMgmtHdr->fc.wep = 0;
     macMgmtHdr->fc.moreData =0;
-    macMgmtHdr->fc.powerMgmt = 0;  
+    macMgmtHdr->fc.powerMgmt = 0;
     macMgmtHdr->fc.retry = 0;
     macMgmtHdr->fc.moreFrag = 0;
     macMgmtHdr->fc.fromDS = 0;
@@ -677,7 +677,7 @@ void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSirMac
     macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
     macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
     palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->da, (void *)selfMac, sizeof(tSirMacAddr));
-            
+
     return;
 }
 
@@ -688,7 +688,7 @@ void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSirMac
 
 
 /**
-    @brief    :    This functions creates a DATA_NULL/CTS2SELF frame in Big endian format 
+    @brief    :    This functions creates a DATA_NULL/CTS2SELF frame in Big endian format
     @param    :    Global MAC structure, pointer to return the created packet, role which is Station/AP
     @return    :    void
 */
@@ -697,7 +697,7 @@ void CreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tBs
 {
 #if 0
     tpStaStruct pSta = (tpStaStruct) pMac->hal.halMac.staTable;
-    
+
     if (role == eSYSTEM_STA_ROLE)
     {
         macMgmtHdr->fc.type = SIR_MAC_DATA_FRAME;
@@ -741,7 +741,7 @@ void CreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tBs
 }
 
 /**
-    @brief    :    This functions creates a DATA_NULL frame in Big endian format 
+    @brief    :    This functions creates a DATA_NULL frame in Big endian format
     @param    :    Global MAC structure, pointer to return the created packet, role which is Station/AP
     @return    :    void
 */
@@ -775,7 +775,7 @@ void CreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, t
         palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->bssId, (void *)pSta[0].bssId, 6);
 
     }
-    
+
     return;
 #endif
 }

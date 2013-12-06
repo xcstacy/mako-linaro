@@ -279,8 +279,8 @@ typedef struct
 
     /* The unicast encryption type in the association */
     tANI_U32 encryptType;
-    
-    /*The DPU signatures will be sent eventually to TL to help it determine the 
+
+    /*The DPU signatures will be sent eventually to TL to help it determine the
       association to which a packet belongs to*/
     /*Unicast DPU index*/
     tANI_U8     ucUcastSig;
@@ -288,7 +288,7 @@ typedef struct
     /*Broadcast DPU index*/
     tANI_U8     ucBcastSig;
 
-    tANI_U8     sessionId; //PE session id for PE<->HAL interface 
+    tANI_U8     sessionId; //PE session id for PE<->HAL interface
     // HAL just sends back what it receives.
 
     /*if this is a P2P Capable Sta*/
@@ -336,7 +336,7 @@ typedef struct
     tANI_U16 assocId;
     eHalStatus  status;    // Status of SIR_HAL_DELETE_STA_REQ is reported here
     tANI_U8 respReqd;
-    tANI_U8     sessionId; // PE session id for PE<->HAL interface 
+    tANI_U8     sessionId; // PE session id for PE<->HAL interface
     // PE session id now added to all HAL<->PE transacations
     // HAL sends it back unmodified.
 } tDeleteStaParams, * tpDeleteStaParams;
@@ -360,7 +360,7 @@ typedef struct
      * via response message. HAL does not read them.
      */
     eHalStatus  status;    // status of SIR_HAL_SET_STAKEY_REQ is reported here
-    tANI_U8     sessionId; // PE session id for PE<->HAL interface 
+    tANI_U8     sessionId; // PE session id for PE<->HAL interface
 
     // PE session id now added to all HAL<->PE transacations
     // HAL sends back response with no modification
@@ -480,7 +480,7 @@ typedef struct
     //HAL will send the response message to LIM only when this flag is set.
     //LIM will set this flag, whereas DVT will not set this flag.
     tANI_U8 respReqd;
-    tANI_U8     sessionId; // PE session id for PE<->HAL interface 
+    tANI_U8     sessionId; // PE session id for PE<->HAL interface
     // PE session id now added to all HAL<->PE transacations
     // HAL Sends the sessionId unmodified.
 
@@ -495,7 +495,7 @@ typedef struct
 #endif
 
     tANI_U8   ucMaxProbeRespRetryLimit;  //probe Response Max retries
-    tANI_U8   bHiddenSSIDEn;             //To Enable Hidden ssid.      
+    tANI_U8   bHiddenSSIDEn;             //To Enable Hidden ssid.
     tANI_U8   bProxyProbeRespEn;         //To Enable Disable FW Proxy Probe Resp
     tANI_U8   halPersona;         //Persona for the BSS can be STA,AP,GO,CLIENT value same as tVOS_CON_MODE
 
@@ -515,14 +515,14 @@ typedef struct
     //HAL will send the response message to LIM only when this flag is set.
     //LIM will set this flag, whereas DVT will not set this flag.
     tANI_U8 respReqd;
-    tANI_U8     sessionId; // PE session id for PE<->HAL interface 
+    tANI_U8     sessionId; // PE session id for PE<->HAL interface
                            // HAL sends it back unmodified.
     tSirMacAddr bssid; // Will be removed for PE-HAL integration
 } tDeleteBssParams, * tpDeleteBssParams;
 
 //
 // UAPSD AC mask: 1b per AC
-// LSB 4 bits for delivery enabled setting. msb 4 bits for trigger enabled settings. 
+// LSB 4 bits for delivery enabled setting. msb 4 bits for trigger enabled settings.
 // Encoded as follows:
 // b7 b6 b5 b4 b3 b2 b1 b0
 // BE  BK  VI  VO  BE BK VI VO
@@ -530,8 +530,8 @@ typedef struct
 typedef struct
 {
     tANI_U8 staIdx;
-    tANI_U8 uapsdACMask; 
-    tANI_U8 maxSpLen;    
+    tANI_U8 uapsdACMask;
+    tANI_U8 maxSpLen;
 } tUpdateUapsdParams, * tpUpdateUapsdParams;
 
 typedef struct sSirScanEntry
@@ -594,10 +594,10 @@ typedef enum  eDelStaReasonCode{
 typedef struct {
     tANI_U16    assocId;
     tANI_U16    staId;
-    tSirMacAddr bssId; // TO SUPPORT BT-AMP    
+    tSirMacAddr bssId; // TO SUPPORT BT-AMP
                        // HAL copies bssid from the sta table.
-    tSirMacAddr addr2;        //  
-    tANI_U16    reasonCode;   // To unify the keepalive / unknown A2 / tim-based disa                                                                                                 
+    tSirMacAddr addr2;        //
+    tANI_U16    reasonCode;   // To unify the keepalive / unknown A2 / tim-based disa
 } tDeleteStaContext, * tpDeleteStaContext;
 
 
@@ -690,7 +690,7 @@ typedef struct {
 
 } tFinishScanParams, * tpFinishScanParams;
 
-#ifdef FEATURE_OEM_DATA_SUPPORT 
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
 #ifndef OEM_DATA_REQ_SIZE
 #define OEM_DATA_REQ_SIZE 134
@@ -706,7 +706,7 @@ typedef struct
     tANI_U8              oemDataReq[OEM_DATA_REQ_SIZE];
 } tStartOemDataReq, *tpStartOemDataReq;
 
-typedef struct 
+typedef struct
 {
     tANI_U8             oemDataRsp[OEM_DATA_RSP_SIZE];
 } tStartOemDataRsp, *tpStartOemDataRsp;
@@ -747,7 +747,7 @@ typedef struct {
 
 typedef struct sSendProbeRespParams {
     tSirMacAddr bssId;
-    tANI_U8      *pProbeRespTemplate; 
+    tANI_U8      *pProbeRespTemplate;
     tANI_U32     probeRespTemplateLen;
     tANI_U32     ucProxyProbeReqValidIEBmap[8];
 } tSendProbeRespParams, * tpSendProbeRespParams;
@@ -767,7 +767,7 @@ typedef struct
      * via response message. HAL does not read them.
      */
     eHalStatus  status;     // status of SIR_HAL_SET_BSSKEY_REQ is reported here
-    tANI_U8     sessionId;  // PE session id for PE<->HAL interface 
+    tANI_U8     sessionId;  // PE session id for PE<->HAL interface
                             // HAL sends this unmodified in the response
 } tSetBssKeyParams, *tpSetBssKeyParams;
 
@@ -784,10 +784,10 @@ typedef struct
      * Following parameter is for returning status
      * via response message. HAL does not read them.
      */
-    eHalStatus  status;     // return status of SIR_HAL_REMOVE_STAKEY_REQ 
-    tANI_U8     sessionId;  // PE session id for PE<->HAL interface 
-                            //  HAL Sends back the PE session 
-                            //  id unmodified 
+    eHalStatus  status;     // return status of SIR_HAL_REMOVE_STAKEY_REQ
+    tANI_U8     sessionId;  // PE session id for PE<->HAL interface
+                            //  HAL Sends back the PE session
+                            //  id unmodified
 } tRemoveStaKeyParams, *tpRemoveStaKeyParams;
 
 /*
@@ -803,10 +803,10 @@ typedef struct
      * Following parameter is for returning status
      * via response message. HAL does not read them.
      */
-    eHalStatus  status;    // return status of SIR_HAL_REMOVE_BSSKEY_REQ 
-    tANI_U8     sessionId; // PE session id for PE<->HAL interface 
-                           //  HAL Sends back the PE session 
-                           //  id unmodified 
+    eHalStatus  status;    // return status of SIR_HAL_REMOVE_BSSKEY_REQ
+    tANI_U8     sessionId; // PE session id for PE<->HAL interface
+                           //  HAL Sends back the PE session
+                           //  id unmodified
 } tRemoveBssKeyParams, *tpRemoveBssKeyParams;
 
 typedef struct
@@ -874,7 +874,7 @@ typedef struct
 }tUpdateBeaconParams, *tpUpdateBeaconParams;
 
 #ifdef WLAN_FEATURE_11AC
-typedef struct 
+typedef struct
 {
    tANI_U16   opMode;
    tANI_U16  staId;
@@ -929,7 +929,7 @@ typedef struct
 typedef struct
 {
     tANI_U8 channelNumber;
-#ifndef WLAN_FEATURE_VOWIFI    
+#ifndef WLAN_FEATURE_VOWIFI
     tANI_U8 localPowerConstraint;
 #endif /* WLAN_FEATURE_VOWIFI  */
     ePhyChanBondState secondaryChannelOffset;
@@ -940,7 +940,7 @@ typedef struct
     tSirMacAddr selfStaMacAddr;
                         //the request has power constraints, this should be applied only to that session
 #endif
-    /* VO Wifi comment: BSSID is needed to identify which session issued this request. As the 
+    /* VO Wifi comment: BSSID is needed to identify which session issued this request. As the
        request has power constraints, this should be applied only to that session */
     /* V IMP: Keep bssId field at the end of this msg. It is used to mantain backward compatbility
      * by way of ignoring if using new host/old FW or old host/new FW since it is at the end of this struct
@@ -974,7 +974,7 @@ typedef struct
   tANI_U16 tspecIdx; //TSPEC handler uniquely identifying a TSPEC for a STA in a BSS
   tSirMacTspecIE   tspec;
   eHalStatus       status;
-  tANI_U8          sessionId;          //PE session id for PE<->HAL interface 
+  tANI_U8          sessionId;          //PE session id for PE<->HAL interface
 } tAddTsParams, *tpAddTsParams;
 
 typedef struct
@@ -982,7 +982,7 @@ typedef struct
   tANI_U16 staIdx;
   tANI_U16 tspecIdx; //TSPEC identifier uniquely identifying a TSPEC for a STA in a BSS
   tSirMacAddr bssId; //TO SUPPORT BT-AMP
-  
+
 } tDelTsParams, *tpDelTsParams;
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
@@ -996,7 +996,7 @@ typedef struct
   tANI_U16 tspecIdx; //TSPEC handler uniquely identifying a TSPEC for a STA in a BSS
   tSirMacTspecIE   tspec[HAL_QOS_NUM_AC_MAX];
   eHalStatus       status[HAL_QOS_NUM_AC_MAX];
-  tANI_U8          sessionId;          //PE session id for PE<->HAL interface 
+  tANI_U8          sessionId;          //PE session id for PE<->HAL interface
 }tAggrAddTsParams, *tpAggrAddTsParams;
 
 #endif /* WLAN_FEATURE_VOWIFI_11R */
@@ -1079,9 +1079,9 @@ typedef struct sAddBAParams
 
     // Indicating to HAL whether a response message is required.
     tANI_U8 respReqd;
-    tANI_U8    sessionId; // PE session id for PE<->HAL interface 
-                          //  HAL Sends back the PE session 
-                          //  id unmodified 
+    tANI_U8    sessionId; // PE session id for PE<->HAL interface
+                          //  HAL Sends back the PE session
+                          //  id unmodified
 
 } tAddBAParams, * tpAddBAParams;
 
@@ -1198,7 +1198,7 @@ typedef struct sBADeleteParams
 
     tANI_U32 reasonCode;
 
-    tSirMacAddr  bssId; // TO SUPPORT BT-AMP    
+    tSirMacAddr  bssId; // TO SUPPORT BT-AMP
                         // HAL copies the sta bssid to this.
 } tBADeleteParams, * tpBADeleteParams;
 
@@ -1209,7 +1209,7 @@ typedef struct sBaActivityInd
     tANI_U16 baCandidateCnt;
     //baCandidateCnt is followed by BA Candidate List ( tAddBaCandidate)
 
-    tSirMacAddr  bssId; // TO SUPPORT BT-AMP    
+    tSirMacAddr  bssId; // TO SUPPORT BT-AMP
 } tBaActivityInd, * tpBaActivityInd;
 
 
@@ -1283,7 +1283,7 @@ typedef struct sEnterBmpsRspParams
 //
 typedef struct sMaxTxPowerParams
 {
-    tSirMacAddr bssId;  // BSSID is needed to identify which session issued this request. As 
+    tSirMacAddr bssId;  // BSSID is needed to identify which session issued this request. As
                         //the request has power constraints, this should be applied only to that session
     tSirMacAddr selfStaMacAddr;
     //In request,
@@ -1311,14 +1311,14 @@ typedef struct sP2pPsParams
 {
    tANI_U8   opp_ps;
    tANI_U32  ctWindow;
-   tANI_U8   count; 
+   tANI_U8   count;
    tANI_U32  duration;
    tANI_U32  interval;
    tANI_U32  single_noa_duration;
    tANI_U8   psSelection;
 }tP2pPsParams, *tpP2pPsParams;
 
-static inline void halGetTxTSFtimer(tpAniSirGlobal pMac, 
+static inline void halGetTxTSFtimer(tpAniSirGlobal pMac,
                                                 tSirMacTimeStamp *pTime)
 {
 }
@@ -1345,7 +1345,7 @@ typedef __ani_attr_pre_packed struct sEidByteInfo
 } __ani_attr_packed tEidByteInfo, *tpEidByteInfo;
 
 
-/* The above structure would be followed by multiple of below mentioned 
+/* The above structure would be followed by multiple of below mentioned
 structure */
 typedef __ani_attr_pre_packed struct sBeaconFilterIe
 {
@@ -1354,7 +1354,7 @@ typedef __ani_attr_pre_packed struct sBeaconFilterIe
     tEidByteInfo    byte;
 } __ani_attr_packed tBeaconFilterIe, *tpBeaconFilterIe;
 
-typedef __ani_attr_pre_packed struct sRemBeaconFilterMsg  
+typedef __ani_attr_pre_packed struct sRemBeaconFilterMsg
 {
     tANI_U8  ucIeCount;
     tANI_U8  ucRemIeId[1];

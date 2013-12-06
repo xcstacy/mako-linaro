@@ -59,7 +59,7 @@ static ssize_t cam_mic_gain_store(struct kobject *kobj, struct kobj_attribute *a
 			private_value;
 
 	sscanf(buf, "%d", &l_max);
- 
+
 	// limit the max gain
 	l_delta = l_max - l_mixer_ptr->platform_max;
 	l_mixer_ptr->platform_max = l_max;
@@ -171,7 +171,7 @@ static ssize_t headphone_gain_store(struct kobject *kobj, struct kobj_attribute 
 	r_mixer_ptr->platform_max = r_max;
 	r_mixer_ptr->max = r_max;
 	r_mixer_ptr->min += r_delta;
- 
+
 	return count;
 }
 

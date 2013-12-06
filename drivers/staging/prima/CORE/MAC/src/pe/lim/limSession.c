@@ -40,17 +40,17 @@
  */
 
 /**=========================================================================
-  
+
   \file  limSession.c
-  
+
   \brief implementation for lim Session related APIs
 
   \author Sunit Bhatia
-  
+
    Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
-   
+
    Qualcomm Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 
@@ -66,7 +66,7 @@
 #endif
 
 /*--------------------------------------------------------------------------
-  
+
   \brief peInitBeaconParams() - Initialize the beaconParams structure
 
 
@@ -89,31 +89,31 @@ void peInitBeaconParams(tpAniSirGlobal pMac, tpPESession psessionEntry)
     psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport = 0;
     psessionEntry->beaconParams.gHTObssMode = 0;
 
-    // Number of legacy STAs associated 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11bParams, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11aParams, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11gParams, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimNonGfParams, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimHt20Params, sizeof(tLimProtStaParams)); 
-    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimLsigTxopParams, sizeof(tLimProtStaParams)); 
+    // Number of legacy STAs associated
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11bParams, sizeof(tLimProtStaParams));
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11aParams, sizeof(tLimProtStaParams));
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11gParams, sizeof(tLimProtStaParams));
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimNonGfParams, sizeof(tLimProtStaParams));
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimHt20Params, sizeof(tLimProtStaParams));
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimLsigTxopParams, sizeof(tLimProtStaParams));
     palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimOlbcParams, sizeof(tLimProtStaParams));
 }
 
 /*--------------------------------------------------------------------------
-  
+
   \brief peCreateSession() - creates a new PE session given the BSSID
 
-  This function returns the session context and the session ID if the session 
+  This function returns the session context and the session ID if the session
   corresponding to the passed BSSID is found in the PE session table.
-    
+
   \param pMac                   - pointer to global adapter context
   \param bssid                   - BSSID of the new session
   \param sessionId             -session ID is returned here, if session is created.
-  
+
   \return tpPESession          - pointer to the session context or NULL if session can not be created.
-  
+
   \sa
-  
+
   --------------------------------------------------------------------------*/
 tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessionId, tANI_U16 numSta)
 {
@@ -142,11 +142,11 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
             }
             pMac->lim.gpSession[i].dph.dphHashTable.size = numSta;
 
-            dphHashTableClassInit(pMac, 
+            dphHashTableClassInit(pMac,
                            &pMac->lim.gpSession[i].dph.dphHashTable);
 
             if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
-                    (void **) &pMac->lim.gpSession[i].gpLimPeerIdxpool, 
+                    (void **) &pMac->lim.gpSession[i].gpLimPeerIdxpool,
                     sizeof(*pMac->lim.gpSession[i].gpLimPeerIdxpool) * (numSta+1)))
             {
                 PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!"));)
@@ -163,7 +163,7 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
             /* Copy the BSSID to the session table */
             sirCopyMacAddr(pMac->lim.gpSession[i].bssId, bssid);
             pMac->lim.gpSession[i].valid = TRUE;
-            
+
             /* Intialize the SME and MLM states to IDLE */
             pMac->lim.gpSession[i].limMlmState = eLIM_MLM_IDLE_STATE;
             pMac->lim.gpSession[i].limSmeState = eLIM_SME_IDLE_STATE;
@@ -207,15 +207,15 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
 /*--------------------------------------------------------------------------
   \brief peFindSessionByBssid() - looks up the PE session given the BSSID.
 
-  This function returns the session context and the session ID if the session 
+  This function returns the session context and the session ID if the session
   corresponding to the given BSSID is found in the PE session table.
-    
+
   \param pMac                   - pointer to global adapter context
   \param bssid                   - BSSID of the session
-  \param sessionId             -session ID is returned here, if session is found. 
-  
+  \param sessionId             -session ID is returned here, if session is found.
+
   \return tpPESession          - pointer to the session context or NULL if session is not found.
-  
+
   \sa
   --------------------------------------------------------------------------*/
 tpPESession peFindSessionByBssid(tpAniSirGlobal pMac,  tANI_U8*  bssid,    tANI_U8* sessionId)
@@ -267,14 +267,14 @@ tpPESession peFindSessionByBssIdx(tpAniSirGlobal pMac,  tANI_U8 bssIdx)
 /*--------------------------------------------------------------------------
   \brief peFindSessionBySessionId() - looks up the PE session given the session ID.
 
-  This function returns the session context  if the session 
+  This function returns the session context  if the session
   corresponding to the given session ID is found in the PE session table.
-    
+
   \param pMac                   - pointer to global adapter context
   \param sessionId             -session ID for which session context needs to be looked up.
-  
+
   \return tpPESession          - pointer to the session context or NULL if session is not found.
-  
+
   \sa
   --------------------------------------------------------------------------*/
  tpPESession peFindSessionBySessionId(tpAniSirGlobal pMac , tANI_U8 sessionId)
@@ -297,15 +297,15 @@ tpPESession peFindSessionByBssIdx(tpAniSirGlobal pMac,  tANI_U8 bssIdx)
 /*--------------------------------------------------------------------------
   \brief peFindSessionByStaId() - looks up the PE session given staid.
 
-  This function returns the session context and the session ID if the session 
+  This function returns the session context and the session ID if the session
   corresponding to the given StaId is found in the PE session table.
-    
+
   \param pMac                   - pointer to global adapter context
   \param staid                   - StaId of the session
-  \param sessionId             -session ID is returned here, if session is found. 
-  
+  \param sessionId             -session ID is returned here, if session is found.
+
   \return tpPESession          - pointer to the session context or NULL if session is not found.
-  
+
   \sa
   --------------------------------------------------------------------------*/
 tpPESession peFindSessionByStaId(tpAniSirGlobal pMac,  tANI_U8  staid,    tANI_U8* sessionId)
@@ -338,10 +338,10 @@ tpPESession peFindSessionByStaId(tpAniSirGlobal pMac,  tANI_U8  staid,    tANI_U
 /*--------------------------------------------------------------------------
   \brief peDeleteSession() - deletes the PE session given the session ID.
 
-    
+
   \param pMac                   - pointer to global adapter context
   \param sessionId             -session ID of the session which needs to be deleted.
-    
+
   \sa
   --------------------------------------------------------------------------*/
 void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
@@ -364,7 +364,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
             }
         }
     }
-    
+
     if(psessionEntry->pLimStartBssReq != NULL)
     {
         palFreeMemory( pMac->hHdd, psessionEntry->pLimStartBssReq );
@@ -435,7 +435,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
             {
                 if( ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrame )
                 {
-                   palFreeMemory(pMac->hHdd, 
+                   palFreeMemory(pMac->hHdd,
                       ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrame);
                    ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrame = NULL;
                    ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrameLength = 0;
@@ -469,7 +469,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
     }
 
 #ifdef FEATURE_WLAN_CCX
-    limCleanupCcxCtxt(pMac, psessionEntry); 
+    limCleanupCcxCtxt(pMac, psessionEntry);
 #endif
 
     psessionEntry->valid = FALSE;
@@ -480,15 +480,15 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 /*--------------------------------------------------------------------------
   \brief peFindSessionByPeerSta() - looks up the PE session given the Station Address.
 
-  This function returns the session context and the session ID if the session 
+  This function returns the session context and the session ID if the session
   corresponding to the given station address is found in the PE session table.
-    
+
   \param pMac                   - pointer to global adapter context
   \param sa                       - Peer STA Address of the session
-  \param sessionId             -session ID is returned here, if session is found. 
-  
+  \param sessionId             -session ID is returned here, if session is found.
+
   \return tpPESession          - pointer to the session context or NULL if session is not found.
-  
+
   \sa
   --------------------------------------------------------------------------*/
 
@@ -496,21 +496,21 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac,  tANI_U8*  sa,    tANI_U8* sessionId)
 {
    tANI_U8 i;
-   tpDphHashNode pSta;   
+   tpDphHashNode pSta;
    tANI_U16  aid;
-   
+
    for(i =0; i < pMac->lim.maxBssId; i++)
    {
       if( (pMac->lim.gpSession[i].valid))
       {
          pSta = dphLookupHashEntry(pMac, sa, &aid, &pMac->lim.gpSession[i].dph.dphHashTable);
-         if (pSta != NULL) 
+         if (pSta != NULL)
          {
             *sessionId = i;
             return &pMac->lim.gpSession[i];
          }
       }
-   }   
+   }
 
    limLog(pMac, LOG1, FL("Session lookup fails for Peer StaId: \n "));
    limPrintMacAddr(pMac, sa, LOG1);

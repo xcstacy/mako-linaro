@@ -50,7 +50,7 @@
 /*----------------------------------------------------------------------------
 
    @brief Registration function.
-        Register suspend, resume callback functions with platform driver. 
+        Register suspend, resume callback functions with platform driver.
 
    @param hdd_context_t pHddCtx
         Global hdd context
@@ -85,7 +85,7 @@ VOS_STATUS hddDeregisterPmOps(hdd_context_t *pHddCtx);
    @param dev : Device context
           changedTmLevel : Changed new TM level
 
-   @return 
+   @return
 
 ----------------------------------------------------------------------------*/
 void hddDevTmLevelChangedHandler(struct device *dev, int changedTmLevel);

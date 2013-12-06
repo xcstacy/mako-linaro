@@ -3719,7 +3719,7 @@ void freeze_workqueues_begin(void)
 		if (cpu < CONFIG_NR_CPUS)
 			cwq = get_cwq(cpu, wq);
 		else
-			continue; 
+			continue;
 
 			if (cwq && wq->flags & WQ_FREEZABLE)
 				cwq->max_active = 0;
@@ -3765,7 +3765,7 @@ bool freeze_workqueues_busy(void)
 			if (cpu < CONFIG_NR_CPUS)
 				cwq = get_cwq(cpu, wq);
 			else
-				continue; 
+				continue;
 
 			if (!cwq || !(wq->flags & WQ_FREEZABLE))
 				continue;

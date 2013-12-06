@@ -42,7 +42,7 @@
 /*===========================================================================
   @file VossWrapper.c
 
-  @brief This source file contains the various function definitions for the 
+  @brief This source file contains the various function definitions for the
   RTOS abstraction layer, implemented for VOSS
 
   Copyright (c) 2008 QUALCOMM Incorporated.
@@ -50,19 +50,19 @@
   Qualcomm Confidential and Proprietary
 ===========================================================================*/
 
-/*=========================================================================== 
-    
-                       EDIT HISTORY FOR FILE 
-   
-   
-  This section contains comments describing changes made to the module.    
-  Notice that changes are listed in reverse chronological order. 
-   
-   
-  $Header:$ $DateTime: $ $Author: $ 
-   
-   
-  when        who    what, where, why 
+/*===========================================================================
+
+                       EDIT HISTORY FOR FILE
+
+
+  This section contains comments describing changes made to the module.
+  Notice that changes are listed in reverse chronological order.
+
+
+  $Header:$ $DateTime: $ $Author: $
+
+
+  when        who    what, where, why
   --------    ---    --------------------------------------------------------
   03/31/09    sho    Remove the use of vosTimerIsActive flag as it is not
                      thread-safe
@@ -75,11 +75,11 @@
   11/20/08    sho    Renamed this to VosWrapper.c; remove all dependencies on
                      WM platform and allow this to work on all VOSS enabled
                      platform
-  06/24/08    tbh    Modified the file to remove the dependecy on HDD files as 
-                     part of Gen6 bring up process. 
-  10/29/02 Neelay Das Created file. 
-     
-===========================================================================*/ 
+  06/24/08    tbh    Modified the file to remove the dependecy on HDD files as
+                     part of Gen6 bring up process.
+  10/29/02 Neelay Das Created file.
+
+===========================================================================*/
 
 /*---------------------------------------------------------------------------
  * Include Files
@@ -93,7 +93,7 @@
 #endif
 
 /**---------------------------------------------------------------------
- * tx_time_get() 
+ * tx_time_get()
  *
  * FUNCTION:
  *
@@ -103,11 +103,11 @@
  *
  * NOTE:
  *
- * @param  
+ * @param
  *
  * @return current system time in units of miliseconds
  *
- */ 
+ */
 v_ULONG_t tx_time_get( void )
 {
    return(vos_timer_get_system_ticks());
@@ -116,7 +116,7 @@ v_ULONG_t tx_time_get( void )
 
 
 /**---------------------------------------------------------------------
- * tx_timer_activate() 
+ * tx_timer_activate()
  *
  * FUNCTION:
  *
@@ -126,7 +126,7 @@ v_ULONG_t tx_time_get( void )
  *
  * NOTE:
  *
- * @param  
+ * @param
  *
  * @return TX_SUCCESS.
  *
@@ -134,7 +134,7 @@ v_ULONG_t tx_time_get( void )
 v_UINT_t tx_timer_activate(TX_TIMER *timer_ptr)
 {
    VOS_STATUS status;
-  
+
     // Uncomment the asserts, if the intention is to debug the occurence of the
     // following anomalous cnditions.
 
@@ -158,28 +158,28 @@ v_UINT_t tx_timer_activate(TX_TIMER *timer_ptr)
     // Check for an uninitialized timer
     VOS_ASSERT(0 != strlen(TIMER_NAME));
 
-    VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+    VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
             "Timer %s being activated\n", TIMER_NAME);
 
-    status = vos_timer_start( &timer_ptr->vosTimer, 
+    status = vos_timer_start( &timer_ptr->vosTimer,
          timer_ptr->initScheduleTimeInMsecs );
 
    if (VOS_STATUS_SUCCESS == status)
    {
-      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
             "Timer %s now activated\n", TIMER_NAME);
       return TX_SUCCESS;
    }
    else if (VOS_STATUS_E_ALREADY == status)
    {
       // starting timer fails because timer is already started; this is okay
-      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
             "Timer %s is already running\n", TIMER_NAME);
       return TX_SUCCESS;
    }
    else
    {
-      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR, 
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
             "Timer %s fails to activate\n", TIMER_NAME);
       return TX_TIMER_ERROR;
    }
@@ -187,7 +187,7 @@ v_UINT_t tx_timer_activate(TX_TIMER *timer_ptr)
 
 
 /**---------------------------------------------------------------------
- * tx_timer_change() 
+ * tx_timer_change()
  *
  * FUNCTION:
  *
@@ -197,19 +197,19 @@ v_UINT_t tx_timer_activate(TX_TIMER *timer_ptr)
  *
  * NOTE:
  *
- * @param  
+ * @param
  *
  * @return TX_SUCCESS.
  *
  */
-v_UINT_t tx_timer_change(TX_TIMER *timer_ptr, 
+v_UINT_t tx_timer_change(TX_TIMER *timer_ptr,
       v_ULONG_t initScheduleTimeInTicks, v_ULONG_t rescheduleTimeInTicks)
 {
    // Put a check for the free builds
    if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature) {
        VOS_ASSERT( timer_ptr->tmrSignature == 0 );
 
-       return TX_TIMER_ERROR;      
+       return TX_TIMER_ERROR;
    }
 
     // changes cannot be applied until timer stops running
@@ -226,7 +226,7 @@ v_UINT_t tx_timer_change(TX_TIMER *timer_ptr,
 } /*** tx_timer_change() ***/
 
 /**---------------------------------------------------------------------
- * tx_timer_change_context() 
+ * tx_timer_change_context()
  *
  * FUNCTION:
  *
@@ -236,7 +236,7 @@ v_UINT_t tx_timer_change(TX_TIMER *timer_ptr,
  *
  * NOTE:
  *
- * @param  
+ * @param
  *
  * @return TX_SUCCESS.
  *
@@ -248,7 +248,7 @@ v_UINT_t tx_timer_change_context(TX_TIMER *timer_ptr, tANI_U32 expiration_input)
     if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature) {
        VOS_ASSERT( timer_ptr->tmrSignature == 0 );
 
-       return TX_TIMER_ERROR;      
+       return TX_TIMER_ERROR;
     }
 
     // changes cannot be applied until timer stops running
@@ -265,7 +265,7 @@ v_UINT_t tx_timer_change_context(TX_TIMER *timer_ptr, tANI_U32 expiration_input)
 
 
 /**---------------------------------------------------------------------
- * tx_main_timer_func() 
+ * tx_main_timer_func()
  *
  * FUNCTION:
  *
@@ -275,7 +275,7 @@ v_UINT_t tx_timer_change_context(TX_TIMER *timer_ptr, tANI_U32 expiration_input)
  *
  * NOTE:
  *
- * @param  
+ * @param
  *
  * @return None.
  *
@@ -298,7 +298,7 @@ static v_VOID_t tx_main_timer_func( v_PVOID_t functionContext )
        return;
    }
 
-   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "Timer %s triggered", TIMER_NAME);
 
    // Now call the actual timer function, taking the function pointer,
@@ -309,13 +309,13 @@ static v_VOID_t tx_main_timer_func( v_PVOID_t functionContext )
    if (0 != timer_ptr->rescheduleTimeInMsecs)
    {
       VOS_STATUS status;
-      status = vos_timer_start( &timer_ptr->vosTimer, 
+      status = vos_timer_start( &timer_ptr->vosTimer,
                                 timer_ptr->rescheduleTimeInMsecs );
       timer_ptr->rescheduleTimeInMsecs = 0;
 
       if (VOS_STATUS_SUCCESS != status)
       {
-         VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_WARN, 
+         VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_WARN,
              "Unable to reschedule timer %s; status=%d", TIMER_NAME, status);
       }
    }
@@ -323,10 +323,10 @@ static v_VOID_t tx_main_timer_func( v_PVOID_t functionContext )
 
 #ifdef TIMER_MANAGER
 v_UINT_t tx_timer_create_intern_debug( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
-   char *name_ptr, 
+   char *name_ptr,
    v_VOID_t ( *expiration_function )( v_PVOID_t, tANI_U32 ),
-   tANI_U32 expiration_input, v_ULONG_t initScheduleTimeInTicks, 
-   v_ULONG_t rescheduleTimeInTicks, v_ULONG_t auto_activate, 
+   tANI_U32 expiration_input, v_ULONG_t initScheduleTimeInTicks,
+   v_ULONG_t rescheduleTimeInTicks, v_ULONG_t auto_activate,
    char* fileName, v_U32_t lineNum)
 {
     VOS_STATUS status;
@@ -356,7 +356,7 @@ v_UINT_t tx_timer_create_intern_debug( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr
     strlcpy(timer_ptr->timerName, name_ptr, sizeof(timer_ptr->timerName));
 #endif // Store the timer name, for Debug build only
 
-    status = vos_timer_init_debug( &timer_ptr->vosTimer, VOS_TIMER_TYPE_SW, 
+    status = vos_timer_init_debug( &timer_ptr->vosTimer, VOS_TIMER_TYPE_SW,
           tx_main_timer_func, (v_PVOID_t)timer_ptr, fileName, lineNum);
     if (VOS_STATUS_SUCCESS != status)
     {
@@ -367,7 +367,7 @@ v_UINT_t tx_timer_create_intern_debug( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr
 
     if(0 != rescheduleTimeInTicks)
     {
-        VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+        VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
                   "Creating periodic timer for %s\n", TIMER_NAME);
     }
 
@@ -382,9 +382,9 @@ v_UINT_t tx_timer_create_intern_debug( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr
 } //** tx_timer_create() ***/
 #else
 v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
-   char *name_ptr, 
+   char *name_ptr,
    v_VOID_t ( *expiration_function )( v_PVOID_t, tANI_U32 ),
-   tANI_U32 expiration_input, v_ULONG_t initScheduleTimeInTicks, 
+   tANI_U32 expiration_input, v_ULONG_t initScheduleTimeInTicks,
    v_ULONG_t rescheduleTimeInTicks, v_ULONG_t auto_activate )
 {
     VOS_STATUS status;
@@ -416,7 +416,7 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
     strlcpy(timer_ptr->timerName, name_ptr, sizeof(timer_ptr->timerName));
 #endif // Store the timer name, for Debug build only
 
-    status = vos_timer_init( &timer_ptr->vosTimer, VOS_TIMER_TYPE_SW, 
+    status = vos_timer_init( &timer_ptr->vosTimer, VOS_TIMER_TYPE_SW,
           tx_main_timer_func, (v_PVOID_t)timer_ptr );
     if (VOS_STATUS_SUCCESS != status)
     {
@@ -427,7 +427,7 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
 
     if(0 != rescheduleTimeInTicks)
     {
-        VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+        VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
                   "Creating periodic timer for %s\n", TIMER_NAME);
     }
 
@@ -444,7 +444,7 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
 
 
 /**---------------------------------------------------------------------
- * tx_timer_deactivate() 
+ * tx_timer_deactivate()
  *
  * FUNCTION:
  *
@@ -454,7 +454,7 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
  *
  * NOTE:
  *
- * @param  
+ * @param
  *
  * @return TX_SUCCESS.
  *
@@ -462,21 +462,21 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
 v_UINT_t tx_timer_deactivate(TX_TIMER *timer_ptr)
 {
    VOS_STATUS vStatus;
-   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "tx_timer_deactivate() called for timer %s\n", TIMER_NAME);
 
    // Put a check for the free builds
    if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature)
    {
-      return TX_TIMER_ERROR;      
+      return TX_TIMER_ERROR;
    }
 
    // if the timer is not running then we do not need to do anything here
    vStatus = vos_timer_stop( &timer_ptr->vosTimer );
    if (VOS_STATUS_SUCCESS != vStatus)
    {
-      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO_HIGH, 
-                "Unable to stop timer %s; status =%d\n", 
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO_HIGH,
+                "Unable to stop timer %s; status =%d\n",
                 TIMER_NAME, vStatus);
    }
 
@@ -486,23 +486,23 @@ v_UINT_t tx_timer_deactivate(TX_TIMER *timer_ptr)
 
 v_UINT_t tx_timer_delete( TX_TIMER *timer_ptr )
 {
-   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "tx_timer_delete() called for timer %s\n", TIMER_NAME);
 
    // Put a check for the free builds
    if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature)
    {
-      return TX_TIMER_ERROR;      
+      return TX_TIMER_ERROR;
    }
 
    vos_timer_destroy( &timer_ptr->vosTimer );
-   return TX_SUCCESS;     
+   return TX_SUCCESS;
 } /*** tx_timer_delete() ***/
 
 
 
 /**---------------------------------------------------------------------
- * tx_timer_running() 
+ * tx_timer_running()
  *
  * FUNCTION:
  *
@@ -512,21 +512,21 @@ v_UINT_t tx_timer_delete( TX_TIMER *timer_ptr )
  *
  * NOTE:
  *
- * @param  
+ * @param
  *
  * @return TX_SUCCESS.
  *
  */
 v_BOOL_t tx_timer_running(TX_TIMER *timer_ptr)
 {
-   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "tx_timer_running() called for timer %s\n", TIMER_NAME);
 
    // Put a check for the free builds
    if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature)
-      return VOS_FALSE;      
+      return VOS_FALSE;
 
-   if (VOS_TIMER_STATE_RUNNING == 
+   if (VOS_TIMER_STATE_RUNNING ==
        vos_timer_getCurrentState( &timer_ptr->vosTimer ))
    {
        return VOS_TRUE;

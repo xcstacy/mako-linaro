@@ -1566,7 +1566,7 @@ static int get_prop_batt_status(struct pm8921_chg_chip *chip)
     #ifdef CONFIG_BLX
         if (get_prop_batt_capacity(chip) >= get_charginglimit())
     #else
-            if (get_prop_batt_capacity(chip) == 100) 
+            if (get_prop_batt_capacity(chip) == 100)
     #endif
 			if (batt_state == POWER_SUPPLY_STATUS_CHARGING)
 				batt_state = POWER_SUPPLY_STATUS_FULL;
@@ -1574,7 +1574,7 @@ static int get_prop_batt_status(struct pm8921_chg_chip *chip)
 			if (batt_state == POWER_SUPPLY_STATUS_FULL)
 				batt_state = POWER_SUPPLY_STATUS_CHARGING;
 		}
-	
+
 
 	pr_debug("batt_state = %d fsm_state = %d \n",batt_state, fsm_state);
 	return batt_state;
@@ -3422,7 +3422,7 @@ static void eoc_worker(struct work_struct *work)
         else
           chip->bms_notify.is_battery_full = 1;
      #endif
-        
+
 		/* declare end of charging by invoking chgdone interrupt */
 		chgdone_irq_handler(chip->pmic_chg_irq[CHGDONE_IRQ], chip);
 		wake_unlock(&chip->eoc_wake_lock);

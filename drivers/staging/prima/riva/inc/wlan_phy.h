@@ -41,17 +41,17 @@
 
 #ifndef WLAN_PHY_H
 #define WLAN_PHY_H
-/*============================================================================ 
-@file wlan_phy.h 
+/*============================================================================
+@file wlan_phy.h
 
 Contains definitions of all PHY related structures that aree needed by FTM/PTT
 
-Copyright (c) 2007 Qualcomm Technologies, Inc. All Rights Reserved. 
+Copyright (c) 2007 Qualcomm Technologies, Inc. All Rights Reserved.
 Qualcomm Technologies Proprietary and Confidential
 
 ============================================================================*/
 #include <wlan_nv.h>
- 
+
 /* Currently this structure holds the information about the current calibration mode.
 In future, if anymore info is needed, that can be added here */
 typedef PACKED_PRE struct PACKED_POST
@@ -149,7 +149,7 @@ typedef tANI_S16 t2Decimal;
 #define CONVERT_FROM_2DECIMAL_PLACES(x) (x / 100)
 
 #ifndef PTT_FLOAT
-#define PTT_FLOAT tANI_U32  // driver code can't include float, 
+#define PTT_FLOAT tANI_U32  // driver code can't include float,
 //so this reserves space in our structures to allow floating point measurements
 #endif
 
@@ -289,7 +289,7 @@ typedef PACKED_PRE struct PACKED_POST {
 
 typedef PACKED_PRE struct PACKED_POST {
     tANI_U8 lna_code;    //wlan_lna_5g_control1,wl_5g_lna_load_ctune
-    tANI_U8 gm_code;     //wlan_rxgm_5g_control4,wlgm_ctune 
+    tANI_U8 gm_code;     //wlan_rxgm_5g_control4,wlgm_ctune
 }sLnaBandCalValues;
 
 typedef PACKED_PRE struct PACKED_POST {
@@ -427,35 +427,35 @@ typedef PACKED_PRE struct PACKED_POST
      tANI_U8  reserved;
      uAbsPwrPrecision absPowerMeasured;      //= dBm measurement, will be truncated to two decimal places
  }tTpcCalPoint;
- 
- 
+
+
  typedef PACKED_PRE struct PACKED_POST
  {
      tANI_U16 numTpcCalPoints;
      tANI_U16 reserved;
      tTpcCalPoint chain[MAX_TPC_CAL_POINTS];
  }tTpcChainData;
- 
- 
+
+
  typedef PACKED_PRE struct PACKED_POST
  {
      tANI_U16 freq;                                          //frequency in MHz
      tANI_U16 reserved;
      tTpcChainData empirical[PHY_MAX_TX_CHAINS];  //TPC samples passed in
  }tTpcFreqData;
- 
+
  typedef PACKED_PRE struct PACKED_POST
  {
      tANI_U8 numChannels;
      tANI_U8 reserved[3];
      tTpcFreqData calValues[MAX_TPC_CHANNELS];
  }sTpcFreqCalTable;
- 
- 
+
+
 typedef PACKED_PRE struct PACKED_POST {
     tPowerDetect lut;                   //7-bit value in the power Lookup Table
     tANI_U8 reserved[3];
-    
+
     uAbsPwrPrecision abs;               //LUT value conversion to absolute dBm
 }tTxPowerLutOutput;
 
@@ -463,7 +463,7 @@ typedef PACKED_PRE struct PACKED_POST {
     tANI_U8      gain;                  //8-bit coarse(bits 4-7) & fine(bits 0-3) gain commanded for the current index
     tPowerDetect adc;                   //8-bit power ADC sampled during the packet preamble
     tANI_U16 rawAdc;                   //11-bit power raw ADC sampled
-    
+
     tTxPowerLutOutput indexMinMatch;    //minimum LUT matching power that satisfies the power template index setting
     tTxPowerLutOutput indexMaxMatch;    //maximum LUT matching power that satisfies the power template index setting
     tTxPowerLutOutput output;           //output power values corresponding to power ADC index
@@ -554,7 +554,7 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U16 da_pa_bias_1_cnt;
     tANI_U16 da_pa_bias_2_cntl;
 }tRfTxGain;
- 
+
 typedef PACKED_PRE struct PACKED_POST
 {
     //TODO:define this struct for Gemini
@@ -787,13 +787,13 @@ typedef enum
 typedef enum
 {
     PHY_RX_DISABLE_NONE             = 0,
-    PHY_RX_DISABLE_11AG             = 0x00000001,          
-    PHY_RX_DISABLE_11B              = 0x00000002,          
-    PHY_RX_DISABLE_11N40            = 0x00000004,          
-    PHY_RX_DISABLE_11AC80           = 0x00000008,          
+    PHY_RX_DISABLE_11AG             = 0x00000001,
+    PHY_RX_DISABLE_11B              = 0x00000002,
+    PHY_RX_DISABLE_11N40            = 0x00000004,
+    PHY_RX_DISABLE_11AC80           = 0x00000008,
 
     PHY_RX_DISABLE_11ABG            = (PHY_RX_DISABLE_11AG | PHY_RX_DISABLE_11B),
-    PHY_RX_DISABLE_ALL_TYPES        = (PHY_RX_DISABLE_11B | PHY_RX_DISABLE_11AG | 
+    PHY_RX_DISABLE_ALL_TYPES        = (PHY_RX_DISABLE_11B | PHY_RX_DISABLE_11AG |
                                        PHY_RX_DISABLE_11N40 | PHY_RX_DISABLE_11AC80),
 }ePhyRxDisabledPktTypes;
 
@@ -843,7 +843,7 @@ typedef enum
 #define BIT_7   0x00000080
 #define BIT_8   0x00000100
 #define BIT_9   0x00000200
-#define BIT_10  0x00000400  
+#define BIT_10  0x00000400
 #define BIT_11  0x00000800
 #define BIT_12  0x00001000
 #define BIT_13  0x00002000

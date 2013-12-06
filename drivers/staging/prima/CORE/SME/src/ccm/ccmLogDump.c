@@ -42,7 +42,7 @@
 /*============================================================================
 ccmLogDump.c
 
-Implements the dump commands specific to the ccm module. 
+Implements the dump commands specific to the ccm module.
 
 Copyright (c) 2007 QUALCOMM Incorporated.
 All Rights Reserved.
@@ -64,7 +64,7 @@ static tDumpFuncEntry ccmMenuDumpTable[] = {
 
 void ccmDumpInit(tHalHandle hHal)
 {
-   logDumpRegisterTable( (tpAniSirGlobal) hHal, &ccmMenuDumpTable[0], 
+   logDumpRegisterTable( (tpAniSirGlobal) hHal, &ccmMenuDumpTable[0],
                          sizeof(ccmMenuDumpTable)/sizeof(ccmMenuDumpTable[0]) );
 }
 

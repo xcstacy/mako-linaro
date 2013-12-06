@@ -17,8 +17,8 @@ do {									\
 
 struct sradix_tree_node {
 	unsigned int	height;		/* Height from the bottom */
-	unsigned int	count;		
-	unsigned int	fulls;		/* Number of full sublevel trees */ 
+	unsigned int	count;
+	unsigned int	fulls;		/* Number of full sublevel trees */
 	struct sradix_tree_node *parent;
 	void *stores[0];
 };
@@ -38,7 +38,7 @@ struct sradix_tree_root {
 	//unsigned long *height_to_maxindex;
 
 	/* How the node is allocated and freed. */
-	struct sradix_tree_node *(*alloc)(void); 
+	struct sradix_tree_node *(*alloc)(void);
 	void (*free)(struct sradix_tree_node *node);
 
 	/* When a new node is added and removed */
@@ -52,7 +52,7 @@ struct sradix_tree_path {
 	int offset;
 };
 
-static inline 
+static inline
 void init_sradix_tree_root(struct sradix_tree_root *root, unsigned long shift)
 {
 	root->height = 0;
@@ -69,7 +69,7 @@ extern void *sradix_tree_next(struct sradix_tree_root *root,
 
 extern int sradix_tree_enter(struct sradix_tree_root *root, void **item, int num);
 
-extern void sradix_tree_delete_from_leaf(struct sradix_tree_root *root, 
+extern void sradix_tree_delete_from_leaf(struct sradix_tree_root *root,
 			struct sradix_tree_node *node, unsigned long index);
 
 extern void *sradix_tree_lookup(struct sradix_tree_root *root, unsigned long index);

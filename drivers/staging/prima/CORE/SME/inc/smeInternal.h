@@ -44,15 +44,15 @@
 
 
 /**=========================================================================
-  
+
   \file  smeInternal.h
-  
+
   \brief prototype for SME internal structures and APIs used for SME and MAC
-  
+
    Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
-   
+
    Qualcomm Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -67,30 +67,30 @@
 #include "vos_types.h"
 #include "csrLinkList.h"
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
 
 // Mask can be only have one bit set
-typedef enum eSmeCommandType 
+typedef enum eSmeCommandType
 {
-    eSmeNoCommand = 0, 
+    eSmeNoCommand = 0,
     eSmeDropCommand,
     //CSR
     eSmeCsrCommandMask = 0x10000,   //this is not a command, it is to identify this is a CSR command
     eSmeCommandScan,
-    eSmeCommandRoam, 
-    eSmeCommandWmStatusChange, 
+    eSmeCommandRoam,
+    eSmeCommandWmStatusChange,
     eSmeCommandSetKey,
     eSmeCommandRemoveKey,
     eSmeCommandAddStaSession,
     eSmeCommandDelStaSession,
 #ifdef FEATURE_WLAN_TDLS
     //eSmeTdlsCommandMask = 0x80000,  //To identify TDLS commands <TODO>
-    //These can be considered as csr commands. 
-    eSmeCommandTdlsSendMgmt, 
-    eSmeCommandTdlsAddPeer, 
-    eSmeCommandTdlsDelPeer, 
+    //These can be considered as csr commands.
+    eSmeCommandTdlsSendMgmt,
+    eSmeCommandTdlsAddPeer,
+    eSmeCommandTdlsDelPeer,
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
     eSmeCommandTdlsDiscovery,
     eSmeCommandTdlsLinkSetup,
@@ -153,7 +153,7 @@ typedef struct tagSmeStruct
     tDblLinkList smeCmdActiveList;
     tDblLinkList smeCmdPendingList;
     tDblLinkList smeCmdFreeList;   //preallocated roam cmd list
-    void (*pTxPerHitCallback) (void *pCallbackContext); /* callback for Tx PER hit to HDD */ 
+    void (*pTxPerHitCallback) (void *pCallbackContext); /* callback for Tx PER hit to HDD */
     void *pTxPerHitCbContext;
     tVOS_CON_MODE currDeviceMode;
 } tSmeStruct, *tpSmeStruct;

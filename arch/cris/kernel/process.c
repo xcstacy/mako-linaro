@@ -80,7 +80,7 @@ void enable_hlt(void)
 }
 
 EXPORT_SYMBOL(enable_hlt);
- 
+
 /*
  * The following aren't currently used.
  */

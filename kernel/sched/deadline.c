@@ -1467,7 +1467,7 @@ static void set_cpus_allowed_dl(struct task_struct *p,
 			enqueue_pushable_dl_task(rq, p);
 		rq->dl.dl_nr_migratory++;
 	}
-	
+
 	update_dl_migration(&rq->dl);
 }
 

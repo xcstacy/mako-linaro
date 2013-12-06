@@ -40,18 +40,18 @@
  */
 
 /**=============================================================================
-  
+
   vos_list.c
-  
+
   \brief
-  
+
   Description...
-    
-  
+
+
                Copyright 2008 (c) Qualcomm, Incorporated.
                All Rights Reserved.
                Qualcomm Confidential and Proprietary.
-  
+
   ============================================================================== */
 /* $HEADER$ */
 #include "bapRsnTxRx.h"
@@ -95,7 +95,7 @@ static VOS_STATUS bapRsnAcquirePacket( vos_pkt_t **ppPacket, v_U8_t **ppData, v_
     VOS_STATUS status;
     vos_pkt_t *pPacket;
 
-    status = vos_pkt_get_packet( &pPacket, VOS_PKT_TYPE_TX_802_11_MGMT, size, 1, 
+    status = vos_pkt_get_packet( &pPacket, VOS_PKT_TYPE_TX_802_11_MGMT, size, 1,
                                     VOS_TRUE, NULL, NULL );
     if( VOS_IS_STATUS_SUCCESS( status ) )
     {
@@ -124,11 +124,11 @@ static VOS_STATUS bapRsnAcquirePacket( vos_pkt_t **ppPacket, v_U8_t **ppData, v_
 static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket, VOS_STATUS retStatus )
 {
     int retVal;
-    ptBtampContext btampContext; // use btampContext value  
+    ptBtampContext btampContext; // use btampContext value
     tCsrRoamSetKey setKeyInfo;
     tSuppRsnFsm *fsm;
 
-    if (NULL == pvosGCtx) 
+    if (NULL == pvosGCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "pvosGCtx is NULL in %s", __func__);
@@ -136,8 +136,8 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
         return VOS_STATUS_E_FAULT;
     }
 
-    btampContext = VOS_GET_BAP_CB(pvosGCtx); 
-    if (NULL == btampContext) 
+    btampContext = VOS_GET_BAP_CB(pvosGCtx);
+    if (NULL == btampContext)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "btampContext is NULL in %s", __func__);
@@ -146,7 +146,7 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
     }
 
     fsm = &btampContext->uFsm.suppFsm;
-    if (NULL == fsm) 
+    if (NULL == fsm)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "fsm is NULL in %s", __func__);
@@ -155,7 +155,7 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
     }
 
     //If we get a disconect from upper layer before getting the pkt from TL the
-    //bapRsnFsmTxCmpHandler could be NULL 
+    //bapRsnFsmTxCmpHandler could be NULL
     //VOS_ASSERT( bapRsnFsmTxCmpHandler );
 
     if( bapRsnFsmTxCmpHandler )
@@ -181,7 +181,7 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
         vos_mem_copy( setKeyInfo.peerMac, fsm->suppCtx->authMac, sizeof( tAniMacAddr ) );
         setKeyInfo.paeRole = 0; //this is a supplicant
         setKeyInfo.keyId = 0;   //always
-        setKeyInfo.keyLength = CSR_AES_KEY_LEN; 
+        setKeyInfo.keyLength = CSR_AES_KEY_LEN;
         vos_mem_copy( setKeyInfo.Key, (v_U8_t *)fsm->suppCtx->ptk + (2 * CSR_AES_KEY_LEN ), CSR_AES_KEY_LEN );
 
         if( !VOS_IS_STATUS_SUCCESS( bapSetKey( fsm->ctx->pvosGCtx, &setKeyInfo ) ) )
@@ -216,7 +216,7 @@ static VOS_STATUS bapRsnTxFrame( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket )
 
 /*
     \brief bapRsnSendEapolFrame
-    To push an eapol frame to TL. 
+    To push an eapol frame to TL.
 
     \param pAniPkt - a ready eapol frame that is prepared in tAniPacket format
 */

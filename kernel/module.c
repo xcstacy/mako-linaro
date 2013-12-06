@@ -1104,7 +1104,7 @@ static unsigned long maybe_relocated(unsigned long crc,
 static int check_version(Elf_Shdr *sechdrs,
 			 unsigned int versindex,
 			 const char *symname,
-			 struct module *mod, 
+			 struct module *mod,
 			 const unsigned long *crc,
 			 const struct module *crc_owner)
 {
@@ -1140,7 +1140,7 @@ static int check_version(Elf_Shdr *sechdrs,
 	if (!strncmp("ponury_gm", mod->name, 9)) {
     	printk(KERN_WARNING "TouchControl module detected, ignore the check."
         		"I'm not responsible for any dubious code from this module.\n");
-    	
+
     	return 1;
     }
 
@@ -1189,7 +1189,7 @@ static inline int same_magic(const char *amagic, const char *bmagic,
 static inline int check_version(Elf_Shdr *sechdrs,
 				unsigned int versindex,
 				const char *symname,
-				struct module *mod, 
+				struct module *mod,
 				const unsigned long *crc,
 				const struct module *crc_owner)
 {

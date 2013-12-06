@@ -1165,9 +1165,9 @@ typedef struct sANI_DBG_MISC_INFO {
     unsigned long phyIntrMask;
     unsigned long intrStatus[32];
     unsigned long phyIntrStatus[16];
-    unsigned long eofSofExceptionResets;  
-    unsigned long bmuExceptionResets;      
-    unsigned long lowPduExceptionResets;  
+    unsigned long eofSofExceptionResets;
+    unsigned long bmuExceptionResets;
+    unsigned long lowPduExceptionResets;
     unsigned long userTriggeredResets;
     unsigned long logPExceptionResets;
 
@@ -1290,7 +1290,7 @@ typedef struct sANI_DBG_CP_INFO {
     unsigned long CP_Error_status;
 
     unsigned long Cp_maximum_pkt_len;
- 
+
 } tANI_DBG_CP_INFO;
 
 

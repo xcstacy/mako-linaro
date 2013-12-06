@@ -375,7 +375,7 @@ typedef struct nvEFSTable_s
    sHalNv     halnv;
 } nvEFSTable_t;
 nvEFSTable_t *gnvEFSTable;
-/* EFS Table  to send the NV structure to HAL*/ 
+/* EFS Table  to send the NV structure to HAL*/
 static nvEFSTable_t *pnvEFSTable;
 
 const tRfChannelProps rfChannels[NUM_RF_CHANNELS] =
@@ -492,10 +492,10 @@ VOS_STATUS vos_nv_open(void)
     v_SIZE_t bufSize;
     v_SIZE_t nvReadBufSize;
     v_BOOL_t itemIsValid = VOS_FALSE;
-    
+
     /*Get the global context */
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-    
+
     if(pVosContext == NULL)
     {
         return (eHAL_STATUS_FAILURE);
@@ -563,8 +563,8 @@ VOS_STATUS vos_nv_open(void)
        }
 
        pnvEFSTable->nvValidityBitmap = gnvEFSTable->nvValidityBitmap;
-        /* Copy the valid fields to the NV Global structure */ 
-        if (vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid) == 
+        /* Copy the valid fields to the NV Global structure */
+        if (vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid) ==
            VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE) {
@@ -575,22 +575,22 @@ VOS_STATUS vos_nv_open(void)
             }
         }
 
-        if (vos_nv_getValidity(VNV_RATE_TO_POWER_TABLE, &itemIsValid) == 
+        if (vos_nv_getValidity(VNV_RATE_TO_POWER_TABLE, &itemIsValid) ==
              VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
             {
-                if(vos_nv_read( VNV_RATE_TO_POWER_TABLE, 
+                if(vos_nv_read( VNV_RATE_TO_POWER_TABLE,
                   (v_VOID_t *)&pnvEFSTable->halnv.tables.pwrOptimum[0],
                   NULL, sizeof(tRateGroupPwr) * NUM_RF_SUBBANDS ) != VOS_STATUS_SUCCESS)
                     goto error;
             }
         }
 
-        if (vos_nv_getValidity(VNV_REGULARTORY_DOMAIN_TABLE, &itemIsValid) == 
+        if (vos_nv_getValidity(VNV_REGULARTORY_DOMAIN_TABLE, &itemIsValid) ==
                VOS_STATUS_SUCCESS)
         {
-    
+
             if (itemIsValid == VOS_TRUE)
             {
                 if(vos_nv_read( VNV_REGULARTORY_DOMAIN_TABLE,
@@ -600,7 +600,7 @@ VOS_STATUS vos_nv_open(void)
             }
         }
 
-        if (vos_nv_getValidity(VNV_DEFAULT_LOCATION, &itemIsValid) == 
+        if (vos_nv_getValidity(VNV_DEFAULT_LOCATION, &itemIsValid) ==
             VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
@@ -611,20 +611,20 @@ VOS_STATUS vos_nv_open(void)
                     goto error;
             }
         }
-    
-        if (vos_nv_getValidity(VNV_TPC_POWER_TABLE, &itemIsValid) == 
+
+        if (vos_nv_getValidity(VNV_TPC_POWER_TABLE, &itemIsValid) ==
             VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
             {
-                if(vos_nv_read( VNV_TPC_POWER_TABLE, 
+                if(vos_nv_read( VNV_TPC_POWER_TABLE,
                   (v_VOID_t *)&pnvEFSTable->halnv.tables.plutCharacterized[0],
                   NULL, sizeof(tTpcPowerTable) * NUM_RF_CHANNELS ) != VOS_STATUS_SUCCESS)
                     goto error;
             }
         }
-    
-        if (vos_nv_getValidity(VNV_TPC_PDADC_OFFSETS, &itemIsValid) == 
+
+        if (vos_nv_getValidity(VNV_TPC_PDADC_OFFSETS, &itemIsValid) ==
             VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
@@ -635,7 +635,7 @@ VOS_STATUS vos_nv_open(void)
                     goto error;
             }
         }
-        if (vos_nv_getValidity(VNV_RSSI_CHANNEL_OFFSETS, &itemIsValid) == 
+        if (vos_nv_getValidity(VNV_RSSI_CHANNEL_OFFSETS, &itemIsValid) ==
            VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
@@ -646,8 +646,8 @@ VOS_STATUS vos_nv_open(void)
                     goto error;
             }
         }
-    
-        if (vos_nv_getValidity(VNV_HW_CAL_VALUES, &itemIsValid) == 
+
+        if (vos_nv_getValidity(VNV_HW_CAL_VALUES, &itemIsValid) ==
          VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
@@ -658,7 +658,7 @@ VOS_STATUS vos_nv_open(void)
             }
         }
 
-        if (vos_nv_getValidity(VNV_FW_CONFIG, &itemIsValid) == 
+        if (vos_nv_getValidity(VNV_FW_CONFIG, &itemIsValid) ==
          VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
@@ -669,59 +669,59 @@ VOS_STATUS vos_nv_open(void)
             }
         }
 
-        if (vos_nv_getValidity(VNV_ANTENNA_PATH_LOSS, &itemIsValid) == 
+        if (vos_nv_getValidity(VNV_ANTENNA_PATH_LOSS, &itemIsValid) ==
          VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
             {
                 if(vos_nv_read( VNV_ANTENNA_PATH_LOSS,
-                  (v_VOID_t *)&pnvEFSTable->halnv.tables.antennaPathLoss[0], NULL, 
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.antennaPathLoss[0], NULL,
                 sizeof(tANI_S16)*NUM_RF_CHANNELS ) != VOS_STATUS_SUCCESS)
                     goto error;
             }
         }
-        if (vos_nv_getValidity(VNV_PACKET_TYPE_POWER_LIMITS, &itemIsValid) == 
+        if (vos_nv_getValidity(VNV_PACKET_TYPE_POWER_LIMITS, &itemIsValid) ==
          VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
             {
-                if(vos_nv_read( VNV_PACKET_TYPE_POWER_LIMITS, 
-                  (v_VOID_t *)&pnvEFSTable->halnv.tables.pktTypePwrLimits[0], NULL, 
+                if(vos_nv_read( VNV_PACKET_TYPE_POWER_LIMITS,
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.pktTypePwrLimits[0], NULL,
                 sizeof(tANI_S16)*NUM_802_11_MODES*NUM_RF_CHANNELS ) != VOS_STATUS_SUCCESS)
                     goto error;
             }
         }
 
-        if (vos_nv_getValidity(VNV_OFDM_CMD_PWR_OFFSET, &itemIsValid) == 
+        if (vos_nv_getValidity(VNV_OFDM_CMD_PWR_OFFSET, &itemIsValid) ==
          VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
             {
-                if(vos_nv_read( VNV_OFDM_CMD_PWR_OFFSET, 
-                  (v_VOID_t *)&pnvEFSTable->halnv.tables.ofdmCmdPwrOffset, NULL, 
+                if(vos_nv_read( VNV_OFDM_CMD_PWR_OFFSET,
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.ofdmCmdPwrOffset, NULL,
                                 sizeof(sOfdmCmdPwrOffset)) != VOS_STATUS_SUCCESS)
                     goto error;
             }
         }
 
-        if (vos_nv_getValidity(VNV_TX_BB_FILTER_MODE, &itemIsValid) == 
+        if (vos_nv_getValidity(VNV_TX_BB_FILTER_MODE, &itemIsValid) ==
          VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
             {
-               if(vos_nv_read(VNV_TX_BB_FILTER_MODE, 
-                  (v_VOID_t *)&pnvEFSTable->halnv.tables.txbbFilterMode, NULL, 
+               if(vos_nv_read(VNV_TX_BB_FILTER_MODE,
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.txbbFilterMode, NULL,
                 sizeof(sTxBbFilterMode)) != VOS_STATUS_SUCCESS)
                    goto error;
             }
         }
-        if (vos_nv_getValidity(VNV_TABLE_VIRTUAL_RATE, &itemIsValid) == 
+        if (vos_nv_getValidity(VNV_TABLE_VIRTUAL_RATE, &itemIsValid) ==
          VOS_STATUS_SUCCESS)
         {
             if (itemIsValid == VOS_TRUE)
             {
-               if(vos_nv_read(VNV_TABLE_VIRTUAL_RATE, 
-                  (v_VOID_t *)&pnvEFSTable->halnv.tables.pwrOptimum_virtualRate, NULL, 
+               if(vos_nv_read(VNV_TABLE_VIRTUAL_RATE,
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.pwrOptimum_virtualRate, NULL,
                 sizeof(gnvEFSTable->halnv.tables.pwrOptimum_virtualRate)) != VOS_STATUS_SUCCESS)
                    goto error;
             }
@@ -1267,11 +1267,11 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            }
            break;
        case VNV_FW_CONFIG:
-       
+
            itemSize = sizeof(gnvEFSTable->halnv.tables.fwConfig);
-       
+
            if(bufferSize != itemSize) {
-       
+
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                  itemSize);
@@ -1494,11 +1494,11 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
             }
             break;
         case VNV_FW_CONFIG:
-        
+
            itemSize = sizeof(gnvEFSTable->halnv.tables.fwConfig);
-        
+
            if(bufferSize != itemSize) {
-        
+
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                  itemSize);
@@ -1559,7 +1559,7 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
                 memcpy(&gnvEFSTable->halnv.tables.txbbFilterMode,inputVoidBuffer,bufferSize);
             }
             break;
-            
+
 
         case VNV_TABLE_VIRTUAL_RATE:
             itemSize = sizeof(gnvEFSTable->halnv.tables.pwrOptimum_virtualRate);
@@ -1614,7 +1614,7 @@ VOS_STATUS vos_nv_getChannelListWithPower(tChannelListWithPower *channels20MHz /
 {
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     int i, count;
-    
+
     //TODO: Dont want to use pMac here...can we instead store the curRegDomain in NV
     // or pass it as a parameter to NV from SME?
 
@@ -1646,7 +1646,7 @@ VOS_STATUS vos_nv_getChannelListWithPower(tChannelListWithPower *channels20MHz /
         //center channels for 2.4 Ghz 40 MHz channels
         for( i = RF_CHAN_BOND_3; i <= RF_CHAN_BOND_11; i++ )
         {
-            
+
             if( regChannels[i].enabled )
             {
                 channels40MHz[count].chanId = rfChannels[i].channelNum;
@@ -1656,7 +1656,7 @@ VOS_STATUS vos_nv_getChannelListWithPower(tChannelListWithPower *channels20MHz /
         //center channels for 5 Ghz 40 MHz channels
         for( i = RF_CHAN_BOND_38; i <= RF_CHAN_BOND_163; i++ )
         {
-            
+
             if( regChannels[i].enabled )
             {
                 channels40MHz[count].chanId = rfChannels[i].channelNum;
@@ -1724,7 +1724,7 @@ VOS_STATUS vos_nv_getSupportedChannels( v_U8_t *p20MhzChannels, int *pNum20MhzCh
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_readDefaultCountryTable( uNvTables *tableData )
 {
-   
+
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    memcpy(&tableData->defaultCountryTable, &pnvEFSTable->halnv.tables.defaultCountryTable, sizeof(sDefaultCountry));
    pr_info("DefaultCountry is %c%c\n",
@@ -1734,7 +1734,7 @@ VOS_STATUS vos_nv_readDefaultCountryTable( uNvTables *tableData )
 }
 
 /**------------------------------------------------------------------------
-  \brief vos_nv_getBuffer - 
+  \brief vos_nv_getBuffer -
   \param pBuffer  - to return the buffer address
               pSize     - buffer size.
   \return status of the NV read operation
@@ -1751,7 +1751,7 @@ VOS_STATUS vos_nv_getNVBuffer(v_VOID_t **pNvBuffer,v_SIZE_t *pSize)
 }
 
 /**------------------------------------------------------------------------
-  \brief vos_nv_setRegDomain - 
+  \brief vos_nv_setRegDomain -
   \param clientCtxt  - Client Context, Not used for PRIMA
               regId  - Regulatory Domain ID
   \return status set REG domain operation
@@ -1791,7 +1791,7 @@ VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId)
 }
 
 /**------------------------------------------------------------------------
-  \brief vos_nv_getChannelEnabledState - 
+  \brief vos_nv_getChannelEnabledState -
   \param rfChannel  - input channel enum to know evabled state
   \return eNVChannelEnabledType enabled state for channel
              * enabled

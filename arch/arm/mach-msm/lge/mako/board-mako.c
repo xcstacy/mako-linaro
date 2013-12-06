@@ -1688,7 +1688,7 @@ static void __init apq8064_init_buses(void)
 		&msm_bus_8064_mm_fabric_pdata;
 	msm_bus_8064_sys_fpb.dev.platform_data = &msm_bus_8064_sys_fpb_pdata;
 	msm_bus_8064_cpss_fpb.dev.platform_data = &msm_bus_8064_cpss_fpb_pdata;
-} 
+}
 
 static struct platform_device apq8064_device_ext_dsv_load_vreg __devinitdata = {
 	.name	= GPIO_REGULATOR_DEV_NAME,

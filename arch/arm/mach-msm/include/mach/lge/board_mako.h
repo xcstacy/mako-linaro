@@ -89,5 +89,5 @@
 #define C_910K_USB_MA       1500//[ORG]500
 #define C_NONE_USB_MA       500
 #endif
-	
+
 #endif // __ASM_ARCH_MSM_BOARD_MAKO_H

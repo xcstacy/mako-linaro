@@ -138,14 +138,14 @@ static void lm3530_backlight_on(struct i2c_client *client, int level)
 		lm3530_hw_reset(client);
 
 		lm3530_write_reg(dev->client, 0xA0, 0x00);
-		lm3530_write_reg(dev->client, 0x10, 
-			(pwm_status == BL_OFF) ? dev->max_current & 0x1F 
+		lm3530_write_reg(dev->client, 0x10,
+			(pwm_status == BL_OFF) ? dev->max_current & 0x1F
                                : dev->max_current );
 	}
 
 	if (first_boot) {
-		lm3530_write_reg(dev->client, 0x10, 
-			(pwm_status == BL_OFF) ? dev->max_current & 0x1F 
+		lm3530_write_reg(dev->client, 0x10,
+			(pwm_status == BL_OFF) ? dev->max_current & 0x1F
                                : dev->max_current );
 		first_boot = false;
 	}

@@ -195,10 +195,10 @@ EXPORT_SYMBOL(msm_cpufreq_set_freq_limits);
 unsigned int get_cur_max(unsigned int cpu)
 {
 	struct cpu_freq *limit = &per_cpu(cpu_freq_info, cpu);
-  
+
 	if (unlikely(!limit->limits_init))
 		msm_cpufreq_limits_init();
-    
+
 	return limit->allowed_max;
 }
 

@@ -127,7 +127,7 @@ tStaRateMode limGetStaRateMode(tANI_U8 dot11Mode);
 void            limTeardownInfraBss(tpAniSirGlobal,tpPESession);
 void            limRestorePreReassocState(tpAniSirGlobal,
                                           tSirResultCodes,
-                                          tANI_U16,tpPESession); 
+                                          tANI_U16,tpPESession);
 void            limPostReassocFailure(tpAniSirGlobal,
                                       tSirResultCodes,
                                       tANI_U16,tpPESession);
@@ -144,7 +144,7 @@ void            limCheckAndAnnounceJoinSuccess(tpAniSirGlobal,
 void limUpdateReAssocGlobals(tpAniSirGlobal pMac,
                                     tpSirAssocRsp pAssocRsp,tpPESession psessionEntry);
 
-void limUpdateAssocStaDatas(tpAniSirGlobal pMac, 
+void limUpdateAssocStaDatas(tpAniSirGlobal pMac,
                                 tpDphHashNode pStaDs,tpSirAssocRsp pAssocRsp,tpPESession psessionEntry);
 void
 limFillSupportedRatesInfo(

@@ -39,21 +39,21 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-/** ------------------------------------------------------------------------- * 
-    ------------------------------------------------------------------------- *  
+/** ------------------------------------------------------------------------- *
+    ------------------------------------------------------------------------- *
     \file ccmApi.h
-  
+
     \brief Exports and types for the Common Config Module (CCM)
-  
-    $Id$ 
-  
-  
+
+    $Id$
+
+
     Copyright (C) 2006 Airgo Networks, Incorporated
 
     This file contains all the interfaces for thge Platform Abstration Layer
-    functions.  It is intended to be included in all modules that are using 
+    functions.  It is intended to be included in all modules that are using
     the PAL interfaces.
-  
+
    ========================================================================== */
 #ifndef CCMAPI_H__
 #define CCMAPI_H__

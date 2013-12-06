@@ -41,7 +41,7 @@
 
 /*
  * Woodside Networks, Inc proprietary. All rights reserved.
- * File:        $Header: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/include/aniSsmEapol.h#1 $ 
+ * File:        $Header: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/include/aniSsmEapol.h#1 $
  * Contains declarations of various utilities for EAPoL frame
  * parsing and creation.
  * range.
@@ -79,7 +79,7 @@
 #define SNAP_HEADER_SIZE   8
 
 #define ANI_EAPOL_KEY_DESC_TYPE_LEGACY_RC4   1
-// JEZ20041012 This needs to be fixed.  This needs to support BOTH 
+// JEZ20041012 This needs to be fixed.  This needs to support BOTH
 // the older WPA Key Descriptor type of 254 AS WELL AS the newer
 // Key Descriptor type of 2
 #define ANI_EAPOL_KEY_DESC_TYPE_RSN        254
@@ -189,8 +189,8 @@ aniEapolWriteStart(tAniPacket *packet,
  * @return ANI_OK if the operation succeeds
  */
 int
-aniEapolWriteEapPacket(tAniPacket *eapPacket, 
-                       tAniMacAddr dstMac, 
+aniEapolWriteEapPacket(tAniPacket *eapPacket,
+                       tAniMacAddr dstMac,
                        tAniMacAddr srcMac);
 
 /**
@@ -198,7 +198,7 @@ aniEapolWriteEapPacket(tAniPacket *eapPacket,
  *
  * FUNCTION:
  * Parses an EAPoL frame to the first level of headers (no EAP
- * headers are parsed). 
+ * headers are parsed).
  *
  * NOTE: This is a non-destructive read, that is the
  * headers are not stripped off the packet. However, any additional
@@ -216,10 +216,10 @@ aniEapolWriteEapPacket(tAniPacket *eapPacket,
  * @return the non-negative length of the EAPOL payload if the operation
  * succeeds
  */
-int 
+int
 aniEapolParse(tAniPacket *packet,
-              v_U8_t **dstMac, 
-              v_U8_t **srcMac, 
+              v_U8_t **dstMac,
+              v_U8_t **srcMac,
               v_U8_t **type);
 
 /**
@@ -249,8 +249,8 @@ aniEapolParse(tAniPacket *packet,
 int
 aniEapolWriteKey(v_U32_t cryptHandle,
                  tAniPacket *packet,
-                 tAniMacAddr dstMac, 
-                 tAniMacAddr srcMac, 
+                 tAniMacAddr dstMac,
+                 tAniMacAddr srcMac,
                  int descType,
                  void *keyDescData,
                  v_U8_t *micKey,

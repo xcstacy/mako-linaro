@@ -144,7 +144,7 @@ void cpudl_set(struct cpudl *cp, int cpu, u64 dl, int is_valid)
 	if (!is_valid) {
 		/* remove item */
 		if (old_idx == IDX_INVALID) {
-			/* 
+			/*
 			 * Nothing to remove if old_idx was invalid.
 			 * This could happen if a rq_offline_dl is
 			 * called for a CPU without -dl tasks running.

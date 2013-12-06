@@ -43,7 +43,7 @@
 //
 //  File:         utilsApi.cc
 //
-//  Description:  Implemention of a few utility routines. 
+//  Description:  Implemention of a few utility routines.
 //
 //  Author:       Neelay Das
 //

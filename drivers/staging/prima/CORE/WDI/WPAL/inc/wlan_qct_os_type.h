@@ -43,17 +43,17 @@
 #define __WLAN_QCT_OS_TYPE_H
 
 /**=========================================================================
-  
+
   \file  wlan_qct_pal_type.h
-  
+
   \brief define basi types PAL exports. wpt = (Wlan Pal Type)
-               
+
    Definitions for platform dependent. This is for Linux/Android
-  
+
    Copyright 2010 (c) Qualcomm, Incorporated.  All Rights Reserved.
-   
+
    Qualcomm Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 
@@ -71,7 +71,7 @@ typedef wpt_uint8 wpt_byte;
 
 typedef signed char wpt_int8;
 
-typedef wpt_uint8 wpt_boolean; 
+typedef wpt_uint8 wpt_boolean;
 
 typedef unsigned long long wpt_uint64;
 

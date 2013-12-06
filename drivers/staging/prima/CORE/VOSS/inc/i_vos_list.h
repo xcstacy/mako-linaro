@@ -43,15 +43,15 @@
 #define __I_VOS_LIST_H
 
 /**=========================================================================
-  
+
   \file  i_vos_list.h
-  
-  \brief Linux-specific definitions for vOSS lists 
-  
+
+  \brief Linux-specific definitions for vOSS lists
+
    Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
-   
+
    Qualcomm Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -66,14 +66,14 @@
 #include <linux/mutex.h>
 #include <linux/kernel.h>
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
 typedef struct vos_linux_list_s
