@@ -66,6 +66,7 @@ delete_recursive("/data/.siyah");
 
 package_extract_dir("system", "/system");
 set_perm_recursive(0, 0, 0755, 0644, "/system/lib/modules");
+set_perm(0, 0, 06755, "/system/xbin/bash");
 
 package_extract_file("boot.img", "/dev/block/platform/msm_sdcc.1/by-name/boot");
 
