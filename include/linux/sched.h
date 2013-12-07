@@ -2224,7 +2224,6 @@ extern unsigned int sysctl_sched_rt_period;
 extern int sysctl_sched_rt_runtime;
 
 extern int sysctl_sched_dl_runtime;
-extern inline struct dl_bw *dl_bw_of(int i);
 
 int sched_rt_handler(struct ctl_table *table, int write,
 		void __user *buffer, size_t *lenp,
