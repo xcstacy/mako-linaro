@@ -98,10 +98,10 @@ static struct msm_mpdec_tuners {
 #endif
 };
 
-static unsigned int NwNs_Threshold[8] = {12, 0, 20, 7, 25, 10, 0, 18};
+static unsigned int NwNs_Threshold[8] = {6, 0, 10, 3, 12, 5, 0, 9};
 static unsigned int TwTs_Threshold[8] = {140, 0, 140, 190, 140, 190, 0, 190};
 
-extern unsigned int get_rq_info(void);
+//extern unsigned int get_rq_info(void);
 extern unsigned long acpuclk_get_rate(int);
 
 unsigned int state = MSM_MPDEC_IDLE;
@@ -160,7 +160,7 @@ static unsigned long get_slowest_cpu_rate(void) {
 	return slow_rate;
 }
 
-static void mpdec_cpu_up(int cpu) {
+static void __ref mpdec_cpu_up(int cpu) {
 	if (!cpu_online(cpu)) {
 		mutex_lock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
 		cpu_up(cpu);
@@ -213,7 +213,7 @@ static int mp_decision(void) {
 	}
 	total_time += this_time;
 
-	rq_depth = get_rq_info();
+//	rq_depth = get_rq_info();
 	nr_cpu_online = num_online_cpus();
 
 	if (nr_cpu_online) {
