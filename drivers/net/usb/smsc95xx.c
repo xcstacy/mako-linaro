@@ -119,7 +119,7 @@ static int smsc95xx_write_reg(struct usbnet *dev, u32 index, u32 data)
 static int smsc95xx_phy_wait_not_busy(struct usbnet *dev)
 {
 	unsigned long start_time = jiffies;
-	u32 val;
+	u32 val = 0;
 
 	do {
 		smsc95xx_read_reg(dev, MII_ADDR, &val);
@@ -133,7 +133,7 @@ static int smsc95xx_phy_wait_not_busy(struct usbnet *dev)
 static int smsc95xx_mdio_read(struct net_device *netdev, int phy_id, int idx)
 {
 	struct usbnet *dev = netdev_priv(netdev);
-	u32 val, addr;
+	u32 val = 0, addr = 0;
 
 	mutex_lock(&dev->phy_mutex);
 
@@ -167,7 +167,7 @@ static void smsc95xx_mdio_write(struct net_device *netdev, int phy_id, int idx,
 				int regval)
 {
 	struct usbnet *dev = netdev_priv(netdev);
-	u32 val, addr;
+	u32 val = 0, addr = 0;
 
 	mutex_lock(&dev->phy_mutex);
 
@@ -196,7 +196,7 @@ static void smsc95xx_mdio_write(struct net_device *netdev, int phy_id, int idx,
 static int smsc95xx_wait_eeprom(struct usbnet *dev)
 {
 	unsigned long start_time = jiffies;
-	u32 val;
+	u32 val = 0;
 
 	do {
 		smsc95xx_read_reg(dev, E2P_CMD, &val);
@@ -216,7 +216,7 @@ static int smsc95xx_wait_eeprom(struct usbnet *dev)
 static int smsc95xx_eeprom_confirm_not_busy(struct usbnet *dev)
 {
 	unsigned long start_time = jiffies;
-	u32 val;
+	u32 val = 0;
 
 	do {
 		smsc95xx_read_reg(dev, E2P_CMD, &val);
@@ -234,8 +234,8 @@ static int smsc95xx_eeprom_confirm_not_busy(struct usbnet *dev)
 static int smsc95xx_read_eeprom(struct usbnet *dev, u32 offset, u32 length,
 				u8 *data)
 {
-	u32 val;
-	int i, ret;
+	u32 val = 0;
+	int i = 0, ret = 0;
 
 	BUG_ON(!dev);
 	BUG_ON(!data);
@@ -264,8 +264,8 @@ static int smsc95xx_read_eeprom(struct usbnet *dev, u32 offset, u32 length,
 static int smsc95xx_write_eeprom(struct usbnet *dev, u32 offset, u32 length,
 				 u8 *data)
 {
-	u32 val;
-	int i, ret;
+	u32 val = 0;
+	int i = 0, ret = 0;
 
 	BUG_ON(!dev);
 	BUG_ON(!data);
