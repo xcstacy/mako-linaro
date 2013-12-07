@@ -1637,7 +1637,7 @@ ret:
  */
 bool do_notify_parent(struct task_struct *tsk, int sig)
 {
-	struct siginfo info;
+	struct siginfo info = {};
 	unsigned long flags;
 	struct sighand_struct *psig;
 	bool autoreap = false;
@@ -1740,7 +1740,7 @@ bool do_notify_parent(struct task_struct *tsk, int sig)
 static void do_notify_parent_cldstop(struct task_struct *tsk,
 				     bool for_ptracer, int why)
 {
-	struct siginfo info;
+	struct siginfo info = {};
 	unsigned long flags;
 	struct task_struct *parent;
 	struct sighand_struct *sighand;
@@ -2824,7 +2824,7 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const sigset_t __user *, uthese,
  */
 SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
 {
-	struct siginfo info;
+	struct siginfo info = {};
 
 	info.si_signo = sig;
 	info.si_errno = 0;
