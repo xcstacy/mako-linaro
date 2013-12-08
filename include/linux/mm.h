@@ -19,10 +19,6 @@
 #include <linux/bit_spinlock.h>
 #include <linux/shrinker.h>
 
-#ifdef CONFIG_PKSM
-#include <linux/pksm.h>
-#endif
-
 struct mempolicy;
 struct anon_vma;
 struct file_ra_state;

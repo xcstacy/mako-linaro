@@ -108,9 +108,6 @@ enum pageflags {
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 	PG_compound_lock,
 #endif
-#ifdef CONFIG_PKSM
-	PG_pksm,
-#endif
 	__NR_PAGEFLAGS,
 
 	/* Filesystems */
@@ -275,11 +272,6 @@ TESTSCFLAG(HWPoison, hwpoison)
 #else
 PAGEFLAG_FALSE(HWPoison)
 #define __PG_HWPOISON 0
-#endif
-
-#ifdef CONFIG_PKSM
-PAGEFLAG(PKSM, pksm) __CLEARPAGEFLAG(PKSM, pksm)
-TESTSCFLAG(PKSM, pksm)
 #endif
 
 u64 stable_page_flags(struct page *page);
@@ -489,7 +481,6 @@ static inline int PageTransTail(struct page *page)
 	 1 << PG_writeback | 1 << PG_reserved | \
 	 1 << PG_slab	 | 1 << PG_swapcache | 1 << PG_active | \
 	 1 << PG_unevictable | __PG_MLOCKED | __PG_HWPOISON | \
-	  1 << PG_pksm | \
 	 __PG_COMPOUND_LOCK)
 
 /*

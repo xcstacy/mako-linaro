@@ -159,10 +159,6 @@ struct page {
 	 */
 	void *shadow;
 #endif
-#ifdef CONFIG_PKSM
-	void *pksm;
-#endif
-
 }
 /*
  * The struct page can be forced to be double word aligned so that atomic ops
