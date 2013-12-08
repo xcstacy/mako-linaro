@@ -17,8 +17,10 @@
 #include <linux/spinlock.h>
 #include <mach/socinfo.h>
 #include <mach/scm.h>
+#ifdef CONFIG_MSM_KGSL_INTERACTIVE_GOV
 #include <linux/module.h>
 #include <linux/jiffies.h>
+#endif
 
 #include "kgsl.h"
 #include "kgsl_pwrscale.h"
@@ -26,9 +28,13 @@
 
 #define TZ_GOVERNOR_PERFORMANCE 0
 #define TZ_GOVERNOR_ONDEMAND    1
+#ifdef CONFIG_MSM_KGSL_INTERACTIVE_GOV
 #define TZ_GOVERNOR_INTERACTIVE	2
+#endif
 
+#ifdef CONFIG_MSM_KGSL_INTERACTIVE_GOV
 #define DEBUG 0
+#endif
 struct tz_priv {
 	int governor;
 	struct kgsl_power_stats bin;
@@ -73,6 +79,7 @@ static int __secure_tz_entry3(u32 cmd, u32 val1, u32 val2,
 	return ret;
 }
 
+#ifdef CONFIG_MSM_KGSL_INTERACTIVE_GOV
 unsigned long window_time = 0;
 unsigned long sample_time_ms = 100;
 unsigned int up_threshold = 50;
@@ -81,6 +88,7 @@ unsigned int down_threshold = 25;
 module_param(sample_time_ms, long, 0664);
 module_param(up_threshold, int, 0664);
 module_param(down_threshold, int, 0664);
+#endif
 
 static ssize_t tz_governor_show(struct kgsl_device *device,
 				struct kgsl_pwrscale *pwrscale,
@@ -91,8 +99,10 @@ static ssize_t tz_governor_show(struct kgsl_device *device,
 
 	if (priv->governor == TZ_GOVERNOR_ONDEMAND)
 		ret = snprintf(buf, 10, "ondemand\n");
+#ifdef CONFIG_MSM_KGSL_INTERACTIVE_GOV		
     	else if (priv->governor == TZ_GOVERNOR_INTERACTIVE)
 		ret = snprintf(buf, 11, "interactive\n");
+#endif
 	else
 		ret = snprintf(buf, 13, "performance\n");
 
@@ -116,8 +126,10 @@ static ssize_t tz_governor_store(struct kgsl_device *device,
 
 	if (!strncmp(str, "ondemand", 8))
 		priv->governor = TZ_GOVERNOR_ONDEMAND;
+#ifdef CONFIG_MSM_KGSL_INTERACTIVE_GOV
     	else if (!strncmp(str, "interactive", 11))
 		priv->governor = TZ_GOVERNOR_INTERACTIVE;
+#endif
 	else if (!strncmp(str, "performance", 11))
 		priv->governor = TZ_GOVERNOR_PERFORMANCE;
 
@@ -226,8 +238,12 @@ static int tz_init(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 	priv = pwrscale->priv = kzalloc(sizeof(struct tz_priv), GFP_KERNEL);
 	if (pwrscale->priv == NULL)
 		return -ENOMEM;
-
+#ifdef CONFIG_MSM_KGSL_INTERACTIVE_GOV
 	priv->governor = TZ_GOVERNOR_INTERACTIVE;
+#else
+        priv->idle_dcvs = 0;
+        priv->governor = TZ_GOVERNOR_ONDEMAND;
+#endif
 	spin_lock_init(&tz_lock);
 	kgsl_pwrscale_policy_add_files(device, pwrscale, &tz_attr_group);
 	for (i = 0; i < pwr->num_pwrlevels - 1; i++) {
