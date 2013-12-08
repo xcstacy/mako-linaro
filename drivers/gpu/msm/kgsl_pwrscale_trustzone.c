@@ -275,6 +275,8 @@ static int tz_init(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 {
 	int i = 0, j = 1, ret = 0;
 	struct tz_priv *priv;
+        struct kgsl_pwrctrl *pwr = &device->pwrctrl;
+        unsigned int tz_pwrlevels[KGSL_MAX_PWRLEVELS + 1];
 
 	gpu_stats.total_time_ms = 0;
 	gpu_stats.busy_time_ms = 0;
