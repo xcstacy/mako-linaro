@@ -98,7 +98,7 @@ static struct msm_mpdec_tuners {
 #endif
 };
 
-static unsigned int NwNs_Threshold[8] = {6, 0, 10, 3, 12, 5, 0, 9};
+static unsigned int NwNs_Threshold[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 static unsigned int TwTs_Threshold[8] = {140, 0, 140, 190, 140, 190, 0, 190};
 
 //extern unsigned int get_rq_info(void);
