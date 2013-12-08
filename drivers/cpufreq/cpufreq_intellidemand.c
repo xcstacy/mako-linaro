@@ -81,8 +81,9 @@
 #define SUP_HIGH_SLOW_UP_DUR (5)
 #define SUP_FREQ_LEVEL (14)
 
+#ifdef CONFIG_EARLYSUSPEND
 static unsigned long stored_sampling_rate;
-
+#endif
 
 #if defined(SMART_UP_PLUS)
 static unsigned int SUP_THRESHOLD_STEPS[SUP_MAX_STEP] = {75, 85, 90};
