@@ -55,26 +55,19 @@ static int  msm_thermal_cpufreq_callback(struct notifier_block *nfb,
 {
 	struct cpufreq_policy *policy = data;
 
-	switch (event) {
-	case CPUFREQ_INCOMPATIBLE:
+	if (event != CPUFREQ_ADJUST)
+		return 0;
+
+	if (policy->max != cpu_stats.limited_max_freq)
 		cpufreq_verify_within_limits(policy, 0,
 				cpu_stats.limited_max_freq);
-		break;
-	}
-	return NOTIFY_OK;
+
+	return 0;
 }
 
 static struct notifier_block msm_thermal_cpufreq_notifier = {
 	.notifier_call = msm_thermal_cpufreq_callback,
 };
-
-static void update_cpu_max_freq(int cpu, uint32_t max_freq)
-{
-	cpufreq_update_policy(cpu);
-
-	pr_info("%s: Setting cpu%d max frequency to %d\n",
-				KBUILD_MODNAME, cpu, cpu_stats.limited_max_freq);
-}
 
 static void limit_cpu_freqs(uint32_t max_freq)
 {
@@ -87,18 +80,13 @@ static void limit_cpu_freqs(uint32_t max_freq)
     
 	/* Update new limits */
 	get_online_cpus();
-	for_each_online_cpu(cpu) 
-		update_cpu_max_freq(cpu, max_freq);
-	put_online_cpus();
-}
-
-void update_max_freq_buffer(void)
-{
-	if (!cpu_stats.throttling)
+	for_each_online_cpu(cpu)
 	{
-		cpufreq_get_policy(&cpu_stats.policy, 0);
-		cpu_stats.max_freq = cpu_stats.policy.max;
+		cpufreq_update_policy(cpu);
+		pr_info("%s: Setting cpu%d max frequency to %d\n",
+				KBUILD_MODNAME, cpu, cpu_stats.limited_max_freq);
 	}
+	put_online_cpus();
 }
 
 static void check_temp(struct work_struct *work)
@@ -110,42 +98,31 @@ static void check_temp(struct work_struct *work)
 	tsens_get_temp(&tsens_dev, &temp);
 
 	/* most of the time the device is not hot so reschedule early */
-	if (likely(temp <= temp_threshold))
+	if (likely(temp < temp_threshold))
 	{
 		if (unlikely(cpu_stats.throttling))
 		{
-			limit_cpu_freqs(cpu_stats.max_freq);
+			cpufreq_get_policy(&cpu_stats.policy, 0);
+			limit_cpu_freqs(cpu_stats.policy.cpuinfo.max_freq);
 			cpu_stats.throttling = false;
 		}
 
 		goto reschedule;
 	}
 
-	update_max_freq_buffer();
-
 	if (temp >= (temp_threshold + 20))
-	{
-		cpu_stats.throttling = true;
 		limit_cpu_freqs(cpu_stats.thermal_steps[0]);
-	}
 
 	else if (temp >= (temp_threshold + 15))
-	{
-		cpu_stats.throttling = true;
 		limit_cpu_freqs(cpu_stats.thermal_steps[1]);
-	}
     
 	else if (temp >= (temp_threshold + 10))
-	{
-		cpu_stats.throttling = true;
 		limit_cpu_freqs(cpu_stats.thermal_steps[2]);
-	}
 
-	else if (temp >= (temp_threshold + 5))
-	{
-		cpu_stats.throttling = true;
+	else if (temp >= temp_threshold)
 		limit_cpu_freqs(cpu_stats.thermal_steps[3]);
-	}
+
+	cpu_stats.throttling = true;
 
 reschedule:
 	queue_delayed_work(wq, &check_temp_work, HZ);
@@ -159,7 +136,7 @@ int __devinit msm_thermal_init(struct msm_thermal_data *pdata)
 	BUG_ON(pdata->sensor_id >= TSENS_MAX_SENSORS);
 	memcpy(&msm_thermal_info, pdata, sizeof(struct msm_thermal_data));
     
-	wq = alloc_workqueue("msm_thermal_workqueue", WQ_FREEZABLE | WQ_UNBOUND, 0);
+	wq = alloc_workqueue("msm_thermal_workqueue", WQ_UNBOUND, 0);
     
     if (!wq)
         return -ENOMEM;
