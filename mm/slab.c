@@ -1727,12 +1727,17 @@ void __init kmem_cache_init_late(void)
 
 	slab_state = UP;
 
+	g_cpucache_up = LATE;
+
 	/* 6) resize the head arrays to their final sizes */
 	mutex_lock(&slab_mutex);
 	list_for_each_entry(cachep, &slab_caches, list)
 		if (enable_cpucache(cachep, GFP_NOWAIT))
 			BUG();
 	mutex_unlock(&slab_mutex);
+
+	/* Annotate slab for lockdep -- annotate the malloc caches */
+	init_lock_keys();
 
 	/* Annotate slab for lockdep -- annotate the malloc caches */
 	init_lock_keys();

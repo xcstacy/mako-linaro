@@ -38,7 +38,7 @@ long ext4_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		handle_t *handle = NULL;
 		int err, migrate = 0;
 		struct ext4_iloc iloc;
-		unsigned int oldflags;
+		unsigned int oldflags, mask, i;
 		unsigned int jflag;
 
 		if (!inode_owner_or_capable(inode))
@@ -114,8 +114,10 @@ long ext4_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		err = ext4_reserve_inode_write(handle, inode, &iloc);
 		if (err)
 			goto flags_err;
+
 		//declare variables
 		int mask, i;
+
 		for (i = 0, mask = 1; i < 32; i++, mask <<= 1) {
 			if (!(mask & EXT4_FL_USER_MODIFIABLE))
 				continue;
@@ -262,7 +264,6 @@ group_extend_out:
 		err = ext4_move_extents(filp, donor_filp, me.orig_start,
 					me.donor_start, me.len, &me.moved_len);
 		mnt_drop_write_file(filp);
-		mnt_drop_write(filp->f_path.mnt);
 
 		if (copy_to_user((struct move_extent __user *)arg,
 				 &me, sizeof(me)))
