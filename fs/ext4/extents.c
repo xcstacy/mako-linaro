@@ -744,8 +744,7 @@ ext4_ext_find_extent(struct inode *inode, ext4_lblk_t block,
 		path[ppos].p_hdr = eh;
 		i--;
 
-		ret = need_to_validate ? ext4_ext_check(inode, eh, i) : 0;
-		if (ret < 0)
+		if (ext4_ext_check_block(inode, eh, i, bh))
 			goto err;
 	}
 
