@@ -3721,7 +3721,7 @@ unsigned long scale_rt_power(int cpu)
 	struct rq *rq = cpu_rq(cpu);
 	u64 total, available;
 
-	total = sched_avg_period() + (rq_clock(rq) - age_stamp);
+	total = sched_avg_period() + (rq_clock(rq) - rq->age_stamp);
 
 	if (unlikely(total < rq->rt_avg)) {
 		/* Ensures that power won't end up being negative */
